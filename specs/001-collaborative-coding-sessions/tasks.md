@@ -24,18 +24,18 @@ Tasks 29 and 30 (wave 6), and 34 and 36 (wave 7), each add one line to `backend/
 
 - [x] **1** — `[P]` Backend skeleton: config and clock
 - [x] **2** — `[P]` Frontend skeleton
-- [ ] **3** — `[P]` Sandbox image and harness
-- [ ] **4** — `[P]` Signature parsing and test validation (pure)
-- [ ] **5** — `[P]` Grading (pure)
-- [ ] **6** — `[P]` Test stack: Postgres compose and DB fixture
-- [ ] **7** — `[P]` `scripts/check.sh` with lint, format, secret scan and tests
-- [ ] **8** — `[P]` Frontend typed API client
-- [ ] **9** — `[P]` DB pool, migration runner and schema
-- [ ] **10** — `[P]` Runner service
-- [ ] **11** — `[P]` Keycloak test realm and `login_as` fixture
-- [ ] **12** — `[P]` Frontend auth: `useMe` and role guard
-- [ ] **13** — `[P]` Problem list page with search and start session
-- [ ] **14** — `[P]` Frontend Yjs WebSocket provider
+- [x] **3** — `[P]` Sandbox image and harness
+- [x] **4** — `[P]` Signature parsing and test validation (pure)
+- [x] **5** — `[P]` Grading (pure)
+- [x] **6** — `[P]` Test stack: Postgres compose and DB fixture
+- [x] **7** — `[P]` `scripts/check.sh` with lint, format, secret scan and tests
+- [x] **8** — `[P]` Frontend typed API client
+- [x] **9** — `[P]` DB pool, migration runner and schema
+- [x] **10** — `[P]` Runner service
+- [x] **11** — `[P]` Keycloak test realm and `login_as` fixture
+- [x] **12** — `[P]` Frontend auth: `useMe` and role guard
+- [x] **13** — `[P]` Problem list page with search and start session
+- [x] **14** — `[P]` Frontend Yjs WebSocket provider
 - [ ] **15** — `[P]` OIDC login, callback, logout, `/api/me`
 - [ ] **16** — `[P]` Problems repository
 - [ ] **17** — `[P]` Runner client
@@ -106,7 +106,7 @@ Tasks 29 and 30 (wave 6), and 34 and 36 (wave 7), each add one line to `backend/
 - **Acceptance:**
   - *FR-22 — code that prints `a` and returns `a * b`.* The result has `value` 6 for args (2, 3), and the printed text appears nowhere in the output. *Code raising `ValueError("bad")`* gives `error` with message `bad` and a traceback that has only `solution.py` frames.
   - *FR-24 — an infinite loop* gives `timeout`. *Unbounded allocation* gives `memory`.
-  - *FR-25 — network connection, writing outside `/scratch`, reading a host path, `os.system`, a fork bomb.* Each fails inside the case. Reading `/usr/lib/python3.12/os.py` succeeds.
+  - *FR-25 — network connection, writing outside `/scratch`, reading a host path, `os.system`, a fork bomb.* Each fails inside the case. Reading `/usr/local/lib/python3.12/os.py` succeeds.
 
 ### 4. `[P]` Signature parsing and test validation (pure)
 

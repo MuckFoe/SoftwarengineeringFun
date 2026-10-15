@@ -1,0 +1,33 @@
+{
+  "realm": "collab-test",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "editor", "description": "May create, edit and delete problems (FR-2)" },
+      { "name": "admin", "description": "May reactivate stale sessions (FR-31)" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "collab-coding",
+      "name": "Collaborative coding (tests)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://testserver/*"],
+      "webOrigins": ["+"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://testserver/*"
+      }
+    }
+  ]
+}

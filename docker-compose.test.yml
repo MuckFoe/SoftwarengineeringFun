@@ -1,0 +1,65 @@
+# Services for the integration tests (plan.md "Test strategy").
+#
+#   export TEST_DB_PASSWORD=<any random value>   # never committed (constitution rule 7)
+#   docker compose -f docker-compose.test.yml up -d --wait
+#   (cd backend && uv run pytest)
+#
+# TEST_DB_PORT (default 55432) is the host port Postgres is published on.
+name: collab-coding-test
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:?set TEST_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:${TEST_DB_PORT:-55432}:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  # Runner (plan: Runner contract). Starts sandbox containers on the host's Docker, so
+  # the sandbox image must exist there first: docker build -t collab-sandbox:test sandbox
+  # SANDBOX_RUNTIME=runsc enables gVisor where it is installed. TEST_RUNNER_PORT
+  # (default 58080) is the host port.
+  runner:
+    build: runner
+    environment:
+      SANDBOX_IMAGE: ${SANDBOX_IMAGE:-collab-sandbox:test}
+      SANDBOX_RUNTIME: ${SANDBOX_RUNTIME:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "127.0.0.1:${TEST_RUNNER_PORT:-58080}:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  # Keycloak with the test realm (backend/tests/keycloak/realm.json, no credentials).
+  # TEST_KEYCLOAK_ADMIN_PASSWORD is the master admin's password, any random value; the
+  # fixtures use it to create users and rotate the client secret per run.
+  # TEST_KEYCLOAK_PORT (default 58180) is the host port.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.7
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${TEST_KEYCLOAK_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${TEST_KEYCLOAK_ADMIN_PASSWORD:?set TEST_KEYCLOAK_ADMIN_PASSWORD}
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./backend/tests/keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+    ports:
+      - "127.0.0.1:${TEST_KEYCLOAK_PORT:-58180}:8080"
+    healthcheck:
+      # The image has no curl; ask the management port's readiness probe over bash.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
