@@ -22,8 +22,8 @@ Tasks 29 and 30 (wave 6), and 34 and 36 (wave 7), each add one line to `backend/
 
 ## Checklist
 
-- [ ] **1** — `[P]` Backend skeleton: config and clock
-- [ ] **2** — `[P]` Frontend skeleton
+- [x] **1** — `[P]` Backend skeleton: config and clock
+- [x] **2** — `[P]` Frontend skeleton
 - [ ] **3** — `[P]` Sandbox image and harness
 - [ ] **4** — `[P]` Signature parsing and test validation (pure)
 - [ ] **5** — `[P]` Grading (pure)
