@@ -1,0 +1,14 @@
+{
+  "title": "Average Or Nothing",
+  "description": "Return the average of a list of floats, or null if the list is empty.",
+  "signature": "def average(xs: list[float]) -> float | None",
+  "topic": "math",
+  "difficulty": "medium",
+  "tests": [
+    { "args": [[2.0, 4.0]], "expected": 3.0 },
+    { "args": [[]], "expected": null },
+    { "args": [[5.0]], "expected": 5.0 },
+    { "args": [[1.0, 2.0, 3.0, 4.0]], "expected": 2.5 },
+    { "args": [[-2.0, 2.0]], "expected": 0.0 }
+  ]
+}

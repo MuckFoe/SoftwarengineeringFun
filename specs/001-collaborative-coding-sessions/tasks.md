@@ -36,35 +36,35 @@ Tasks 29 and 30 (wave 6), and 34 and 36 (wave 7), each add one line to `backend/
 - [x] **12** — `[P]` Frontend auth: `useMe` and role guard
 - [x] **13** — `[P]` Problem list page with search and start session
 - [x] **14** — `[P]` Frontend Yjs WebSocket provider
-- [ ] **15** — `[P]` OIDC login, callback, logout, `/api/me`
-- [ ] **16** — `[P]` Problems repository
-- [ ] **17** — `[P]` Runner client
-- [ ] **18** — `[P]` Runs repository
-- [ ] **19** — `[P]` Sessions repository
-- [ ] **20** — `[P]` Problem form page: create, edit, delete
-- [ ] **21** — `[P]` Collaborative editor and presence list
-- [ ] **22** — `[P]` Role dependencies
-- [ ] **23** — `[P]` Server-side collaborative document
-- [ ] **24** — `[P]` Runs service: execute, grade, persist
-- [ ] **25** — `[P]` Seed loader
-- [ ] **26** — `[P]` Stale-session job
-- [ ] **27** — `[P]` Session join page: name, not found, full, stale, reactivate
-- [ ] **28** — `[P]` Run panel, results and problem switcher
-- [ ] **29** — `[P]` Problems API: create, search, public get
-- [ ] **30** — `[P]` Sessions REST: create, status, reactivate
-- [ ] **31** — `[P]` Starter problems 1–10
-- [ ] **32** — `[P]` Starter problems 11–20
-- [ ] **33** — `[P]` Problems API: edit, update, delete
-- [ ] **34** — `[P]` WebSocket join, presence, cap and name validation
-- [ ] **35** — `[P]` WebSocket Yjs sync and awareness relay
-- [ ] **36** — `[P]` App routing and serving the built frontend
-- [ ] **37** — `[P]` Production compose and Dockerfiles
-- [ ] **38** — `[P]` WebSocket problem switching and deleted-problem handling
-- [ ] **39** — `[P]` End-to-end setup and sign-in tests
-- [ ] **40** — `[P]` WebSocket run
-- [ ] **41** — `[P]` Persistence across leave and restart
-- [ ] **42** — `[P]` Test-secrecy sweep
-- [ ] **43** — `[P]` End-to-end collaboration tests
+- [x] **15** — `[P]` OIDC login, callback, logout, `/api/me`
+- [x] **16** — `[P]` Problems repository
+- [x] **17** — `[P]` Runner client
+- [x] **18** — `[P]` Runs repository
+- [x] **19** — `[P]` Sessions repository
+- [x] **20** — `[P]` Problem form page: create, edit, delete
+- [x] **21** — `[P]` Collaborative editor and presence list
+- [x] **22** — `[P]` Role dependencies
+- [x] **23** — `[P]` Server-side collaborative document
+- [x] **24** — `[P]` Runs service: execute, grade, persist
+- [x] **25** — `[P]` Seed loader
+- [x] **26** — `[P]` Stale-session job
+- [x] **27** — `[P]` Session join page: name, not found, full, stale, reactivate
+- [x] **28** — `[P]` Run panel, results and problem switcher
+- [x] **29** — `[P]` Problems API: create, search, public get
+- [x] **30** — `[P]` Sessions REST: create, status, reactivate
+- [x] **31** — `[P]` Starter problems 1–10
+- [x] **32** — `[P]` Starter problems 11–20
+- [x] **33** — `[P]` Problems API: edit, update, delete
+- [x] **34** — `[P]` WebSocket join, presence, cap and name validation
+- [x] **35** — `[P]` WebSocket Yjs sync and awareness relay
+- [x] **36** — `[P]` App routing and serving the built frontend
+- [x] **37** — `[P]` Production compose and Dockerfiles
+- [x] **38** — `[P]` WebSocket problem switching and deleted-problem handling
+- [x] **39** — `[P]` End-to-end setup and sign-in tests
+- [x] **40** — `[P]` WebSocket run
+- [x] **41** — `[P]` Persistence across leave and restart
+- [x] **42** — `[P]` Test-secrecy sweep
+- [x] **43** — `[P]` End-to-end collaboration tests
 
 ## Tasks
 

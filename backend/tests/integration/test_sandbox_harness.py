@@ -256,3 +256,57 @@ def test_nfr2_file_size_is_capped(sandbox_image):
         fh.write(b"x" * (2 * 1024 * 1024))
     """
     assert_blocked(run_one(sandbox_image, attempt(body)))
+
+
+# The other cases' arguments are the tests' inputs: a case must not be able to reach them.
+OTHER_CASES_CODE = """
+import gc
+import sys
+
+def f(x):
+    prefix = "TO" + "KEN-"  # built at runtime, so the source holds no full token
+
+    def hit(v):
+        return isinstance(v, str) and v.startswith(prefix) and v not in (prefix, x)
+
+    found = set()
+    for o in gc.get_objects():
+        try:
+            items = o.values() if isinstance(o, dict) else o
+            if isinstance(o, (dict, list, tuple, set)):
+                found.update(v for v in items if hit(v))
+        except Exception:
+            pass
+    frame = sys._getframe()
+    while frame:
+        found.update(v for v in frame.f_locals.values() if hit(v))
+        frame = frame.f_back
+    return sorted(found)
+"""
+
+
+def test_fr25_a_case_cannot_reach_the_other_cases_inputs(sandbox_image):
+    results = run_cases(
+        sandbox_image, OTHER_CASES_CODE, "f", [["TOKEN-1"], ["TOKEN-2"], ["TOKEN-3"]]
+    )
+
+    assert results == [{"status": "ok", "value": []}] * 3
+
+
+def test_fr25_a_case_cannot_read_the_harness_process_memory(sandbox_image):
+    code = """
+    import os
+
+    def f():
+        pid = os.getppid()
+        try:
+            with open(f"/proc/{pid}/maps") as fh:
+                start = int(fh.readline().split("-")[0], 16)
+            with open(f"/proc/{pid}/mem", "rb") as mem:
+                mem.seek(start)
+                mem.read(16)
+        except OSError:
+            return "blocked"
+        return "read"
+    """
+    assert run_one(sandbox_image, code) == {"status": "ok", "value": "blocked"}

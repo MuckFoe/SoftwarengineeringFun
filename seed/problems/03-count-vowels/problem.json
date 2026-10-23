@@ -1,0 +1,14 @@
+{
+  "title": "Count Vowels",
+  "description": "Count how many characters in a lowercase string are vowels (a, e, i, o, u).",
+  "signature": "def count_vowels(s: str) -> int",
+  "topic": "strings",
+  "difficulty": "easy",
+  "tests": [
+    { "args": ["hello"], "expected": 2 },
+    { "args": ["sky"], "expected": 0 },
+    { "args": [""], "expected": 0 },
+    { "args": ["aeiou"], "expected": 5 },
+    { "args": ["programming"], "expected": 3 }
+  ]
+}

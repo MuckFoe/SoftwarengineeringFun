@@ -1,5 +1,6 @@
 .DS_Store
 .env
+e2e/.keycloak-state.json
 __pycache__/
 *.pyc
 .venv/

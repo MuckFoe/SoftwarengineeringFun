@@ -1,0 +1,14 @@
+{
+  "title": "Largest Of Three",
+  "description": "Return the largest of three integers.",
+  "signature": "def max_of_three(a: int, b: int, c: int) -> int",
+  "topic": "math",
+  "difficulty": "easy",
+  "tests": [
+    { "args": [1, 2, 3], "expected": 3 },
+    { "args": [3, 2, 1], "expected": 3 },
+    { "args": [5, 5, 5], "expected": 5 },
+    { "args": [-1, -2, -3], "expected": -1 },
+    { "args": [0, -5, 2], "expected": 2 }
+  ]
+}

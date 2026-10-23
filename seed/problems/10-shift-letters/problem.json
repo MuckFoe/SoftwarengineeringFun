@@ -1,0 +1,15 @@
+{
+  "title": "Shift Letters",
+  "description": "Shift every lowercase English letter in a string forward by a given amount, wrapping from z back to a. Leave all other characters unchanged.",
+  "signature": "def shift_letters(s: str, amount: int) -> str",
+  "topic": "strings",
+  "difficulty": "medium",
+  "tests": [
+    { "args": ["abc", 1], "expected": "bcd" },
+    { "args": ["xyz", 3], "expected": "abc" },
+    { "args": ["hello world!", 2], "expected": "jgnnq yqtnf!" },
+    { "args": ["", 5], "expected": "" },
+    { "args": ["z", 1], "expected": "a" },
+    { "args": ["abc", 0], "expected": "abc" }
+  ]
+}

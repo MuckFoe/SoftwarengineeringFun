@@ -65,6 +65,7 @@ docker-compose.yml, docker-compose.test.yml, scripts/check.sh
   - `/api/auth/login` redirects to Keycloak. If the user already has a Keycloak SSO session, Keycloak returns them immediately without a prompt, which covers FR-2b.
   - On callback, the ID token and access token are validated against Keycloak's JWKS. Roles are read from `realm_access.roles` (role names come from config: `ROLE_EDITOR=editor`, `ROLE_ADMIN=admin`).
   - `{sub, name, roles, exp}` is stored in a signed, HttpOnly, SameSite=Lax cookie (Starlette `SessionMiddleware`, key from env). Nothing is stored server-side and no password is ever seen (NFR-8).
+  - `exp` is this site's sign-in expiry, not the access token's: sign-in time plus `SESSION_MAX_AGE_SECONDS` (default 3600), also the cookie's signed max age. `current_user` treats a session past `exp` as signed out, so a role removed in Keycloak stops working here within that time. Signing in again is silent while the Keycloak SSO session lasts (FR-2b).
 - **Hidden tests (NFR-5, FR-22, FR-25):**
   - Expected values never leave the `api` process. Only the *arguments* are sent to the runner, and grading compares outside the sandbox.
   - Public problem endpoints and every WebSocket message are built from types that have no test fields.
@@ -73,18 +74,21 @@ docker-compose.yml, docker-compose.test.yml, scripts/check.sh
   - The server applies every incoming update to its `pycrdt` doc, rebroadcasts it to the other connections, and appends it to `yjs_update`.
   - Awareness (display name and cursor) is relayed and not persisted.
 - **Presence and the cap of 5 (FR-12, FR-12a, FR-13, FR-15):**
+  - A join reserves its seat in the hub (`try_reserve`) before its first `await`, so concurrent joins can't all pass the cap.
   - The `name` query parameter is trimmed and must be 1–30 characters. Otherwise the server sends `error: invalid_name` and closes with 4422, and the join page shows the reason and lets the user enter another name. The page checks the same rule first.
   - The hub keeps the live connections per session in memory. That is valid because there is one api process; this constraint is recorded in `config.py` and in compose (`--workers 1`).
   - A sixth connection gets an `error: session_full` message and is closed with code 4403.
   - Dropped connections, where a browser goes away without a close frame, are detected with WebSocket pings every 2 s and a 3 s pong timeout (uvicorn `ws_ping_interval` / `ws_ping_timeout`). Presence is then updated within about 5 s (FR-15).
 - **One run at a time (FR-26):**
-  - A partial unique index on `run(session_id) WHERE status = 'running'` makes the database refuse a second insert. The loser gets `error: run_in_progress`.
+  - An in-memory set of running sessions is checked and claimed with no `await` in between, so concurrent requests can't both start one. A partial unique index on `run(session_id) WHERE status = 'running'` makes the database refuse a second insert as the backstop. The loser gets `error: run_in_progress`.
+  - The run itself is a task with its own DB connection, so the participant who started it keeps editing meanwhile (FR-18). `welcome.run_in_progress` tells someone joining mid-run.
+  - If the runner fails, everyone gets `run_failed`, because everyone saw `run_started`.
 - **Run pipeline (FR-21 to FR-25):**
   1. `runs.service` reads the current `Y.Text` from the server doc and loads the problem's tests.
   2. It sends `{code, function_name, cases: [args…]}` to `runner`.
   3. `runner` executes `docker run --rm -i --network none --read-only --tmpfs /scratch:size=16m,mode=1777 --memory 256m --memory-swap 256m --pids-limit 64 --cpus 1 --cap-drop ALL --security-opt no-new-privileges --user 65534:65534 [--runtime runsc] sandbox:<pinned>`, passing the JSON on stdin with a 20 s outer timeout.
-  4. `harness.py` (`python -I`) forks one child per case:
-     - The child points fds 1 and 2 at `/dev/null`, so printed output is discarded (FR-22).
+  4. `harness.py` (`python -I`) makes itself non-dumpable (`prctl(PR_SET_DUMPABLE, 0)`), then starts a fresh interpreter per case (`harness.py --case`), given only that case's arguments on stdin. A fork would inherit every case's arguments, which are the tests' inputs. Being non-dumpable keeps the parent's `/proc/<pid>/mem` unreadable (FR-25, NFR-5):
+     - The case process points fds 0, 1 and 2 at `/dev/null`, so printed output is discarded (FR-22).
      - It sets `RLIMIT_CPU` 2 s, `RLIMIT_AS` 256 MB, `RLIMIT_FSIZE` 1 MB and `RLIMIT_NPROC`.
      - It `exec`s the code compiled as `solution.py`, calls the function, and writes `{status, value | error_message, traceback}` to a pipe. Tracebacks are trimmed to `solution.py` frames.
      - The parent kills the child after 3 s of wall time (`timeout`). A `MemoryError` or a kill under the memory limit becomes `memory`.
@@ -103,16 +107,20 @@ docker-compose.yml, docker-compose.test.yml, scripts/check.sh
 - **Invite ID (FR-11, NFR-4):** `secrets.token_urlsafe(16)`, which is 128 bits.
 - **Seed (FR-6):**
   - `seed/problems/` holds 20 folders. Each has a `problem.json` (`title`, `description`, `signature`, `topic`, `difficulty`, `tests`) and a `reference.py`.
-  - `problems/seed.py` inserts any missing ones at startup (idempotent, `is_starter = true`).
+  - `problems/seed.py` runs at every startup and inserts each folder not loaded before (`is_starter = true`). A starter problem added to `seed/problems/` later therefore appears with the next deploy; the seed is baked into the api image, so a new one always comes with a restart.
+  - A problem's folder name is its identity, `problem.seed_key` (migration `0002_seed_key.sql`, unique). A folder whose key is already in the DB is never loaded again, even if editors renamed or deleted that problem (FR-7, FR-8). So seed folders must never be renamed: a renamed folder loads as a new problem.
+  - Starter rows seeded before `seed_key` existed are adopted once, by title.
+  - Every folder is validated before anything is inserted, and the inserts share one transaction.
   - `topic` and `difficulty` exist only in the seed files, for the FR-6 test and authoring. They aren't stored or shown, because the spec doesn't ask for that.
 
-## Data model (`migrations/0001_init.sql`)
+## Data model (`migrations/0001_init.sql`, `0002_seed_key.sql`)
 
 ```
 problem(id uuid pk, title text, description text, signature text,
         function_name text, params jsonb, return_type text,
         is_starter bool, created_by_sub text null, created_by_name text null,
-        created_at, updated_at, deleted_at null)
+        created_at, updated_at, deleted_at null,
+        seed_key text null unique)   -- seed folder name; starters only
 problem_test(id uuid pk, problem_id fk, position int, args jsonb, expected jsonb)
 
 session(id uuid pk, invite_id text unique, current_problem_id fk,
@@ -165,11 +173,12 @@ server → client
   {type:"welcome", participant_id, current_problem: Problem, problems: {pid: {accepted, last_run?: RunResult}},
    presence: [Participant], run_in_progress: bool}
   {type:"presence", participants: [{id, name}]}
-  {type:"problem_switched", problem: Problem, by: name}
+  {type:"problem_switched", problem: Problem, by: name, state: {accepted, last_run?: RunResult}}
   {type:"problem_deleted", problem_id}
   {type:"run_started", run_id, by: name}
   {type:"run_finished", run: RunResult}
-  {type:"error", code: "run_in_progress" | "problem_deleted" | "session_full" | "stale" | "invalid_name" | "infra_error"}
+  {type:"run_failed", run_id, reason: "infra_error"}
+  {type:"error", code: "run_in_progress" | "problem_deleted" | "problem_not_found" | "session_full" | "stale" | "invalid_name"}
 client → server
   {type:"run"}
   {type:"switch_problem", problem_id}

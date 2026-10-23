@@ -1,0 +1,17 @@
+{
+  "title": "Word Frequency Count",
+  "description": "Count how many times each word appears in a list of words, returned as a mapping from word to count.",
+  "signature": "def word_frequency(words: list[str]) -> dict[str, int]",
+  "topic": "hash maps",
+  "difficulty": "easy",
+  "tests": [
+    { "args": [["a", "b", "a"]], "expected": { "a": 2, "b": 1 } },
+    { "args": [[]], "expected": {} },
+    { "args": [["x"]], "expected": { "x": 1 } },
+    {
+      "args": [["cat", "dog", "cat", "cat", "dog"]],
+      "expected": { "cat": 3, "dog": 2 }
+    },
+    { "args": [["z", "z", "z"]], "expected": { "z": 3 } }
+  ]
+}

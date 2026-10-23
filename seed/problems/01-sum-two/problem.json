@@ -1,0 +1,14 @@
+{
+  "title": "Sum Two Numbers",
+  "description": "Return the sum of two integers.",
+  "signature": "def add(a: int, b: int) -> int",
+  "topic": "math",
+  "difficulty": "easy",
+  "tests": [
+    { "args": [2, 3], "expected": 5 },
+    { "args": [0, 0], "expected": 0 },
+    { "args": [-1, 1], "expected": 0 },
+    { "args": [-5, -7], "expected": -12 },
+    { "args": [1000000, 1], "expected": 1000001 }
+  ]
+}

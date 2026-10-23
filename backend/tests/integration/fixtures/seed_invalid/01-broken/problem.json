@@ -1,0 +1,8 @@
+{
+  "title": "Broken problem",
+  "description": "Has an unannotated parameter.",
+  "signature": "def add(a, b: int) -> int",
+  "topic": "math",
+  "difficulty": "easy",
+  "tests": [{ "args": [2, 3], "expected": 5 }]
+}

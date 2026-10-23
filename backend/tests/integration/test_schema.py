@@ -65,8 +65,8 @@ async def test_migrations_applied_twice_apply_once(db: asyncpg.Connection) -> No
     second = await app_db.migrate(db)
 
     assert second == []
-    recorded = await db.fetch("select name from schema_migration")
-    assert [r["name"] for r in recorded] == ["0001_init.sql"]
+    recorded = await db.fetch("select name from schema_migration order by name")
+    assert [r["name"] for r in recorded] == ["0001_init.sql", "0002_seed_key.sql"]
 
 
 async def test_fr27_schema_has_every_table_from_the_plan(migrated: asyncpg.Connection) -> None:

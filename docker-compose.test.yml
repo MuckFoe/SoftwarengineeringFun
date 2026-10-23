@@ -46,6 +46,11 @@ services:
   # TEST_KEYCLOAK_ADMIN_PASSWORD is the master admin's password, any random value; the
   # fixtures use it to create users and rotate the client secret per run.
   # TEST_KEYCLOAK_PORT (default 58180) is the host port.
+  #
+  # KC_HOSTNAME fixes the browser-facing issuer/authorization endpoint at 127.0.0.1, so a
+  # real browser (task 39's Playwright, on the host) can always reach it; backchannel-dynamic
+  # lets a caller behind a different hostname (the api container, via host.docker.internal)
+  # still reach the token/userinfo/jwks endpoints at the host it actually used.
   keycloak:
     image: quay.io/keycloak/keycloak:26.0.7
     command: ["start-dev", "--import-realm"]
@@ -53,6 +58,8 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${TEST_KEYCLOAK_ADMIN_USER:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${TEST_KEYCLOAK_ADMIN_PASSWORD:?set TEST_KEYCLOAK_ADMIN_PASSWORD}
       KC_HEALTH_ENABLED: "true"
+      KC_HOSTNAME: "http://127.0.0.1:${TEST_KEYCLOAK_PORT:-58180}"
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     volumes:
       - ./backend/tests/keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
     ports:

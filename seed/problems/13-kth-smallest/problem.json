@@ -1,0 +1,14 @@
+{
+  "title": "Kth Smallest",
+  "description": "Return the k-th smallest integer (1-indexed) in a list of integers.",
+  "signature": "def kth_smallest(xs: list[int], k: int) -> int",
+  "topic": "sorting",
+  "difficulty": "easy",
+  "tests": [
+    { "args": [[5, 3, 1, 4, 2], 1], "expected": 1 },
+    { "args": [[5, 3, 1, 4, 2], 5], "expected": 5 },
+    { "args": [[5, 3, 1, 4, 2], 3], "expected": 3 },
+    { "args": [[7, 7, 7], 2], "expected": 7 },
+    { "args": [[9, 1], 2], "expected": 9 }
+  ]
+}

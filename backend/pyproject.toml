@@ -28,6 +28,7 @@ select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]  # assertions; placeholder values, not secrets
+"app/**/api.py" = ["B008"]  # FastAPI's Depends(...) in a default is the framework's own idiom
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

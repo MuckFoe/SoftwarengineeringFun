@@ -1,0 +1,15 @@
+{
+  "title": "Palindrome Check",
+  "description": "Return whether a lowercase string reads the same forwards and backwards.",
+  "signature": "def is_palindrome(s: str) -> bool",
+  "topic": "strings",
+  "difficulty": "easy",
+  "tests": [
+    { "args": ["level"], "expected": true },
+    { "args": ["hello"], "expected": false },
+    { "args": [""], "expected": true },
+    { "args": ["a"], "expected": true },
+    { "args": ["abba"], "expected": true },
+    { "args": ["abca"], "expected": false }
+  ]
+}

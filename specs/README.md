@@ -55,7 +55,9 @@ The page loads its markdown renderer from cdnjs, so it needs network access.
 
 | # | Spec | What it requires | Status | Open questions |
 |---|---|---|---|---|
-| 001 | [collaborative-coding-sessions](001-collaborative-coding-sessions/spec.md) | Invite-link sessions (max 5, names ≤30 chars, no account) to live-edit one Python solution together and run it sandboxed against hidden tests; problems managed by SSO users with the editor role, 20-problem starter set; sessions stored durably, marked stale after 30 days (admin reactivates), never deleted | approved | 0 |
+| 001 | [collaborative-coding-sessions](001-collaborative-coding-sessions/spec.md) | Invite-link sessions (max 5, names ≤30 chars, no account) to live-edit one Python solution together and run it sandboxed against hidden tests; problems managed by SSO users with the editor role, 20-problem starter set; sessions stored durably, marked stale after 30 days (admin reactivates), never deleted | validated | 0 |
+| 002 | [problem-descriptions-and-session-chat](002-problem-descriptions-and-session-chat/spec.md) | Every problem gets a required formatted description with inline images (starter set included), shown in sessions; each session gets a plain-text participant chat (≤2000 chars/message) stored durably with the session, read-only when stale | draft | 3 |
+| 003 | [apple-style-ui-overhaul](003-apple-style-ui-overhaul/spec.md) | Full redesign of every screen (incl. spec 002's description and chat) to look and feel like a macOS app per Apple's HIG — system/light/dark appearance with remembered override, sheet-based flows, keyboard shortcuts, desktop ≥1024 px only, WCAG AA, no Apple-owned assets, no change to 001/002 rules | approved | 0 |
 
 **Status** is one of `draft` (written, not approved), `approved` (every
 `[NEEDS CLARIFICATION]` resolved and the spec signed off), `planned`, `in

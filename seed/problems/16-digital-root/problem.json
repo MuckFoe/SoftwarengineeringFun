@@ -1,0 +1,14 @@
+{
+  "title": "Digital Root",
+  "description": "Repeatedly sum the digits of a non-negative integer until a single digit remains, and return that digit.",
+  "signature": "def digital_root(n: int) -> int",
+  "topic": "recursion",
+  "difficulty": "easy",
+  "tests": [
+    { "args": [0], "expected": 0 },
+    { "args": [5], "expected": 5 },
+    { "args": [38], "expected": 2 },
+    { "args": [123], "expected": 6 },
+    { "args": [9875], "expected": 2 }
+  ]
+}

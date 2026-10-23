@@ -1,0 +1,15 @@
+{
+  "title": "Pair Sums To Target",
+  "description": "Given integers sorted in non-decreasing order and a target value, scan inward from both ends: if the pair at the current ends sums to the target, return their two indices; otherwise move the lower end up when the sum is too small, or the upper end down when it is too large. Return an empty list if the ends meet without finding a match.",
+  "signature": "def pair_sum_indices(xs: list[int], target: int) -> list[int]",
+  "topic": "two pointers",
+  "difficulty": "easy",
+  "tests": [
+    { "args": [[1, 2, 3, 4, 6], 6], "expected": [1, 3] },
+    { "args": [[1, 2, 3, 4, 6], 10], "expected": [3, 4] },
+    { "args": [[], 1], "expected": [] },
+    { "args": [[1, 2], 100], "expected": [] },
+    { "args": [[-3, -1, 0, 2, 5], 2], "expected": [0, 4] },
+    { "args": [[5], 5], "expected": [] }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "title": "Valid Brackets",
+  "description": "Return whether a string containing only the characters ()[]{} has matching, properly nested brackets.",
+  "signature": "def is_balanced(s: str) -> bool",
+  "topic": "stacks",
+  "difficulty": "easy",
+  "tests": [
+    { "args": ["()"], "expected": true },
+    { "args": ["()[]{}"], "expected": true },
+    { "args": ["(]"], "expected": false },
+    { "args": ["([)]"], "expected": false },
+    { "args": ["{[()]}"], "expected": true },
+    { "args": [""], "expected": true }
+  ]
+}

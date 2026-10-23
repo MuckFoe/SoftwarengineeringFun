@@ -28,6 +28,10 @@ class Settings:
     runner_url: str
     role_editor: str = "editor"
     role_admin: str = "admin"
+    # How long a sign-in lasts here. A role removed in Keycloak stops working on this site
+    # within this time (NFR-8); signing in again is silent while the Keycloak SSO session
+    # lasts (FR-2b).
+    session_max_age_seconds: int = 3600
     # Site-wide run limits (FR-24, NFR-2): same for every problem.
     case_cpu_seconds: int = 2
     case_wall_seconds: int = 3
@@ -49,4 +53,5 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         runner_url=env["RUNNER_URL"],
         role_editor=env.get("ROLE_EDITOR") or "editor",
         role_admin=env.get("ROLE_ADMIN") or "admin",
+        session_max_age_seconds=int(env.get("SESSION_MAX_AGE_SECONDS") or 3600),
     )

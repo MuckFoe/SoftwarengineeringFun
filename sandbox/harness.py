@@ -4,16 +4,21 @@ Reads `{code, function_name, cases: [[arg, ...], ...]}` as JSON on stdin and wri
 JSON line per case, in order, to stdout:
 `{status: "ok"|"error"|"timeout"|"memory", value?, error_message?, traceback?}`.
 
-Each case runs in its own forked child with output discarded and rlimits applied; the
-parent enforces the wall-time limit. Stdlib only; run as `python -I harness.py`.
+Each case runs in a fresh interpreter (`harness.py --case`), given only that case's
+arguments, with output discarded and rlimits applied; the parent enforces the wall-time
+limit. A fresh process rather than a fork, so a case can't reach the other cases' arguments
+(the tests' inputs) in memory, and the parent is non-dumpable, so a case can't read them
+through `/proc/<ppid>/mem` either (FR-25). Stdlib only; run as `python -I harness.py`.
 """
 
+import ctypes
 import json
 import linecache
 import os
 import resource
 import select
 import signal
+import subprocess
 import sys
 import time
 import traceback
@@ -26,6 +31,7 @@ FILE_SIZE_LIMIT_B = 1024 * 1024
 MAX_RESULT_B = 1024 * 1024
 
 MEMORY_RESULT = b'{"status": "memory"}'
+PR_SET_DUMPABLE = 4
 
 
 def _limit(which: int, value: int, hard: int | None = None) -> None:
@@ -50,7 +56,7 @@ def _write_all(fd: int, data: bytes) -> None:
 
 
 def _child(code: str, function_name: str, args: list, out_fd: int) -> None:
-    """Runs in the forked child. Never returns."""
+    """Runs in the case process. Never returns."""
     try:
         devnull = os.open(os.devnull, os.O_RDWR)
         for fd in (0, 1, 2):
@@ -97,13 +103,32 @@ def _child(code: str, function_name: str, args: list, out_fd: int) -> None:
         os._exit(0)
 
 
+def _make_undumpable() -> None:
+    """Makes this process's `/proc/<pid>` files (memory, fds) unreadable to the cases."""
+    libc = ctypes.CDLL(None, use_errno=True)
+    if libc.prctl(PR_SET_DUMPABLE, 0, 0, 0, 0) != 0:
+        raise OSError(ctypes.get_errno(), "prctl(PR_SET_DUMPABLE) failed")
+
+
+def _case_main() -> None:
+    """`harness.py --case`: reads `{code, function_name, args}` for one case on stdin."""
+    request = json.load(sys.stdin)
+    out_fd = os.dup(1)  # the result pipe; fd 1 itself is pointed at /dev/null
+    _child(request["code"], request["function_name"], request["args"], out_fd)
+
+
 def run_case(code: str, function_name: str, args: list) -> dict:
-    read_fd, write_fd = os.pipe()
-    pid = os.fork()
-    if pid == 0:
-        os.close(read_fd)
-        _child(code, function_name, args, write_fd)
-    os.close(write_fd)
+    proc = subprocess.Popen(  # noqa: S603
+        [sys.executable, "-I", os.path.abspath(__file__), "--case"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    proc.stdin.write(
+        json.dumps({"code": code, "function_name": function_name, "args": args}).encode()
+    )
+    proc.stdin.close()
+    read_fd = proc.stdout.fileno()
 
     chunks: list[bytes] = []
     size = 0
@@ -124,13 +149,10 @@ def run_case(code: str, function_name: str, args: list) -> dict:
         size += len(chunk)
         if size > MAX_RESULT_B:
             break
-    os.close(read_fd)
+    proc.stdout.close()
     if timed_out or size > MAX_RESULT_B:
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-    _, status = os.waitpid(pid, 0)
+        proc.kill()
+    returncode = proc.wait()
 
     if timed_out:
         return {"status": "timeout"}
@@ -140,8 +162,8 @@ def run_case(code: str, function_name: str, args: list) -> dict:
         return json.loads(b"".join(chunks))
     except ValueError:
         pass
-    if os.WIFSIGNALED(status):
-        sig = os.WTERMSIG(status)
+    if returncode < 0:
+        sig = -returncode
         if sig == signal.SIGXCPU:
             return {"status": "timeout"}
         if sig == signal.SIGKILL:
@@ -156,6 +178,10 @@ def run_case(code: str, function_name: str, args: list) -> dict:
 
 
 def main() -> None:
+    if sys.argv[1:] == ["--case"]:
+        _case_main()
+        return
+    _make_undumpable()
     request = json.load(sys.stdin)
     code = request["code"]
     function_name = request["function_name"]

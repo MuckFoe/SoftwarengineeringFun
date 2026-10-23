@@ -118,10 +118,10 @@ export interface ProblemProgress {
 export type WsErrorCode =
   | "run_in_progress"
   | "problem_deleted"
+  | "problem_not_found"
   | "session_full"
   | "stale"
-  | "invalid_name"
-  | "infra_error";
+  | "invalid_name";
 
 export interface WelcomeMessage {
   type: "welcome";
@@ -141,6 +141,8 @@ export interface ProblemSwitchedMessage {
   type: "problem_switched";
   problem: Problem;
   by: string;
+  /** This session's progress on the problem switched to (FR-17). */
+  state: ProblemProgress;
 }
 
 export interface ProblemDeletedMessage {
@@ -159,6 +161,13 @@ export interface RunFinishedMessage {
   run: RunResult;
 }
 
+/** A run that ended without results (the runner failed); everyone saw it start. */
+export interface RunFailedMessage {
+  type: "run_failed";
+  run_id: string;
+  reason: "infra_error";
+}
+
 export interface ErrorMessage {
   type: "error";
   code: WsErrorCode;
@@ -171,6 +180,7 @@ export type ServerMessage =
   | ProblemDeletedMessage
   | RunStartedMessage
   | RunFinishedMessage
+  | RunFailedMessage
   | ErrorMessage;
 
 export interface RunMessage {

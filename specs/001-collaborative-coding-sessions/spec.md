@@ -1,6 +1,6 @@
 # 001 — Collaborative coding sessions
 
-Status: approved
+Status: validated
 
 ## Problem / Why
 

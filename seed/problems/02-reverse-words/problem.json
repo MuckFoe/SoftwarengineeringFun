@@ -1,0 +1,14 @@
+{
+  "title": "Reverse Word Order",
+  "description": "Given a string of words separated by whitespace, return the words in reverse order, joined by single spaces.",
+  "signature": "def reverse_words(s: str) -> str",
+  "topic": "strings",
+  "difficulty": "easy",
+  "tests": [
+    { "args": ["hello world"], "expected": "world hello" },
+    { "args": ["a b c"], "expected": "c b a" },
+    { "args": ["single"], "expected": "single" },
+    { "args": [""], "expected": "" },
+    { "args": ["one two three four"], "expected": "four three two one" }
+  ]
+}

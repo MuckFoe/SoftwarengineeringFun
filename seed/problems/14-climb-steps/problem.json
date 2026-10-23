@@ -1,0 +1,15 @@
+{
+  "title": "Count Ways To Climb",
+  "description": "Given a non-negative number of steps, return the number of distinct ways to climb them taking either 1 or 2 steps at a time.",
+  "signature": "def count_ways(n: int) -> int",
+  "topic": "dynamic programming",
+  "difficulty": "medium",
+  "tests": [
+    { "args": [0], "expected": 1 },
+    { "args": [1], "expected": 1 },
+    { "args": [2], "expected": 2 },
+    { "args": [3], "expected": 3 },
+    { "args": [4], "expected": 5 },
+    { "args": [5], "expected": 8 }
+  ]
+}

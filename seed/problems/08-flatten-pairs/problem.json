@@ -1,0 +1,14 @@
+{
+  "title": "Flatten Pairs",
+  "description": "Given a list of two-element integer lists, return a single flat list containing all the numbers in order.",
+  "signature": "def flatten_pairs(pairs: list[list[int]]) -> list[int]",
+  "topic": "arrays",
+  "difficulty": "easy",
+  "tests": [
+    { "args": [[[1, 2], [3, 4]]], "expected": [1, 2, 3, 4] },
+    { "args": [[]], "expected": [] },
+    { "args": [[[0, 0]]], "expected": [0, 0] },
+    { "args": [[[1, 2], [3, 4], [5, 6]]], "expected": [1, 2, 3, 4, 5, 6] },
+    { "args": [[[-1, -2], [3, -4]]], "expected": [-1, -2, 3, -4] }
+  ]
+}

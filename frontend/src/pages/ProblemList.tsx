@@ -9,7 +9,6 @@ export function ProblemList() {
   const [query, setQuery] = useState("");
   const [problems, setProblems] = useState<ProblemSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
 
   useEffect(() => {
     // Matching is done by the server; a response for an outdated query is dropped.
@@ -32,9 +31,8 @@ export function ProblemList() {
   async function start(problemId: string) {
     try {
       const { invite_id } = await createSession(problemId);
-      const path = `/s/${encodeURIComponent(invite_id)}`;
-      setInviteUrl(new URL(path, window.location.origin).toString());
-      navigate(path);
+      // The session page shows the invite link (FR-11).
+      navigate(`/s/${encodeURIComponent(invite_id)}`);
     } catch {
       setError("Could not start a session.");
     }
@@ -48,11 +46,6 @@ export function ProblemList() {
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} />
       </label>
       {error && <p role="alert">{error}</p>}
-      {inviteUrl && (
-        <p>
-          Invite link: <input readOnly value={inviteUrl} aria-label="Invite link" />
-        </p>
-      )}
       <ul>
         {problems.map((p) => (
           <li key={p.id}>

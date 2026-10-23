@@ -1,0 +1,11 @@
+{
+  "title": "Reverse list",
+  "description": "Reverse a list of integers.",
+  "signature": "def reverse(xs: list[int]) -> list[int]",
+  "topic": "arrays",
+  "difficulty": "easy",
+  "tests": [
+    { "args": [[1, 2, 3]], "expected": [3, 2, 1] },
+    { "args": [[]], "expected": [] }
+  ]
+}
