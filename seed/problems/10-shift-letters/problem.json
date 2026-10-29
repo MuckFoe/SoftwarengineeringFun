@@ -1,6 +1,6 @@
 {
   "title": "Shift Letters",
-  "description": "Shift every lowercase English letter in a string forward by a given amount, wrapping from z back to a. Leave all other characters unchanged.",
+  "description": "## Task\n\nShift every lowercase English letter in a string forward in the alphabet by a given amount, wrapping around from `z` back to `a`. Leave every other character unchanged.\n\n## Input\n\n- `s` — a string. It may be empty and may contain spaces, punctuation and uppercase letters.\n- `amount` — how many places to shift each lowercase letter.\n\n## Output\n\nA string of the same length as `s`, with each lowercase letter shifted.\n\n## Example\n\n```python\nshift_letters(\"pizza?\", 3)  # returns 'slccd?'\nshift_letters(\"cab\", 2)  # returns 'ecd'\n```\n\n## Constraints\n\n- 0 ≤ length of `s` ≤ 10^4\n- 0 ≤ `amount` ≤ 25\n",
   "signature": "def shift_letters(s: str, amount: int) -> str",
   "topic": "strings",
   "difficulty": "medium",

@@ -1,24 +1,13 @@
 // FR-18, FR-19, FR-20, NFR-1: two participants, Ada and Linus, in separate browser
 // contexts editing the same session's code live.
 import type { APIRequestContext, Browser, Page } from "@playwright/test";
-import { expect, openContexts, test } from "./fixtures";
+import { appUrl, createSession, expect, openContexts, test } from "./fixtures";
 
 const PROBLEM_TITLE = "Sum Two Numbers";
 const LATENCY_LIMIT_MS = 500;
 
-async function createSession(request: APIRequestContext): Promise<string> {
-  const found = await request.get(`/api/problems?q=${encodeURIComponent(PROBLEM_TITLE)}`);
-  expect(found.ok()).toBe(true);
-  const problems = (await found.json()) as Array<{ id: string; title: string }>;
-  const problem = problems.find((p) => p.title === PROBLEM_TITLE);
-  if (!problem) throw new Error(`no seeded problem titled ${PROBLEM_TITLE}`);
-  const created = await request.post("/api/sessions", { data: { problem_id: problem.id } });
-  expect(created.status()).toBe(201);
-  return ((await created.json()) as { invite_id: string }).invite_id;
-}
-
 async function join(page: Page, invite: string, name: string): Promise<void> {
-  await page.goto(`/s/${invite}`);
+  await page.goto(appUrl(`/s/${invite}`));
   await page.getByLabel("Your name").fill(name);
   await page.getByRole("button", { name: "Join" }).click();
   await expect(page.locator(".cm-content")).toContainText("pass");
@@ -48,7 +37,7 @@ async function editorShows(page: Page, needle: string): Promise<void> {
 }
 
 async function adaAndLinus(browser: Browser, request: APIRequestContext) {
-  const invite = await createSession(request);
+  const invite = await createSession(request, PROBLEM_TITLE);
   const [adaContext, linusContext] = await openContexts(browser, 2);
   if (!adaContext || !linusContext) throw new Error("could not open two browser contexts");
   const ada = await adaContext.newPage();

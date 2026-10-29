@@ -1,6 +1,6 @@
 {
   "title": "Best Single Trade",
-  "description": "Given a list of daily prices, return the maximum profit achievable from buying on one day and selling on a later day. Return 0 if no profit is possible.",
+  "description": "## Task\n\nGiven a stock's price on each day, find the largest profit from buying on one day and selling on a later day. Only one purchase and one sale are allowed.\n\n## Input\n\n- `prices` — a list of non-negative integers, one price per day, in order. It may be empty.\n\n## Output\n\nAn integer: the largest sell price minus buy price, with the sale after the purchase; 0 if no trade makes a profit.\n\n## Example\n\n```python\nmax_profit([9, 2, 6, 1, 4])  # returns 4\nmax_profit([8, 3])  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `prices` ≤ 10^5\n- 0 ≤ each price ≤ 10^6\n",
   "signature": "def max_profit(prices: list[int]) -> int",
   "topic": "greedy",
   "difficulty": "easy",

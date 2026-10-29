@@ -33,12 +33,18 @@ import pytest
 REALM = "collab-test"
 CLIENT_ID = "collab-coding"
 
-# username -> realm roles (FR-2, FR-2a, FR-31)
-TEST_USERS: dict[str, tuple[str, ...]] = {
-    "editor1": ("editor",),
-    "editor2": ("editor",),
-    "plain1": (),
-    "admin1": ("admin",),
+OTHER_CLIENT_ID = "other-app"
+
+# username -> (realm roles, {client id: client roles}) (FR-2, FR-2a, FR-31; spec 005 FR3).
+# The realm roles of editor1/editor2/admin1 stay until the app reads only its client roles.
+# decoy1 holds the app's role names everywhere except on the app's own client.
+TEST_USERS: dict[str, tuple[tuple[str, ...], dict[str, tuple[str, ...]]]] = {
+    "editor1": (("editor",), {CLIENT_ID: ("editor",)}),
+    "editor2": (("editor",), {CLIENT_ID: ("editor",)}),
+    "plain1": ((), {}),
+    "admin1": (("admin",), {CLIENT_ID: ("admin",)}),
+    "decoy1": (("editor",), {OTHER_CLIENT_ID: ("editor", "admin")}),
+    "appadmin1": ((), {CLIENT_ID: ("admin",)}),
 }
 
 _LOGIN_FORM = re.compile(r'<form[^>]*id="kc-form-login"[^>]*action="([^"]+)"', re.S)
@@ -50,7 +56,8 @@ class TestUser:
 
     username: str
     password: str = field(repr=False)
-    roles: tuple[str, ...]
+    roles: tuple[str, ...]  # realm roles
+    client_roles: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 @dataclass
@@ -118,6 +125,12 @@ def _create_user(admin: httpx.Client, user: TestUser) -> None:
     if user.roles:
         roles = [admin.get(f"/roles/{name}").raise_for_status().json() for name in user.roles]
         admin.post(f"/users/{user_id}/role-mappings/realm", json=roles).raise_for_status()
+    for client_id, names in user.client_roles.items():
+        (client,) = admin.get("/clients", params={"clientId": client_id}).json()
+        base = f"/clients/{client['id']}/roles"
+        roles = [admin.get(f"{base}/{name}").raise_for_status().json() for name in names]
+        mapping = f"/users/{user_id}/role-mappings/clients/{client['id']}"
+        admin.post(mapping, json=roles).raise_for_status()
 
 
 @pytest.fixture(scope="session")
@@ -128,8 +141,8 @@ def keycloak() -> Iterator[Keycloak]:
         rotated = admin.post(f"/clients/{client['id']}/client-secret")
         rotated.raise_for_status()
         users = {
-            name: TestUser(name, secrets.token_urlsafe(24), roles)
-            for name, roles in TEST_USERS.items()
+            name: TestUser(name, secrets.token_urlsafe(24), roles, dict(client_roles))
+            for name, (roles, client_roles) in TEST_USERS.items()
         }
         for user in users.values():
             _create_user(admin, user)
@@ -137,8 +150,10 @@ def keycloak() -> Iterator[Keycloak]:
         try:
             yield Keycloak(base, REALM, CLIENT_ID, rotated.json()["value"], users)
         finally:
-            for name in users:
-                _delete_user(admin, name)
+            # A fresh token: the admin token from setup expires after 60 s; the suite runs longer.
+            with _admin_client() as cleanup:
+                for name in users:
+                    _delete_user(cleanup, name)
 
 
 def _loopback_is_secure(kc: httpx.Client) -> Callable[[httpx.Response], None]:

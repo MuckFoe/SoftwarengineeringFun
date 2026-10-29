@@ -1,6 +1,6 @@
 {
   "title": "Merge Overlapping Ranges",
-  "description": "Given a list of [start, end] integer ranges, merge all ranges that overlap or touch (one starts exactly where another ends) and return the merged ranges sorted by start.",
+  "description": "## Task\n\nMerge every group of ranges that overlap or touch into one range. Two ranges touch when one starts exactly where the other ends.\n\n## Input\n\n- `ranges` — a list of `[start, end]` pairs of integers with `start ≤ end`, in any order. It may be empty.\n\n## Output\n\nA list of merged `[start, end]` pairs, sorted by `start`, none of which overlap or touch.\n\n## Example\n\n```python\nmerge_ranges([[6, 9], [1, 3], [2, 4], [9, 12]])  # returns [[1, 4], [6, 12]]\nmerge_ranges([[0, 1]])  # returns [[0, 1]]\n```\n\n## Constraints\n\n- 0 ≤ length of `ranges` ≤ 10^4\n- -10^9 ≤ `start` ≤ `end` ≤ 10^9\n",
   "signature": "def merge_ranges(ranges: list[list[int]]) -> list[list[int]]",
   "topic": "intervals",
   "difficulty": "medium",

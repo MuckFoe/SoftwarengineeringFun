@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect } from "react";
 import { useLocation } from "react-router";
 import { loginUrl } from "../api/client";
+import { Forbidden } from "../pages/Forbidden";
 import { useMe } from "./useMe";
 
 /** Full-page navigation: `/api/auth/login` is a server route, not a client one. */
@@ -34,8 +35,6 @@ export function RequireRole({ role, children, redirect = assignLocation }: Props
   if (state.status === "error") {
     return <p role="alert">Could not check your sign-in. Try reloading the page.</p>;
   }
-  if (!state.me.roles.includes(role)) {
-    return <p role="alert">You lack the {role} role, so you can't do this.</p>;
-  }
+  if (!state.me.roles.includes(role)) return <Forbidden missingRole={role} />;
   return <>{children}</>;
 }

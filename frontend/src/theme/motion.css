@@ -1,0 +1,134 @@
+/*
+ * Motion (FR-4, NFR-4, NFR-5). Nothing lasts longer than 300 ms and nothing blocks input.
+ * Each movement keyframe has a fade-only `*-reduced` twin that replaces it under
+ * prefers-reduced-motion. Components opt in with the `.anim-*` / `.motion-collapse` classes.
+ */
+
+:root {
+  --motion-fast: 150ms;
+  --motion-base: 250ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes row-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes sheet-in-reduced {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popover-in-reduced {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes row-in-reduced {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes row-out-reduced {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.anim-sheet-in {
+  animation: sheet-in var(--motion-base) var(--ease-out) both;
+}
+
+.anim-popover-in {
+  animation: popover-in var(--motion-fast) var(--ease-out) both;
+}
+
+.anim-row-in {
+  animation: row-in var(--motion-base) var(--ease-out) both;
+}
+
+.anim-row-out {
+  animation: row-out var(--motion-fast) var(--ease-in-out) both;
+}
+
+/* Panels (sidebar, inspector, run panel) collapse by width or height. */
+.motion-collapse {
+  transition:
+    width var(--motion-base) var(--ease-in-out),
+    height var(--motion-base) var(--ease-in-out),
+    opacity var(--motion-fast) var(--ease-in-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-sheet-in {
+    animation-name: sheet-in-reduced;
+  }
+  .anim-popover-in {
+    animation-name: popover-in-reduced;
+  }
+  .anim-row-in {
+    animation-name: row-in-reduced;
+  }
+  .anim-row-out {
+    animation-name: row-out-reduced;
+  }
+  .motion-collapse {
+    transition: opacity var(--motion-fast) var(--ease-in-out);
+  }
+}

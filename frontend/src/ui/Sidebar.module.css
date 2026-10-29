@@ -1,0 +1,19 @@
+.sidebar {
+  box-sizing: border-box;
+  width: 220px;
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-2) var(--space-4);
+}
+
+.section + .section {
+  margin-top: var(--space-4);
+}
+
+.title {
+  margin: 0 0 var(--space-1);
+  padding: 0 var(--space-2);
+  font: var(--type-subheadline) var(--font-text);
+  font-weight: 600;
+  color: var(--label-secondary);
+}

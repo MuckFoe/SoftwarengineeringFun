@@ -1,4 +1,7 @@
-"""Tasks 31-32: starter problems 1-20 (`seed/problems/01-...` through `20-...`). FR-6, NFR-3."""
+"""Tasks 31-32: starter problems 1-20 (`seed/problems/01-...` through `20-...`). FR-6, NFR-3.
+
+Spec 002 tasks 8-9: Markdown starter descriptions (FR8, FR9), over the `DESCRIBED` folders.
+"""
 
 import json
 import os
@@ -12,12 +15,17 @@ import asyncpg
 import pytest
 
 from app import db as app_db
+from app.problems.markdown import render_description
 from app.problems.seed import load_seed
 from app.problems.signature import parse_signature, values_equal
 from app.runs.runner_client import execute
 
 SEED_DIR = Path(__file__).resolve().parents[3] / "seed" / "problems"
 RUNNER_URL = os.environ.get("RUNNER_URL", "http://127.0.0.1:58080")
+
+# Folder numbers whose description has been rewritten as sectioned Markdown (spec 002).
+DESCRIBED = range(1, 21)
+SECTIONS = ("Task", "Input", "Output", "Example", "Constraints")
 
 
 @pytest.fixture
@@ -84,6 +92,33 @@ async def test_fr6_a_fresh_install_lists_exactly_20_starter_problems(
 
     await load_seed(migrated, SEED_DIR)
 
-    rows = await migrated.fetch("select is_starter from problem")
+    rows = await migrated.fetch("select is_starter, description from problem")
     assert len(rows) == 20
     assert all(r["is_starter"] for r in rows)
+    assert all(r["description"].strip() for r in rows)  # spec 002 FR8
+
+
+def _described() -> list[Path]:
+    return [f for f in _folders() if int(f.name.split("-", 1)[0]) in DESCRIBED]
+
+
+def test_002_described_range_has_its_folders() -> None:
+    assert len(_described()) == len(DESCRIBED)
+
+
+@pytest.mark.parametrize("folder", _described(), ids=lambda f: f.name)
+def test_002_fr8_starter_description_is_non_empty_with_every_section(folder: Path) -> None:
+    description = json.loads((folder / "problem.json").read_text())["description"]
+    assert description.strip()
+
+    html = render_description(description)
+    for section in SECTIONS:
+        assert f"<h2>{section}</h2>" in html, f"{folder.name} lacks a '{section}' section"
+
+
+@pytest.mark.parametrize("folder", _described(), ids=lambda f: f.name)
+def test_002_fr9_starter_description_does_not_reveal_hidden_test_arguments(folder: Path) -> None:
+    data = json.loads((folder / "problem.json").read_text())
+    for test in data["tests"]:
+        encoded = json.dumps(test["args"])
+        assert encoded not in data["description"], f"{folder.name} reveals {encoded}"

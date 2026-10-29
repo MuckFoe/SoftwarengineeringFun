@@ -1,6 +1,6 @@
 {
   "title": "Word Frequency Count",
-  "description": "Count how many times each word appears in a list of words, returned as a mapping from word to count.",
+  "description": "## Task\n\nCount how many times each word appears in a list of words.\n\n## Input\n\n- `words` — a list of strings. It may be empty, and a word may repeat.\n\n## Output\n\nA dictionary mapping each distinct word to the number of times it appears. An empty dictionary if `words` is empty.\n\n## Example\n\n```python\nword_frequency([\"red\", \"blue\", \"red\"])  # returns {'red': 2, 'blue': 1}\nword_frequency([\"sun\"])  # returns {'sun': 1}\n```\n\n## Constraints\n\n- 0 ≤ length of `words` ≤ 10^4\n- Words are compared exactly: `\"Red\"` and `\"red\"` are different words.\n",
   "signature": "def word_frequency(words: list[str]) -> dict[str, int]",
   "topic": "hash maps",
   "difficulty": "easy",

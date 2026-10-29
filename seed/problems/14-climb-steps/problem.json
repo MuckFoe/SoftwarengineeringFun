@@ -1,6 +1,6 @@
 {
   "title": "Count Ways To Climb",
-  "description": "Given a non-negative number of steps, return the number of distinct ways to climb them taking either 1 or 2 steps at a time.",
+  "description": "## Task\n\nA staircase has `n` steps. Each move climbs either 1 or 2 steps. Count the distinct sequences of moves that reach the top exactly.\n\n## Input\n\n- `n` — the number of steps, zero or more.\n\n## Output\n\nAn integer: the number of distinct ways to climb. With no steps there is exactly one way: making no moves.\n\n## Example\n\n```python\ncount_ways(6)  # returns 13\ncount_ways(7)  # returns 21\n```\n\n## Constraints\n\n- 0 ≤ `n` ≤ 90\n",
   "signature": "def count_ways(n: int) -> int",
   "topic": "dynamic programming",
   "difficulty": "medium",

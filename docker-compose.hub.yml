@@ -1,0 +1,96 @@
+# The app on the project hub (spec 005, plan §3.5), served at /collab/ through the hub's
+# proxy and signed in through the hub's Keycloak; neither runs here. Only `api` joins the
+# hub's network; nothing publishes a host port.
+#   cp .env.hub.example .env.hub   # fill in real values; never commit .env.hub
+#   docker compose -f docker-compose.hub.yml --env-file .env.hub build sandbox
+#   docker compose -f docker-compose.hub.yml --env-file .env.hub up -d --build --wait
+# Memory: 160m + 224m + 64m, plus at most 2 sandboxes of 256m each, stays within 1 GB.
+name: collab
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    mem_limit: 160m
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks: [app]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # Builds and tags the sandbox image `runner` starts per run; never started itself. The
+  # hub's checks want restart and mem_limit on every service; 256m matches the runner's
+  # per-sandbox --memory.
+  sandbox:
+    build: sandbox
+    image: ${SANDBOX_IMAGE}
+    profiles: ["build-only"]
+    restart: unless-stopped
+    mem_limit: 256m
+
+  # Starts sandbox containers on the host's Docker; at most 2 at once (plan §7 D3).
+  runner:
+    build: runner
+    restart: unless-stopped
+    mem_limit: 64m
+    environment:
+      SANDBOX_IMAGE: ${SANDBOX_IMAGE}
+      SANDBOX_RUNTIME: ${SANDBOX_RUNTIME}
+      SANDBOX_MAX_CONCURRENT: "2"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks: [app]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # The api; also serves the frontend, built for APP_BASE_PATH. The hub's proxy reaches
+  # it as collab-api:8000.
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        APP_BASE_PATH: ${APP_BASE_PATH}
+    restart: unless-stopped
+    mem_limit: 224m
+    environment:
+      BASE_PATH: ${BASE_PATH}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
+      OIDC_ISSUER: ${OIDC_ISSUER}
+      OIDC_METADATA_URL: ${OIDC_METADATA_URL}
+      OIDC_CLIENT_ID: collab
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      ROLE_EDITOR: ${ROLE_EDITOR}
+      ROLE_ADMIN: ${ROLE_ADMIN}
+      COOKIE_SECURE: "true"
+      SESSION_COOKIE_KEY: ${SESSION_COOKIE_KEY}
+      SESSION_MAX_AGE_SECONDS: ${SESSION_MAX_AGE_SECONDS}
+      DATABASE_URL: ${DATABASE_URL}
+      RUNNER_URL: http://runner:8080
+    networks:
+      app: {}
+      hub:
+        aliases: [collab-api]
+    depends_on:
+      db:
+        condition: service_healthy
+      runner:
+        condition: service_healthy
+
+networks:
+  app: {}
+  hub:
+    external: true
+
+volumes:
+  db-data: {}

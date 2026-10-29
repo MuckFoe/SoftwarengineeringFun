@@ -1,6 +1,6 @@
 {
   "title": "Digital Root",
-  "description": "Repeatedly sum the digits of a non-negative integer until a single digit remains, and return that digit.",
+  "description": "## Task\n\nAdd up the digits of a number, then the digits of that sum, and so on, until a single digit is left. Return that digit.\n\n## Input\n\n- `n` — a non-negative integer.\n\n## Output\n\nAn integer from 0 to 9.\n\n## Example\n\n```python\ndigital_root(4729)  # returns 4\ndigital_root(99)  # returns 9\n```\n\n## Constraints\n\n- 0 ≤ `n` ≤ 10^18\n",
   "signature": "def digital_root(n: int) -> int",
   "topic": "recursion",
   "difficulty": "easy",

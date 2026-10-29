@@ -1,0 +1,3 @@
+# gitleaks false positives, one fingerprint per line (path:rule:line).
+# A JDBC URL with no credential in it (KC_DB_URL=jdbc:postgresql://db-auth:5432/keycloak).
+specs/004-project-hub-shared-ingress/plan.md:generic-api-key:238

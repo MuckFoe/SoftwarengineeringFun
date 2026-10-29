@@ -13,6 +13,7 @@ import socket
 import subprocess
 import sys
 import textwrap
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -21,6 +22,9 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
+
+from app.runs.runner_client import RunnerUnavailable
+from app.runs.runner_client import execute as client_execute
 
 REPO = Path(__file__).resolve().parents[3]
 SERVICE = REPO / "runner" / "service.py"
@@ -211,3 +215,81 @@ def test_missing_sandbox_image_returns_503(sandbox_image):
     with _local_runner(SANDBOX_IMAGE="collab-sandbox:does-not-exist") as url:
         status, _ = execute(url, "def f():\n    return 1\n", "f", [[]])
         assert status == 503
+
+
+# --- concurrency cap (005 task 5, Memory NFR, plan D3) ------------------------
+
+LOOP = "def f():\n    while True:\n        pass\n"
+
+
+def _in_background(url: str, code: str, cases: list[list]) -> tuple[threading.Thread, list]:
+    out: list = []
+    thread = threading.Thread(target=lambda: out.append(execute(url, code, "f", cases)))
+    thread.start()
+    return thread, out
+
+
+def _wait_for_container() -> None:
+    deadline = time.monotonic() + 10
+    while not runner_containers():
+        assert time.monotonic() < deadline, "first run never started a sandbox"
+        time.sleep(0.05)
+
+
+def test_cap_second_concurrent_run_waits_then_answers_busy(sandbox_image):
+    with _local_runner(SANDBOX_MAX_CONCURRENT="1", SANDBOX_SLOT_WAIT_SECONDS="1") as url:
+        # Two looping cases hold the only slot for ~6 s.
+        first, first_out = _in_background(url, LOOP, [[], []])
+        _wait_for_container()
+        start = time.monotonic()
+        status, body = execute(url, "def f():\n    return 1\n", "f", [[]])
+        elapsed = time.monotonic() - start
+        assert status == 503
+        assert body == {"error": "busy"}
+        assert 1 <= elapsed < 4
+        first.join(timeout=30)
+        assert first_out == [(200, {"cases": [{"status": "timeout"}] * 2})]
+
+
+async def test_cap_busy_maps_to_runner_unavailable_in_the_api_client(sandbox_image):
+    with _local_runner(SANDBOX_MAX_CONCURRENT="1", SANDBOX_SLOT_WAIT_SECONDS="1") as url:
+        first, _ = _in_background(url, LOOP, [[], []])
+        _wait_for_container()
+        with pytest.raises(RunnerUnavailable):
+            await client_execute(url, "def f():\n    return 1\n", "f", [[]])
+        first.join(timeout=30)
+
+
+def test_cap_slot_is_released_after_a_run(sandbox_image):
+    with _local_runner(SANDBOX_MAX_CONCURRENT="1", SANDBOX_SLOT_WAIT_SECONDS="1") as url:
+        status, body = execute(url, "def f():\n    raise ValueError('bad')\n", "f", [[]])
+        assert status == 200
+        assert body["cases"][0]["status"] == "error"
+        status, body = execute(url, "def f():\n    return 1\n", "f", [[]])
+        assert (status, body) == (200, {"cases": [{"status": "ok", "value": 1}]})
+
+
+def test_cap_slot_is_released_when_the_run_fails(sandbox_image):
+    with _local_runner(
+        SANDBOX_MAX_CONCURRENT="1",
+        SANDBOX_SLOT_WAIT_SECONDS="1",
+        SANDBOX_IMAGE="collab-sandbox:does-not-exist",
+    ) as url:
+        for _ in range(2):
+            status, body = execute(url, "def f():\n    return 1\n", "f", [[]])
+            assert (status, body) == (503, {"error": "infra_error"})
+
+
+def test_no_cap_by_default_two_runs_proceed_together(sandbox_image):
+    with _local_runner() as url:
+        start = time.monotonic()
+        first, first_out = _in_background(url, LOOP, [[], []])
+        second, second_out = _in_background(url, LOOP, [[], []])
+        first.join(timeout=30)
+        second.join(timeout=30)
+        elapsed = time.monotonic() - start
+        expected = [(200, {"cases": [{"status": "timeout"}] * 2})]
+        assert first_out == expected
+        assert second_out == expected
+        # One run takes ~6 s; run one after the other they would take ~12 s.
+        assert elapsed < 10

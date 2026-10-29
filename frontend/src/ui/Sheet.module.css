@@ -1,0 +1,31 @@
+/* A sheet drops from the top of the window (FR-2). */
+
+.sheet {
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 2 * var(--space-4)));
+  max-height: calc(100vh - 2 * var(--space-8));
+  margin: var(--space-8) auto auto;
+  padding: var(--space-5);
+  border: none;
+  border-radius: var(--radius-sheet);
+  background: var(--content-bg);
+  color: var(--label);
+  box-shadow: var(--shadow-sheet);
+  overflow: auto;
+}
+
+.sheet::backdrop {
+  background: var(--backdrop);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.title {
+  margin: 0;
+  font: var(--type-title3) var(--font-text);
+  font-weight: 600;
+}

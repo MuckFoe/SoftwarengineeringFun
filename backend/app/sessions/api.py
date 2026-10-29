@@ -1,16 +1,18 @@
 """Sessions API (plan.md "Contracts"): POST /api/sessions, GET /api/sessions/{invite},
 POST /api/sessions/{invite}/reactivate. FR-8, FR-11, FR-14, FR-30, FR-31, FR-32.
+Spec 003 adds GET /api/sessions/stale (FR-9, FR-12).
 """
 
 import uuid
 from collections.abc import AsyncIterator
+from datetime import datetime
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
 from app.auth.deps import User, current_user, require_role
-from app.sessions import service
+from app.sessions import repo, service
 
 router = APIRouter(prefix="/api/sessions")
 
@@ -39,6 +41,23 @@ async def create_session(
             status_code=status.HTTP_404_NOT_FOUND, detail={"error": "not_found"}
         ) from exc
     return CreatedSessionOut(invite_id=session.invite_id)
+
+
+class StaleSessionOut(BaseModel):
+    invite_id: str
+    problem_title: str
+    stale_at: datetime
+    last_activity_at: datetime
+
+
+# Declared before GET /{invite} so "stale" is never taken for an invite id.
+@router.get("/stale", response_model=list[StaleSessionOut])
+async def list_stale_sessions(
+    user: User = Depends(require_role("admin")),
+    conn: asyncpg.Connection = Depends(get_conn),
+) -> list[StaleSessionOut]:
+    rows = await repo.list_stale(conn)
+    return [StaleSessionOut(**vars(r)) for r in rows]
 
 
 @router.get("/{invite}")

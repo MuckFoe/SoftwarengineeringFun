@@ -1,6 +1,6 @@
 {
   "title": "Reverse Word Order",
-  "description": "Given a string of words separated by whitespace, return the words in reverse order, joined by single spaces.",
+  "description": "## Task\n\nReturn the words of a string in reverse order. Words are separated by any amount of whitespace; in the result they are joined by single spaces, with no leading or trailing space.\n\n## Input\n\n- `s` — a string of words separated by spaces, tabs or line breaks. It may be empty or contain only whitespace.\n\n## Output\n\nA string: the words of `s`, last word first, joined by single spaces. An empty string if `s` has no words.\n\n## Example\n\n```python\nreverse_words(\"  red  green blue \")  # returns 'blue green red'\nreverse_words(\"up\")  # returns 'up'\n```\n\n## Constraints\n\n- 0 ≤ length of `s` ≤ 10^4\n",
   "signature": "def reverse_words(s: str) -> str",
   "topic": "strings",
   "difficulty": "easy",

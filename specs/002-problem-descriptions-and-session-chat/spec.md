@@ -8,7 +8,7 @@ A problem today gives participants too little to work from: they need a proper s
 
 - **Session participants** — anyone who joined a session through its invite link, under their session name, without an account. They read the problem description and chat.
 - **Editors** — SSO users with the editor role who manage problems. They write and change descriptions, including images.
-- **Admins** — as in 001; they can reactivate stale sessions, which affects whether chat is writable.
+- **Admins** — as in 001; they can reactivate stale sessions, which affects whether chat is writable, and they can remove abusive chat messages.
 
 ## Functional requirements
 
@@ -30,21 +30,22 @@ A problem today gives participants too little to work from: they need a proper s
 - **FR16** — WHEN a session is stale THE SYSTEM SHALL show its chat history read-only and refuse new messages; WHEN an admin reactivates it THE SYSTEM SHALL accept messages again.
 - **FR17** — WHEN anyone requests a session's chat THE SYSTEM SHALL serve it only to someone who has that session's invite link, and never mix messages between sessions.
 - **FR18** — WHEN a participant's connection drops and returns THE SYSTEM SHALL show any messages sent while they were away, without duplicates and in order.
+- **FR19** — WHEN an admin removes a chat message from a session THE SYSTEM SHALL stop showing it to everyone: it disappears for participants currently connected and is absent from the history anyone loads afterwards. No one other than an admin can remove a message, including its sender.
 
 ## Non-functional requirements
 
 - **Latency** — a chat message reaches every other connected participant of the session within 1 second under normal conditions (the session's maximum of 5 participants).
 - **Durability** — a message the sender sees as sent is stored; it survives a restart of the system, as sessions do in 001.
-- **Retention** — chat is kept as long as its session is kept; sessions are never deleted (001), so neither is their chat.
+- **Retention** — chat is kept as long as its session is kept; sessions are never deleted (001), so neither is their chat, except messages an admin removes (FR19).
 - **Security** — description content is rendered so that nothing an editor writes can run script in a participant's browser; chat content is never rendered as markup (FR15). Images are served only as images.
-- **Images** — accepted formats are PNG, JPEG, GIF and WebP; at most 2 MB per image and 10 images per description. These are defaults; see open questions.
+- **Images** — accepted formats are PNG, JPEG, GIF and WebP; at most 2 MB per image and 10 images per description.
 - **Readability** — descriptions and their images remain readable at the narrowest screen width the session page supports.
 
 ## Out of scope
 
 - An AI assistant or bot in the chat.
 - Chat between people outside a session, direct/private messages, and chat across sessions.
-- Editing or deleting chat messages after sending (unless decided otherwise below).
+- Editing or deleting chat messages after sending, by the sender or anyone else, except an admin removing a message (FR19).
 - Attachments, images, files, reactions, threads or formatting in chat messages.
 - Notifications outside the session page (email, push, sound) for new messages.
 - Typing indicators and read receipts.
@@ -77,9 +78,14 @@ A problem today gives participants too little to work from: they need a proper s
 - **FR16** — Given a stale session with chat history, When a participant opens it, Then the history is shown and sending is unavailable; When an admin reactivates the session, Then the participant can send again.
 - **FR17** — Given sessions A and B, When a participant in A sends a message, Then it appears in A's chat and never in B's; and a request for A's chat without A's invite link is refused.
 - **FR18** — Given Ana disconnected while Ben sends two messages, When Ana reconnects, Then Ana sees both messages once each, in order, after the messages already seen before the drop.
+- **FR19** — Given Ana and Ben connected to a session where Ben sent "one", "abuse", "three", When an admin removes "abuse", Then within 1 second Ana and Ben see "one" and "three" only, and a participant who joins afterwards sees "one" and "three" in that order.
+- **FR19** — Given a participant (the sender or anyone else) or an editor without the admin role, When they try to remove a message, Then it is refused and the message stays visible to everyone.
 
-## Open questions
+## Decisions
 
-- [NEEDS CLARIFICATION: Can a participant edit or delete their own chat messages after sending? Default assumed above: no.]
-- [NEEDS CLARIFICATION: Can editors or admins remove abusive chat messages from a session (moderation)? Sessions are open to anyone with the link and are never deleted.]
-- [NEEDS CLARIFICATION: Are the image defaults right — PNG/JPEG/GIF/WebP, 2 MB per image, 10 images per description?]
+Resolved with the user on 2026-10-25:
+
+- Participants cannot edit or delete their own chat messages after sending.
+- Admins can remove any chat message from any session (FR19); editors cannot.
+- A removed message is hidden, not erased: it stays stored with the session but is never shown or served again.
+- Image limits stay as stated: PNG, JPEG, GIF and WebP; 2 MB per image; 10 images per description.

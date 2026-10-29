@@ -1,0 +1,56 @@
+.view {
+  font: var(--type-body) var(--font-text);
+  color: var(--label);
+  overflow-wrap: anywhere;
+}
+
+.view > :first-child {
+  margin-top: 0;
+}
+
+.view > :last-child {
+  margin-bottom: 0;
+}
+
+.view h1,
+.view h2,
+.view h3,
+.view h4,
+.view h5,
+.view h6 {
+  margin: var(--space-3) 0 var(--space-1);
+  font-weight: 600;
+}
+
+.view p,
+.view ul,
+.view ol,
+.view pre {
+  margin: 0 0 var(--space-2);
+}
+
+.view ul,
+.view ol {
+  padding-left: var(--space-4);
+}
+
+.view code {
+  font-family: var(--font-mono);
+}
+
+.view pre {
+  padding: var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--control-bg);
+  overflow-x: auto;
+}
+
+.view a {
+  color: var(--accent);
+}
+
+/* NFR Readability: a wide image is scaled to fit, never scrolled. */
+.view img {
+  max-width: 100%;
+  height: auto;
+}

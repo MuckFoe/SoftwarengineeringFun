@@ -1,6 +1,7 @@
 """The session WebSocket: join, presence, the cap of 5, name validation, Yjs sync and
 awareness relay (plan.md "Presence and the cap of 5", "Live editing").
 FR-12, FR-12a, FR-13, FR-14, FR-15, FR-16, FR-18, FR-19, FR-20, FR-30.
+Spec 002: `chat_send`, `welcome.chat` (FR10–FR18), `description_html` (FR6).
 
 Server-level WebSocket ping/pong (uvicorn `--ws-ping-interval 2 --ws-ping-timeout 3`,
 task 37's compose) detects a silently dropped connection within ~5 s for FR-15; a clean
@@ -18,7 +19,10 @@ import pycrdt
 from fastapi import APIRouter, WebSocket
 
 from app import clock
+from app.chat import service as chat_service
+from app.chat.rules import MAX_CHAT_CHARS, ChatError
 from app.problems import repo as problems_repo
+from app.problems.markdown import render_description
 from app.runs import repo as runs_repo
 from app.runs.repo import Run, RunInProgress
 from app.runs.service import RunResult
@@ -66,11 +70,12 @@ async def _touch_activity_throttled(
         await sessions_repo.touch_activity(conn, session_id)
 
 
-def _problem_dict(problem: problems_repo.ProblemPublic) -> dict:
+def _problem_dict(problem: problems_repo.ProblemPublic, base_path: str) -> dict:
     return {
         "id": str(problem.id),
         "title": problem.title,
         "description": problem.description,
+        "description_html": render_description(problem.description, base_path),
         "signature": problem.signature,
         "deleted": problem.deleted,
     }
@@ -157,7 +162,7 @@ async def _handle_switch_problem(
         hub,
         {
             "type": "problem_switched",
-            "problem": _problem_dict(problem),
+            "problem": _problem_dict(problem, websocket.app.state.settings.base_path),
             "by": actor,
             "state": {
                 "accepted": progress.accepted,
@@ -263,6 +268,18 @@ async def _handle_text(
         except ValueError:
             return
         await _handle_switch_problem(websocket, conn, session, session_doc, hub, actor, problem_id)
+    elif msg_type == "chat_send":
+        client_id, body = payload.get("client_id"), payload.get("text")
+        if not isinstance(client_id, str) or not isinstance(body, str):
+            return
+        refused = await chat_service.send(
+            conn, hub, session.id, participant_id, actor, body, client_id
+        )
+        if refused is not None:
+            error: dict = {"type": "error", "code": refused.value, "client_id": client_id}
+            if refused is ChatError.TOO_LONG:
+                error["limit"] = MAX_CHAT_CHARS
+            await websocket.send_json(error)
     elif msg_type == "run":
         if session.id in _RUNNING:
             await websocket.send_json({"type": "error", "code": "run_in_progress"})
@@ -359,10 +376,14 @@ async def session_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
             {
                 "type": "welcome",
                 "participant_id": str(participant.id),
-                "current_problem": _problem_dict(problem),
+                "current_problem": _problem_dict(problem, websocket.app.state.settings.base_path),
                 "problems": await _problems_progress(conn, session.id, problem.id),
                 "presence": session_hub.presence(),
                 "run_in_progress": session.id in _RUNNING,
+                "chat": [
+                    chat_service.message_dict(m)
+                    for m in await chat_service.history(conn, session.id)
+                ],
             }
         )
         # `welcome` already carries the current presence list, so the new participant

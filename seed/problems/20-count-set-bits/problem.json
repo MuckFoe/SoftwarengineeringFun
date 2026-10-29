@@ -1,6 +1,6 @@
 {
   "title": "Count Set Bits",
-  "description": "Return the number of 1 bits in the binary representation of a non-negative integer.",
+  "description": "## Task\n\nCount the 1 bits in the binary form of a non-negative integer.\n\n## Input\n\n- `n` — a non-negative integer.\n\n## Output\n\nAn integer: how many binary digits of `n` are 1.\n\n## Example\n\n```python\ncount_set_bits(10)  # returns 2\ncount_set_bits(64)  # returns 1\n```\n\n## Constraints\n\n- 0 ≤ `n` < 2^63\n",
   "signature": "def count_set_bits(n: int) -> int",
   "topic": "bit manipulation",
   "difficulty": "easy",

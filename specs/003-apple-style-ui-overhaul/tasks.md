@@ -19,47 +19,47 @@ Every task is test-first: its tests are written failing, then the change makes t
 
 ## Checklist
 
-- [ ] **1** — `[P]` Theme tokens for light and dark
-- [ ] **2** — `[P]` Appearance choice logic and pre-paint script
-- [ ] **3** — `[P]` Shortcut registry and reserved-combo table
-- [ ] **4** — `[P]` `GET /api/sessions/stale` endpoint
-- [ ] **5** — `[P]` Appearance hint on `/api/auth/login`
-- [ ] **6** — `[P]` Icon set
-- [ ] **7** — `[P]` No-Apple-assets check
-- [ ] **8** — `[P]` Collaboration latency harness and baseline
-- [ ] **9** — `[P]` Materials and motion
-- [ ] **10** — `[P]` Key matching and labels
-- [ ] **11** — `[P]` Button and Spinner
-- [ ] **12** — `[P]` TextField, SearchField and SegmentedControl
-- [ ] **13** — `[P]` Sheet and Popover
-- [ ] **14** — `[P]` Banner, InlineMessage, Hud and EmptyState
-- [ ] **15** — `[P]` Keycloak login theme
-- [ ] **16** — `[P]` CodeMirror token theme
-- [ ] **17** — `[P]` Window, Sidebar, Inspector and BottomPanel
-- [ ] **18** — `[P]` Toolbar and SourceList keyboard patterns
-- [ ] **19** — `[P]` Shortcut dispatcher and shortcut list
-- [ ] **20** — `[P]` Keycloak theme wiring in the test stack
-- [ ] **21** — `[P]` Theme install docs and token sync check
-- [ ] **22** — `[P]` RunPanel and PresenceList restyle
-- [ ] **23** — `[P]` AccountControl
-- [ ] **24** — `[P]` useAppearance and AppearanceControl
-- [ ] **25** — `[P]` ProblemSourceList
-- [ ] **26** — `[P]` StaleSessionsList
-- [ ] **27** — `[P]` ProblemEditorSheet
-- [ ] **28** — `[P]` Not found and forbidden empty states
-- [ ] **29** — `[P]` ProblemsWindow
-- [ ] **30** — `[P]` SessionWindow layout and route
-- [ ] **31** — `[P]` Problem routes switch to ProblemsWindow
-- [ ] **32** — `[P]` Stale-session banner
-- [ ] **33** — `[P]` App shell and appearance end to end
-- [ ] **34** — `[P]` Session shortcuts
-- [ ] **35** — `[P]` Sign-in round trip
-- [ ] **36** — `[P]` Keyboard-only reach and shortcut coverage
-- [ ] **37** — `[P]` Spec 001 regression suite on the new UI
-- [ ] **38** — `[P]` Contrast, focus rings and 1024 px width
-- [ ] **39** — `[P]` Description inspector tab (after 002)
-- [ ] **40** — Chat inspector tab (after 002)
-- [ ] **41** — `[P]` Description field in the problem editor sheet (after 002)
+- [x] **1** — `[P]` Theme tokens for light and dark
+- [x] **2** — `[P]` Appearance choice logic and pre-paint script
+- [x] **3** — `[P]` Shortcut registry and reserved-combo table
+- [x] **4** — `[P]` `GET /api/sessions/stale` endpoint
+- [x] **5** — `[P]` Appearance hint on `/api/auth/login`
+- [x] **6** — `[P]` Icon set
+- [x] **7** — `[P]` No-Apple-assets check
+- [x] **8** — `[P]` Collaboration latency harness and baseline
+- [x] **9** — `[P]` Materials and motion
+- [x] **10** — `[P]` Key matching and labels
+- [x] **11** — `[P]` Button and Spinner
+- [x] **12** — `[P]` TextField, SearchField and SegmentedControl
+- [x] **13** — `[P]` Sheet and Popover
+- [x] **14** — `[P]` Banner, InlineMessage, Hud and EmptyState
+- [x] **15** — `[P]` Keycloak login theme
+- [x] **16** — `[P]` CodeMirror token theme
+- [x] **17** — `[P]` Window, Sidebar, Inspector and BottomPanel
+- [x] **18** — `[P]` Toolbar and SourceList keyboard patterns
+- [x] **19** — `[P]` Shortcut dispatcher and shortcut list
+- [x] **20** — `[P]` Keycloak theme wiring in the test stack
+- [x] **21** — `[P]` Theme install docs and token sync check
+- [x] **22** — `[P]` RunPanel and PresenceList restyle
+- [x] **23** — `[P]` AccountControl
+- [x] **24** — `[P]` useAppearance and AppearanceControl
+- [x] **25** — `[P]` ProblemSourceList
+- [x] **26** — `[P]` StaleSessionsList
+- [x] **27** — `[P]` ProblemEditorSheet
+- [x] **28** — `[P]` Not found and forbidden empty states
+- [x] **29** — `[P]` ProblemsWindow
+- [x] **30** — `[P]` SessionWindow layout and route
+- [x] **31** — `[P]` Problem routes switch to ProblemsWindow
+- [x] **32** — `[P]` Stale-session banner
+- [x] **33** — `[P]` App shell and appearance end to end
+- [x] **34** — `[P]` Session shortcuts
+- [x] **35** — `[P]` Sign-in round trip
+- [x] **36** — `[P]` Keyboard-only reach and shortcut coverage
+- [x] **37** — `[P]` Spec 001 regression suite on the new UI
+- [x] **38** — `[P]` Contrast, focus rings and 1024 px width
+- [x] **39** — `[P]` Description inspector tab (after 002)
+- [x] **40** — Chat inspector tab (after 002)
+- [x] **41** — `[P]` Description field in the problem editor sheet (after 002)
 
 ## Tasks
 

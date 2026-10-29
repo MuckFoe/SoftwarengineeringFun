@@ -19,7 +19,10 @@ export interface ProblemSummary {
 export interface Problem {
   id: string;
   title: string;
+  /** Markdown source (spec 002). */
   description: string;
+  /** The description rendered by the server; safe to insert as HTML (spec 002). */
+  description_html: string;
   signature: string;
   deleted: boolean;
 }
@@ -58,6 +61,31 @@ export interface SessionState {
   state: "active";
 }
 
+/** POST /api/images (spec 002). */
+export interface UploadedImage {
+  id: string;
+  url: string;
+}
+
+/** POST /api/problems/preview (spec 002). */
+export interface DescriptionPreview {
+  html: string;
+}
+
+/** One chat message (spec 002). `sent_at` is ISO-8601 UTC. */
+export interface ChatMessage {
+  id: number;
+  sender_name: string;
+  text: string;
+  sent_at: string;
+}
+
+/** GET /api/sessions/{invite}/chat (spec 002). */
+export interface ChatHistory {
+  messages: ChatMessage[];
+  read_only: boolean;
+}
+
 // Error bodies.
 export interface MissingRoleBody {
   error: "missing_role";
@@ -72,6 +100,25 @@ export interface NotFoundBody {
 export interface StaleBody {
   error: "stale";
   can_reactivate: boolean;
+}
+export interface ImageTooLargeBody {
+  error: "image_too_large";
+  limit_bytes: number;
+}
+export interface ImageFormatBody {
+  error: "image_format";
+  accepted: string[];
+}
+/** 422 on saving a problem whose description is refused (spec 002). */
+export type DescriptionErrorCode =
+  | "description_required"
+  | "too_many_images"
+  | "image_not_found"
+  | "image_source_not_allowed";
+export interface DescriptionErrorBody {
+  error: DescriptionErrorCode;
+  limit?: number;
+  id?: string;
 }
 
 // ---- WebSocket ----
@@ -121,7 +168,11 @@ export type WsErrorCode =
   | "problem_not_found"
   | "session_full"
   | "stale"
-  | "invalid_name";
+  | "invalid_name"
+  | ChatErrorCode;
+
+/** Refusals of a `chat_send`, answered to the sender only (spec 002). */
+export type ChatErrorCode = "chat_empty" | "chat_too_long" | "session_stale";
 
 export interface WelcomeMessage {
   type: "welcome";
@@ -130,6 +181,8 @@ export interface WelcomeMessage {
   problems: Record<string, ProblemProgress>;
   presence: Participant[];
   run_in_progress: boolean;
+  /** The session's chat history, in id order (spec 002). */
+  chat: ChatMessage[];
 }
 
 export interface PresenceMessage {
@@ -171,6 +224,23 @@ export interface RunFailedMessage {
 export interface ErrorMessage {
   type: "error";
   code: WsErrorCode;
+  /** On chat refusals: the `client_id` of the refused `chat_send` (spec 002). */
+  client_id?: string;
+  /** On `chat_too_long`: the limit in characters. */
+  limit?: number;
+}
+
+/** A chat message to everyone in the session, the sender included (spec 002). */
+export interface ChatMessageFrame {
+  type: "chat_message";
+  message: ChatMessage;
+  client_id: string;
+}
+
+/** An admin removed a message (spec 002 FR19). */
+export interface ChatRemovedMessage {
+  type: "chat_removed";
+  id: number;
 }
 
 export type ServerMessage =
@@ -181,7 +251,9 @@ export type ServerMessage =
   | RunStartedMessage
   | RunFinishedMessage
   | RunFailedMessage
-  | ErrorMessage;
+  | ErrorMessage
+  | ChatMessageFrame
+  | ChatRemovedMessage;
 
 export interface RunMessage {
   type: "run";
@@ -192,4 +264,18 @@ export interface SwitchProblemMessage {
   problem_id: string;
 }
 
-export type ClientMessage = RunMessage | SwitchProblemMessage;
+export interface ChatSendMessage {
+  type: "chat_send";
+  client_id: string;
+  text: string;
+}
+
+export type ClientMessage = RunMessage | SwitchProblemMessage | ChatSendMessage;
+
+/** GET /api/sessions/stale (spec 003, admin only): one stale session. */
+export interface StaleSession {
+  invite_id: string;
+  problem_title: string;
+  stale_at: string;
+  last_activity_at: string;
+}

@@ -1,0 +1,27 @@
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--type-body) var(--font-text);
+}
+
+.table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--label-secondary);
+  padding: 0 0 var(--space-1);
+}
+
+.table td {
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--separator);
+}
+
+.keys {
+  font: var(--type-body) var(--font-text);
+  color: var(--label-secondary);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}

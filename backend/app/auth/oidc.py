@@ -25,7 +25,8 @@ def build_oauth(settings: Settings) -> OAuth:
         name=KEYCLOAK,
         client_id=settings.oidc_client_id,
         client_secret=settings.oidc_client_secret,
-        server_metadata_url=f"{settings.oidc_issuer}/.well-known/openid-configuration",
+        server_metadata_url=settings.oidc_metadata_url
+        or f"{settings.oidc_issuer}/.well-known/openid-configuration",
         client_kwargs={"scope": "openid", "code_challenge_method": "S256"},
     )
     return oauth
@@ -36,8 +37,9 @@ async def verified_access_token_claims(
 ) -> dict[str, Any]:
     """Validate the access token's signature against Keycloak's JWKS (NFR-8) and decode it.
 
-    Realm roles (`realm_access.roles`) are carried by Keycloak's access token, not its ID
-    token or userinfo response, under this project's realm (`tests/keycloak/realm.json`).
+    Client roles (`resource_access.<client>.roles`) are carried by Keycloak's access token,
+    not its ID token or userinfo response, under this project's realm
+    (`tests/keycloak/realm.json`).
     """
     jwks = await app.fetch_jwk_set()
     claims = jwt.decode(token["access_token"], key=JsonWebKey.import_key_set(jwks))
@@ -45,12 +47,14 @@ async def verified_access_token_claims(
     return dict(claims)
 
 
-def session_claims(claims: dict[str, Any], max_age_seconds: int) -> dict[str, Any]:
+def session_claims(claims: dict[str, Any], client_id: str, max_age_seconds: int) -> dict[str, Any]:
     """The validated claims, reduced to what the session cookie may hold (NFR-8).
 
+    Roles come only from this app's client (spec 005 FR3): realm roles and other clients'
+    roles on a shared identity provider grant nothing here.
     `exp` is this site's sign-in expiry, not the access token's (minutes, in Keycloak).
     """
-    roles = sorted(claims.get("realm_access", {}).get("roles", []))
+    roles = sorted(claims.get("resource_access", {}).get(client_id, {}).get("roles", []))
     expires = clock.now() + timedelta(seconds=max_age_seconds)
     return {
         "sub": claims["sub"],

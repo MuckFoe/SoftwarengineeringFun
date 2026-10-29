@@ -6,7 +6,7 @@ test("FR-1: a signed-out visitor opening 'new problem' lands on the Keycloak log
 }) => {
   await page.goto("/problems/new");
 
-  await expect(page.locator("#kc-form-login")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sign in to your account" })).toBeVisible();
   await expect(page).toHaveURL(/\/realms\/collab-test\/protocol\/openid-connect\/auth/);
 });
 
@@ -21,9 +21,9 @@ test("FR-2b: already signed in to Keycloak, the form appears with no credential 
 
   // First sign-in: establishes both our app's session and Keycloak's own SSO session.
   await page.goto("/problems/new");
-  await page.locator("#username").fill(editor.username);
-  await page.locator("#password").fill(editor.password);
-  await page.locator("#kc-login").click();
+  await page.getByRole("textbox", { name: "Username" }).fill(editor.username);
+  await page.getByRole("textbox", { name: "Password" }).fill(editor.password);
+  await page.getByRole("button", { name: "Sign In" }).click();
   await expect(page.getByRole("heading", { name: "New problem" })).toBeVisible();
 
   // Drop only our app's own session cookie; Keycloak's SSO cookie is untouched, so this
@@ -33,5 +33,5 @@ test("FR-2b: already signed in to Keycloak, the form appears with no credential 
   await page.goto("/problems/new");
 
   await expect(page.getByRole("heading", { name: "New problem" })).toBeVisible();
-  await expect(page.locator("#kc-form-login")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Sign in to your account" })).toHaveCount(0);
 });

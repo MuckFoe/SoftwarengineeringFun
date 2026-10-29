@@ -1,6 +1,6 @@
 {
   "title": "Average Or Nothing",
-  "description": "Return the average of a list of floats, or null if the list is empty.",
+  "description": "## Task\n\nReturn the average (arithmetic mean) of a list of numbers, or `None` if the list is empty.\n\n## Input\n\n- `xs` — a list of floats. It may be empty.\n\n## Output\n\nA float: the sum of `xs` divided by its length; or `None` when `xs` is empty.\n\n## Example\n\n```python\naverage([1.5, 2.5, 5.0])  # returns 3.0\naverage([])  # returns None\n```\n\n## Constraints\n\n- 0 ≤ length of `xs` ≤ 10^4\n- Results are compared with a small tolerance, so rounding differences don't matter.\n",
   "signature": "def average(xs: list[float]) -> float | None",
   "topic": "math",
   "difficulty": "medium",

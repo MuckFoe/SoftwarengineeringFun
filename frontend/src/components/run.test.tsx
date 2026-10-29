@@ -1,42 +1,14 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ClientMessage, ProblemSummary, RunResult } from "../api/types";
-import type { ProviderEvents } from "../collab/provider";
-import { ProblemSwitcher } from "./ProblemSwitcher";
+import type { RunResult } from "../api/types";
+import { PresenceList } from "./PresenceList";
 import { RunPanel } from "./RunPanel";
-
-function fakeProvider() {
-  const handlers = new Map<string, Set<(payload: unknown) => void>>();
-  const sent: ClientMessage[] = [];
-  const provider = {
-    send(message: ClientMessage) {
-      sent.push(message);
-    },
-    on<K extends keyof ProviderEvents>(type: K, handler: (payload: ProviderEvents[K]) => void) {
-      let set = handlers.get(type);
-      if (!set) {
-        set = new Set();
-        handlers.set(type, set);
-      }
-      const h = handler as (payload: unknown) => void;
-      set.add(h);
-      return () => set?.delete(h);
-    },
-  };
-  function emit<K extends keyof ProviderEvents>(type: K, payload: ProviderEvents[K]) {
-    for (const h of handlers.get(type) ?? []) h(payload);
-  }
-  return { provider, sent, emit };
-}
 
 function runResult(overrides: Partial<RunResult>): RunResult {
   return { run_id: "r1", problem_id: "p1", accepted: false, results: [], ...overrides };
 }
 
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(cleanup);
 
 describe("RunPanel", () => {
   function renderPanel(overrides: Partial<Parameters<typeof RunPanel>[0]> = {}) {
@@ -118,33 +90,126 @@ describe("RunPanel", () => {
   });
 });
 
-describe("ProblemSwitcher", () => {
-  const reverseList: ProblemSummary = { id: "p-rev", title: "Reverse list", is_starter: true };
+describe("RunPanel feedback (spec 003)", () => {
+  // AC-3: a progress indicator appears inline at once, no dialog, the result replaces it.
+  it("shows a spinner as soon as a run starts and replaces it with the result", () => {
+    const props = { deleted: false, notice: null, onRun: () => {} };
+    const { rerender } = render(
+      <RunPanel {...props} running={false} progress={{ accepted: false }} />,
+    );
+    expect(screen.queryByRole("progressbar")).toBeNull();
 
-  function stubSearch() {
-    const fn = vi.fn(async () => new Response(JSON.stringify([reverseList]), { status: 200 }));
-    vi.stubGlobal("fetch", fn);
-  }
+    rerender(<RunPanel {...props} running progress={{ accepted: false }} />);
+    expect(screen.getAllByRole("progressbar").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByText(/Test 1:/)).toBeNull();
 
-  it("FR-17: choosing a problem sends switch_problem", async () => {
-    stubSearch();
-    const { provider, sent } = fakeProvider();
-    render(<ProblemSwitcher provider={provider} />);
-    await waitFor(() => expect(screen.getByText("Reverse list")).toBeTruthy());
-
-    fireEvent.click(screen.getByRole("button", { name: "Reverse list" }));
-
-    expect(sent).toEqual([{ type: "switch_problem", problem_id: "p-rev" }]);
+    rerender(
+      <RunPanel
+        {...props}
+        running={false}
+        progress={{
+          accepted: true,
+          last_run: runResult({ accepted: true, results: [{ position: 1, outcome: "passed" }] }),
+        }}
+      />,
+    );
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.getByText("Test 1: passed")).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("FR-10: the switcher stays usable while the current problem is deleted", async () => {
-    stubSearch();
-    const { provider } = fakeProvider();
-    render(<ProblemSwitcher provider={provider} />);
-    await waitFor(() => expect(screen.getByText("Reverse list")).toBeTruthy());
+  it("hides the previous result while a new run is in progress", () => {
+    render(
+      <RunPanel
+        deleted={false}
+        notice={null}
+        onRun={() => {}}
+        running
+        progress={{
+          accepted: false,
+          last_run: runResult({ results: [{ position: 1, outcome: "wrong_answer" }] }),
+        }}
+      />,
+    );
+    expect(screen.queryByText("Test 1: wrong answer")).toBeNull();
+  });
 
-    expect(
-      (screen.getByRole("button", { name: "Reverse list" }) as HTMLButtonElement).disabled,
-    ).toBe(false);
+  it("shows a failed run as an inline alert", () => {
+    renderNotice("The runner is unavailable.");
+    expect(screen.getByRole("alert").textContent).toContain("The runner is unavailable.");
+  });
+
+  function renderNotice(notice: string) {
+    render(
+      <RunPanel
+        deleted={false}
+        notice={notice}
+        onRun={() => {}}
+        running={false}
+        progress={{ accepted: false }}
+      />,
+    );
+  }
+});
+
+describe("PresenceList (spec 003)", () => {
+  it("shows each participant as a row with a colour dot that fades in", () => {
+    render(
+      <PresenceList
+        participants={[
+          { id: "a", name: "Ada" },
+          { id: "l", name: "Linus" },
+        ]}
+      />,
+    );
+    const rows = screen.getAllByRole("listitem");
+    expect(rows.map((r) => r.textContent)).toEqual(["Ada", "Linus"]);
+    for (const row of rows) {
+      expect(row.className).toMatch(/anim-row-in/);
+      const dot = row.querySelector("[data-dot]") as HTMLElement | null;
+      expect(dot?.style.background).toMatch(/^var\(--presence-[1-6]\)$/);
+    }
+  });
+
+  it("gives a participant the same colour on every render", () => {
+    const { rerender } = render(<PresenceList participants={[{ id: "a", name: "Ada" }]} />);
+    const colour = () => (document.querySelector("[data-dot]") as HTMLElement).style.background;
+    const first = colour();
+    rerender(
+      <PresenceList
+        participants={[
+          { id: "z", name: "Zed" },
+          { id: "a", name: "Ada" },
+        ]}
+      />,
+    );
+    const ada = screen.getByText("Ada").closest("li")?.querySelector("[data-dot]") as HTMLElement;
+    expect(ada.style.background).toBe(first);
+  });
+
+  it("fades a leaving participant out without keeping their name in the list", () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = render(
+        <PresenceList
+          participants={[
+            { id: "a", name: "Ada" },
+            { id: "l", name: "Linus" },
+          ]}
+        />,
+      );
+      rerender(<PresenceList participants={[{ id: "a", name: "Ada" }]} />);
+      expect(screen.queryByText("Linus")).toBeNull();
+      const ghost = document.querySelector("[data-leaving]");
+      expect(ghost?.className).toMatch(/anim-row-out/);
+      expect(ghost?.getAttribute("aria-hidden")).toBe("true");
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(document.querySelector("[data-leaving]")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

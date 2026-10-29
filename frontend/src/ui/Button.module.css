@@ -1,0 +1,75 @@
+/* HIG push buttons (FR-1): rounded 6 px, 13 px label, one accent colour. */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 24px;
+  padding: 0 var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  font: var(--type-body) var(--font-text);
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+  transition: background-color var(--motion-fast, 150ms) ease-out;
+}
+
+.button:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.button:disabled {
+  opacity: 0.45;
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--accent-label);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.primary:active:not(:disabled) {
+  background: var(--accent-pressed);
+}
+
+.bordered {
+  background: var(--control-bg);
+  border-color: var(--control-border);
+  color: var(--label);
+  box-shadow: var(--shadow-control);
+}
+
+.bordered:hover:not(:disabled) {
+  background: var(--control-bg-hover);
+}
+
+.bordered:active:not(:disabled) {
+  background: var(--control-bg-pressed);
+}
+
+.plain {
+  background: transparent;
+  color: var(--label);
+  padding: 0 var(--space-2);
+}
+
+.plain:hover:not(:disabled) {
+  background: var(--row-hover-bg);
+}
+
+.destructive {
+  background: var(--control-bg);
+  border-color: var(--control-border);
+  color: var(--status-error);
+  box-shadow: var(--shadow-control);
+}
+
+.destructive:hover:not(:disabled) {
+  background: var(--control-bg-hover);
+}

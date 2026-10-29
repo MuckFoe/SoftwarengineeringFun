@@ -62,6 +62,8 @@ services:
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     volumes:
       - ./backend/tests/keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+      # Spec 003 FR-18: the app-styled login theme, selected by the realm's loginTheme.
+      - ./keycloak-theme/collab:/opt/keycloak/themes/collab:ro
     ports:
       - "127.0.0.1:${TEST_KEYCLOAK_PORT:-58180}:8080"
     healthcheck:

@@ -1,6 +1,7 @@
 """Problems API (plan.md "Contracts"): GET /api/problems, GET /api/problems/{id},
 POST /api/problems, GET /api/problems/{id}/edit, PUT /api/problems/{id},
 DELETE /api/problems/{id}. FR-1, FR-2, FR-2a, FR-3, FR-4, FR-5, FR-7, FR-8, FR-9, NFR-5.
+Spec 002: description refusals on save, `description_html`, POST /api/problems/preview.
 """
 
 import uuid
@@ -13,6 +14,7 @@ from pydantic import BaseModel
 
 from app.auth.deps import User, require_role
 from app.problems import repo, service
+from app.problems.markdown import render_description
 from app.problems.signature import FieldError, TestInput
 
 router = APIRouter(prefix="/api/problems")
@@ -45,8 +47,17 @@ class ProblemOut(BaseModel):
     id: uuid.UUID
     title: str
     description: str
+    description_html: str
     signature: str
     deleted: bool
+
+
+class PreviewIn(BaseModel):
+    description: str
+
+
+class PreviewOut(BaseModel):
+    html: str
 
 
 class CreatedOut(BaseModel):
@@ -71,6 +82,18 @@ def _field_error_body(errors: list[FieldError]) -> dict:
     return {"errors": [to_dict(e) for e in errors]}
 
 
+def _refused(result: list[FieldError] | service.DescriptionError) -> HTTPException:
+    if isinstance(result, list):
+        detail = _field_error_body(result)
+    else:
+        detail = {"error": result.code}
+        if result.limit is not None:
+            detail["limit"] = result.limit
+        if result.id is not None:
+            detail["id"] = str(result.id)
+    return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=detail)
+
+
 @router.get("", response_model=list[ProblemSummaryOut])
 async def list_problems(
     q: str = "", conn: asyncpg.Connection = Depends(get_conn)
@@ -81,7 +104,7 @@ async def list_problems(
 
 @router.get("/{problem_id}", response_model=ProblemOut)
 async def get_problem(
-    problem_id: uuid.UUID, conn: asyncpg.Connection = Depends(get_conn)
+    problem_id: uuid.UUID, request: Request, conn: asyncpg.Connection = Depends(get_conn)
 ) -> ProblemOut:
     try:
         problem = await service.get_public(conn, problem_id)
@@ -93,6 +116,9 @@ async def get_problem(
         id=problem.id,
         title=problem.title,
         description=problem.description,
+        description_html=render_description(
+            problem.description, request.app.state.settings.base_path
+        ),
         signature=problem.signature,
         deleted=problem.deleted,
     )
@@ -114,11 +140,19 @@ async def create_problem(
         created_by_sub=user.sub,
         created_by_name=user.name,
     )
-    if isinstance(result, list):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=_field_error_body(result)
-        )
+    if not isinstance(result, uuid.UUID):
+        raise _refused(result)
     return CreatedOut(id=result)
+
+
+@router.post("/preview", response_model=PreviewOut)
+async def preview_description(
+    body: PreviewIn, request: Request, user: User = Depends(require_role("editor"))
+) -> PreviewOut:
+    """FR5: the participant view of a draft. Renders even a draft that save would refuse,
+    and writes nothing."""
+    base_path = request.app.state.settings.base_path
+    return PreviewOut(html=render_description(body.description, base_path))
 
 
 @router.get("/{problem_id}/edit", response_model=EditableProblemOut)
@@ -164,9 +198,7 @@ async def update_problem(
             status_code=status.HTTP_404_NOT_FOUND, detail={"error": "not_found"}
         ) from exc
     if errors is not None:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=_field_error_body(errors)
-        )
+        raise _refused(errors)
     return {}
 
 

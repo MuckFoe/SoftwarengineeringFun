@@ -61,3 +61,54 @@ def test_clock_override_is_returned():
 
 def test_clock_default_is_timezone_aware_utc():
     assert clock.now().tzinfo is UTC
+
+
+def test_hub_settings_default_to_local_behaviour():
+    s = load_settings(REQUIRED)
+    assert s.base_path == ""
+    assert s.public_base_url is None
+    assert s.oidc_metadata_url is None
+    assert s.session_cookie_name == "collab_session"
+    assert s.cookie_secure is False
+
+
+def test_hub_settings_read_from_env():
+    s = load_settings(
+        {
+            **REQUIRED,
+            "BASE_PATH": "/collab",
+            "PUBLIC_BASE_URL": "https://hub.example.ts.net/collab",
+            "OIDC_METADATA_URL": "http://auth:8080/auth/realms/hub/.well-known/openid-configuration",
+            "SESSION_COOKIE_NAME": "hub_collab",
+            "COOKIE_SECURE": "true",
+        }
+    )
+    assert s.base_path == "/collab"
+    assert s.public_base_url == "https://hub.example.ts.net/collab"
+    assert (
+        s.oidc_metadata_url == "http://auth:8080/auth/realms/hub/.well-known/openid-configuration"
+    )
+    assert s.session_cookie_name == "hub_collab"
+    assert s.cookie_secure is True
+
+
+@pytest.mark.parametrize("value", ["/collab", "/a", "/my-app2"])
+def test_fr1_base_path_accepted(value):
+    assert load_settings({**REQUIRED, "BASE_PATH": value}).base_path == value
+
+
+@pytest.mark.parametrize("value", ["collab", "/collab/", "/Collab", "/1x", "//x", "/", "/a/b"])
+def test_fr1_malformed_base_path_raises(value):
+    with pytest.raises(ConfigError, match="BASE_PATH"):
+        load_settings({**REQUIRED, "BASE_PATH": value})
+
+
+@pytest.mark.parametrize(("value", "expected"), [("true", True), ("false", False)])
+def test_cookie_secure_parses_booleans(value, expected):
+    assert load_settings({**REQUIRED, "COOKIE_SECURE": value}).cookie_secure is expected
+
+
+@pytest.mark.parametrize("value", ["yes", "1", "on", "maybe"])
+def test_cookie_secure_rejects_other_values(value):
+    with pytest.raises(ConfigError, match="COOKIE_SECURE"):
+        load_settings({**REQUIRED, "COOKIE_SECURE": value})

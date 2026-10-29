@@ -1,6 +1,6 @@
 {
   "title": "Pair Sums To Target",
-  "description": "Given integers sorted in non-decreasing order and a target value, scan inward from both ends: if the pair at the current ends sums to the target, return their two indices; otherwise move the lower end up when the sum is too small, or the upper end down when it is too large. Return an empty list if the ends meet without finding a match.",
+  "description": "## Task\n\nFind two positions in a sorted list whose values add up to a target, using a two-ended scan. Start with one marker at the first position and one at the last. If the two values add up to the target, return the two positions. If the sum is too small, move the first marker one step right; if it is too large, move the last marker one step left. Stop when the markers meet.\n\n## Input\n\n- `xs` — a list of integers sorted in non-decreasing order. It may be empty.\n- `target` — the sum to look for.\n\n## Output\n\nA list of two indices `[i, j]` with `i < j`, the first pair the scan finds; or an empty list if the markers meet without a match.\n\n## Example\n\n```python\npair_sum_indices([2, 4, 5, 7, 9], 11)  # returns [0, 4]\npair_sum_indices([1, 3, 4, 8], 7)  # returns [1, 2]\npair_sum_indices([2, 4], 5)  # returns []\n```\n\n## Constraints\n\n- 0 ≤ length of `xs` ≤ 10^4\n- -10^9 ≤ each value, `target` ≤ 10^9\n- Indices start at 0.\n",
   "signature": "def pair_sum_indices(xs: list[int], target: int) -> list[int]",
   "topic": "two pointers",
   "difficulty": "easy",

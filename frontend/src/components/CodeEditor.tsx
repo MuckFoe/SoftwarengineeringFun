@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { yCollab } from "y-codemirror.next";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
+import { editorTheme } from "./editorTheme";
 
 interface Props {
   doc: Y.Doc;
@@ -25,7 +26,12 @@ export function CodeEditor({ doc, awareness, problemId }: Props) {
     const ytext = doc.getText(`code:${problemId}`);
     const state = EditorState.create({
       doc: ytext.toString(),
-      extensions: [basicSetup, python(), yCollab(ytext, awareness, { undoManager: false })],
+      extensions: [
+        basicSetup,
+        python(),
+        editorTheme,
+        yCollab(ytext, awareness, { undoManager: false }),
+      ],
     });
     const view = new EditorView({ state, parent });
     return () => view.destroy();

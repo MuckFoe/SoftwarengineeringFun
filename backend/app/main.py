@@ -17,8 +17,10 @@ from starlette.types import Receive, Scope, Send
 from app import db
 from app.auth.deps import current_user
 from app.auth.oidc import build_oauth, session_claims, verified_access_token_claims
+from app.chat.api import router as chat_router
 from app.config import Settings
 from app.problems.api import router as problems_router
+from app.problems.images_api import router as images_router
 from app.problems.service import register_on_problem_deleted, unregister_on_problem_deleted
 from app.sessions.api import router as sessions_router
 from app.sessions.service import on_problem_deleted
@@ -56,6 +58,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await pool.close()
 
 
+def app_path(request: Request) -> str:
+    """Request path relative to the mount (scope `root_path` removed). Every in-app path
+    test, such as the SPA fallback's `/api/` check, uses this, never `request.url.path`."""
+    path: str = request.scope["path"]
+    root_path: str = request.scope.get("root_path", "")
+    return path[len(root_path) :] if root_path and path.startswith(root_path) else path
+
+
+def safe_next(next: str) -> str:
+    """An app-relative path to return to after sign-in; anything that could leave the app
+    (`//host`, `/\\host`, an absolute URL) becomes "/"."""
+    if not next.startswith("/") or next.startswith(("//", "/\\")):
+        return "/"
+    return next
+
+
 def create_app(settings: Settings) -> FastAPI:
     app = FastAPI(lifespan=lifespan)
     app.state.settings = settings
@@ -63,10 +81,16 @@ def create_app(settings: Settings) -> FastAPI:
         SessionMiddleware,
         secret_key=settings.session_cookie_key,
         max_age=settings.session_max_age_seconds,
+        # Scoped to this app on a shared host (spec 005 FR3).
+        session_cookie=settings.session_cookie_name,
+        path=settings.base_path or "/",
+        https_only=settings.cookie_secure,
     )
     oauth = build_oauth(settings)
     app.include_router(problems_router)
+    app.include_router(images_router)
     app.include_router(sessions_router)
+    app.include_router(chat_router)
     app.include_router(sessions_ws_router)
 
     @app.exception_handler(HTTPException)
@@ -77,20 +101,28 @@ def create_app(settings: Settings) -> FastAPI:
         return JSONResponse(body, status_code=exc.status_code, headers=exc.headers)
 
     @app.get("/api/auth/login")
-    async def login(request: Request, next: str = "/") -> Response:
-        request.session["next"] = next
-        redirect_uri = str(request.url_for("auth_callback"))
-        return await oauth.keycloak.authorize_redirect(request, redirect_uri)
+    async def login(request: Request, next: str = "/", appearance: str | None = None) -> Response:
+        request.session["next"] = safe_next(next)
+        if settings.public_base_url:
+            redirect_uri = f"{settings.public_base_url}/api/auth/callback"
+        else:
+            redirect_uri = str(request.url_for("auth_callback"))
+        # Spec 003 FR-18: the login theme reads this hint from its URL; anything else is dropped.
+        extra = {"appearance": appearance} if appearance in ("light", "dark") else {}
+        return await oauth.keycloak.authorize_redirect(request, redirect_uri, **extra)
 
     @app.get("/api/auth/callback", name="auth_callback")
     async def auth_callback(request: Request) -> Response:
         token = await oauth.keycloak.authorize_access_token(request)
         access_claims = await verified_access_token_claims(oauth.keycloak, token)
-        claims = session_claims(access_claims, app.state.settings.session_max_age_seconds)
-        next_url = request.session.get("next", "/")
+        settings = app.state.settings
+        claims = session_claims(
+            access_claims, settings.oidc_client_id, settings.session_max_age_seconds
+        )
+        next_url = safe_next(request.session.get("next", "/"))
         request.session.clear()
         request.session.update(claims)
-        return RedirectResponse(next_url)
+        return RedirectResponse(settings.base_path + next_url)
 
     @app.post("/api/auth/logout", status_code=204)
     async def logout(request: Request) -> Response:
@@ -112,7 +144,7 @@ def create_app(settings: Settings) -> FastAPI:
         # e.g. in tests) has failed to match. Any non-API path falls back to the SPA shell;
         # the frontend's own router decides what to render client-side.
         request = Request(scope, receive=receive)
-        if request.url.path.startswith("/api/"):
+        if app_path(request).startswith("/api/"):
             response: Response = JSONResponse({"error": "not_found"}, status_code=404)
         else:
             response = FileResponse(FRONTEND_DIST / "index.html")

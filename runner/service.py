@@ -3,7 +3,8 @@
 `POST /execute` takes `{code: str, function_name: str, cases: [[arg, ...], ...]}` and
 returns `{cases: [{status: "ok"|"error"|"timeout"|"memory", value?, error_message?,
 traceback?}]}` (plan: Runner contract, run pipeline step 3). Infrastructure failure
-returns 503. `GET /health` returns 200.
+returns 503, as does waiting too long for a sandbox slot (`{"error": "busy"}`).
+`GET /health` returns 200.
 
 The runner knows nothing about problems, sessions or expected values. Stdlib and the
 `docker` CLI only.
@@ -12,6 +13,8 @@ Environment:
   SANDBOX_IMAGE     sandbox image to run (required)
   SANDBOX_RUNTIME   container runtime, e.g. `runsc` for gVisor; empty for Docker's default
   RUNNER_TIMEOUT_S  outer timeout per call in seconds (default 20)
+  SANDBOX_MAX_CONCURRENT     sandboxes allowed at once; 0 means unlimited (default 0)
+  SANDBOX_SLOT_WAIT_SECONDS  how long a call waits for a free slot (default 10)
   RUNNER_HOST       listen address (default 0.0.0.0)
   RUNNER_PORT       listen port (default 8080)
 """
@@ -20,12 +23,18 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 CONTAINER_LABEL = "collab-coding.runner"
 MAX_REQUEST_B = 1024 * 1024
 MAX_OUTPUT_B = 64 * 1024 * 1024
+
+
+# Set in main() from SANDBOX_MAX_CONCURRENT; None means no cap.
+_slots: threading.BoundedSemaphore | None = None
+_slot_wait_s = 10.0
 
 
 class InfraError(Exception):
@@ -172,16 +181,27 @@ class Handler(BaseHTTPRequestHandler):
         if not _valid_request(body):
             self._reply(400, {"error": "bad_request"})
             return
+        if _slots is not None and not _slots.acquire(timeout=_slot_wait_s):
+            self._reply(503, {"error": "busy"})
+            return
         try:
             cases = execute(body["code"], body["function_name"], body["cases"])
         except InfraError as exc:
             self.log_error("infra error: %s", exc)
             self._reply(503, {"error": "infra_error"})
             return
+        finally:
+            if _slots is not None:
+                _slots.release()
         self._reply(200, {"cases": cases})
 
 
 def main() -> None:
+    global _slots, _slot_wait_s  # noqa: PLW0603 - process-wide config, set once at startup
+    max_concurrent = int(os.environ.get("SANDBOX_MAX_CONCURRENT", "0"))
+    if max_concurrent > 0:
+        _slots = threading.BoundedSemaphore(max_concurrent)
+    _slot_wait_s = float(os.environ.get("SANDBOX_SLOT_WAIT_SECONDS", "10"))
     host = os.environ.get("RUNNER_HOST", "0.0.0.0")  # noqa: S104 - compose network only
     port = int(os.environ.get("RUNNER_PORT", "8080"))
     server = ThreadingHTTPServer((host, port), Handler)

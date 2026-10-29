@@ -1,0 +1,72 @@
+.title {
+  margin: 0;
+  font: var(--type-headline) var(--font-text);
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.search {
+  width: 220px;
+}
+
+.content {
+  padding: var(--space-4) var(--space-6);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--type-body) var(--font-text);
+}
+
+.table th {
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--separator);
+  text-align: left;
+  font-weight: 600;
+  color: var(--label-secondary);
+}
+
+.table td {
+  padding: var(--space-1) var(--space-2);
+}
+
+.table tbody tr:nth-child(even) {
+  background: var(--row-alt-bg);
+}
+
+.table tbody tr:hover {
+  background: var(--row-hover-bg);
+}
+
+.titleCell {
+  width: 100%;
+}
+
+.kind {
+  color: var(--label-secondary);
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.none {
+  color: var(--label-secondary);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

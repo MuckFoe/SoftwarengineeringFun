@@ -1,14 +1,18 @@
 """Problems service: validation and orchestration over the repo (plan.md "Problems").
 
 FR-1, FR-2, FR-2a, FR-3, FR-4, FR-5, FR-7, FR-8, FR-9, NFR-5.
+Spec 002: description rules on save (FR1, FR3, FR4).
 """
 
 import uuid
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 
 import asyncpg
 
-from app.problems import repo
+from app.problems import images_repo, repo
+from app.problems.images import MAX_IMAGES_PER_DESCRIPTION
+from app.problems.markdown import disallowed_image_sources, image_ids
 from app.problems.signature import (
     FieldError,
     SignatureError,
@@ -22,6 +26,30 @@ OnProblemDeleted = Callable[[uuid.UUID], Awaitable[None]]
 # `sessions` (task 38) registers here to react to a deletion, so `problems` never has to
 # import `sessions` (plan.md dependency direction: sessions -> problems, never the reverse).
 _on_problem_deleted: list[OnProblemDeleted] = []
+
+
+@dataclass(frozen=True)
+class DescriptionError:
+    """A description refused on save (spec 002 plan, REST: problems rows)."""
+
+    code: str
+    limit: int | None = None
+    id: uuid.UUID | None = None
+
+
+async def _check_description(conn: asyncpg.Connection, source: str) -> DescriptionError | None:
+    if not source.strip():
+        return DescriptionError("description_required")
+    if disallowed_image_sources(source):
+        return DescriptionError("image_source_not_allowed")
+    ids = image_ids(source)
+    if len(ids) > MAX_IMAGES_PER_DESCRIPTION:
+        return DescriptionError("too_many_images", limit=MAX_IMAGES_PER_DESCRIPTION)
+    existing = await images_repo.existing_ids(conn, ids)
+    missing = [i for i in ids if i not in existing]
+    if missing:
+        return DescriptionError("image_not_found", id=missing[0])
+    return None
 
 
 def register_on_problem_deleted(callback: OnProblemDeleted) -> None:
@@ -45,8 +73,9 @@ async def create(
     tests: list[TestInput],
     created_by_sub: str,
     created_by_name: str,
-) -> uuid.UUID | list[FieldError]:
-    """Validates the signature and tests (FR-4), then creates the problem (FR-3)."""
+) -> uuid.UUID | list[FieldError] | DescriptionError:
+    """Validates the signature and tests (FR-4) and the description (spec 002), then
+    creates the problem (FR-3)."""
     try:
         sig = parse_signature(signature)
     except SignatureError as exc:
@@ -54,6 +83,9 @@ async def create(
     errors = validate_tests(sig, tests)
     if errors:
         return errors
+    refused = await _check_description(conn, description)
+    if refused:
+        return refused
     return await repo.create(
         conn,
         title=title,
@@ -88,7 +120,7 @@ async def update(
     description: str,
     signature: str,
     tests: list[TestInput],
-) -> list[FieldError] | None:
+) -> list[FieldError] | DescriptionError | None:
     """FR-7: validates, then replaces the problem's fields and tests. `None` on success."""
     try:
         sig = parse_signature(signature)
@@ -97,6 +129,9 @@ async def update(
     errors = validate_tests(sig, tests)
     if errors:
         return errors
+    refused = await _check_description(conn, description)
+    if refused:
+        return refused
     await repo.update(conn, problem_id, title=title, description=description, sig=sig, tests=tests)
     return None
 

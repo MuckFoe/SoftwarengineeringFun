@@ -1,0 +1,145 @@
+/*
+ * Design tokens (FR-1, FR-7). Every colour token on :root is redefined under the dark
+ * block, so components that use tokens only have no light-only leftovers. Fonts are
+ * referenced by family name only; no font files are shipped (NFR-1).
+ */
+
+:root {
+  color-scheme: light;
+  accent-color: var(--accent);
+
+  --font-text: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --type-large-title: 26px / 32px;
+  --type-title1: 22px / 26px;
+  --type-title2: 17px / 22px;
+  --type-title3: 15px / 20px;
+  --type-headline: 13px / 16px;
+  --type-body: 13px / 16px;
+  --type-callout: 12px / 15px;
+  --type-subheadline: 11px / 14px;
+  --type-footnote: 10px / 13px;
+  --type-caption: 10px / 13px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-control: 6px;
+  --radius-sheet: 10px;
+
+  --window-bg: #ececec;
+  --content-bg: #ffffff;
+  --control-bg: #ffffff;
+  --control-bg-hover: #f5f5f5;
+  --control-bg-pressed: #e5e5e5;
+  --control-border: rgba(0, 0, 0, 0.15);
+  --label: rgba(0, 0, 0, 0.85);
+  --label-secondary: rgba(0, 0, 0, 0.58);
+  --label-tertiary: rgba(0, 0, 0, 0.26);
+  --separator: rgba(0, 0, 0, 0.1);
+  --row-alt-bg: #f4f5f5;
+  --row-hover-bg: rgba(0, 0, 0, 0.05);
+  --selection-bg: rgba(0, 100, 210, 0.2);
+  --backdrop: rgba(0, 0, 0, 0.2);
+
+  --accent: #0064d2;
+  --accent-hover: #0058b8;
+  --accent-pressed: #004c9e;
+  --accent-label: #ffffff;
+  --focus-ring: rgba(0, 100, 210, 0.5);
+
+  --status-error: #d70015;
+  --status-error-bg: rgba(255, 59, 48, 0.1);
+  --status-success: #248a3d;
+  --status-success-bg: rgba(52, 199, 89, 0.12);
+  --status-warning: #a05a00;
+  --status-warning-bg: rgba(255, 204, 0, 0.18);
+
+  --syntax-keyword: #a3238f;
+  --syntax-string: #b8251c;
+  --syntax-number: #2a3ac7;
+  --syntax-comment: #64707c;
+  --syntax-function: #2f6b72;
+  --syntax-type: #145a82;
+  --presence-1: #d9480f;
+  --presence-2: #2b8a3e;
+  --presence-3: #1971c2;
+  --presence-4: #9c36b5;
+  --presence-5: #c2255c;
+  --presence-6: #0c8599;
+
+  --shadow-control: 0 0.5px 1px rgba(0, 0, 0, 0.15);
+  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+  --shadow-sheet: 0 12px 40px rgba(0, 0, 0, 0.25), 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+}
+
+:root[data-appearance="dark"] {
+  color-scheme: dark;
+
+  --window-bg: #1e1e1e;
+  --content-bg: #232323;
+  --control-bg: #3a3a3c;
+  --control-bg-hover: #454547;
+  --control-bg-pressed: #505052;
+  --control-border: rgba(255, 255, 255, 0.12);
+  --label: rgba(255, 255, 255, 0.85);
+  --label-secondary: rgba(255, 255, 255, 0.55);
+  --label-tertiary: rgba(255, 255, 255, 0.25);
+  --separator: rgba(255, 255, 255, 0.1);
+  --row-alt-bg: #2a2a2a;
+  --row-hover-bg: rgba(255, 255, 255, 0.06);
+  --selection-bg: rgba(74, 160, 255, 0.35);
+  --backdrop: rgba(0, 0, 0, 0.45);
+
+  --accent: #4aa0ff;
+  --accent-hover: #6ab1ff;
+  --accent-pressed: #3a95f5;
+  --accent-label: #1c1c1e;
+  --focus-ring: rgba(74, 160, 255, 0.6);
+
+  --status-error: #ff6961;
+  --status-error-bg: rgba(255, 69, 58, 0.16);
+  --status-success: #4cd964;
+  --status-success-bg: rgba(48, 209, 88, 0.16);
+  --status-warning: #ffd60a;
+  --status-warning-bg: rgba(255, 214, 10, 0.16);
+
+  --syntax-keyword: #f47fb4;
+  --syntax-string: #f58c7c;
+  --syntax-number: #d6c97e;
+  --syntax-comment: #8a96a3;
+  --syntax-function: #70bba8;
+  --syntax-type: #6fcff2;
+  --presence-1: #ff8a4c;
+  --presence-2: #69db7c;
+  --presence-3: #74c0fc;
+  --presence-4: #da77f2;
+  --presence-5: #f783ac;
+  --presence-6: #66d9e8;
+
+  --shadow-control: 0 0.5px 1px rgba(0, 0, 0, 0.4);
+  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  --shadow-sheet: 0 12px 40px rgba(0, 0, 0, 0.55), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+}
+
+html {
+  font: var(--type-body) var(--font-text);
+  color: var(--label);
+  background: var(--window-bg);
+}
+
+body {
+  margin: 0;
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+}

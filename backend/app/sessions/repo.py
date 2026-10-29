@@ -35,6 +35,14 @@ class Participant:
     left_at: datetime | None
 
 
+@dataclass(frozen=True)
+class StaleSessionRow:
+    invite_id: str
+    problem_title: str
+    stale_at: datetime
+    last_activity_at: datetime
+
+
 def _session(row: asyncpg.Record) -> Session:
     return Session(
         id=row["id"],
@@ -102,6 +110,25 @@ async def set_stale(conn: asyncpg.Connection, session_id: uuid.UUID) -> None:
 
 async def clear_stale(conn: asyncpg.Connection, session_id: uuid.UUID) -> None:
     await conn.execute("update session set stale_at = null where id = $1", session_id)
+
+
+async def list_stale(conn: asyncpg.Connection) -> list[StaleSessionRow]:
+    """Spec 003 FR-9: the admin "Stale sessions" list, most recently stale first."""
+    rows = await conn.fetch(
+        """select s.invite_id, p.title as problem_title, s.stale_at, s.last_activity_at
+           from session s join problem p on p.id = s.current_problem_id
+           where s.stale_at is not null
+           order by s.stale_at desc"""
+    )
+    return [
+        StaleSessionRow(
+            invite_id=r["invite_id"],
+            problem_title=r["problem_title"],
+            stale_at=r["stale_at"],
+            last_activity_at=r["last_activity_at"],
+        )
+        for r in rows
+    ]
 
 
 # --- participants ---------------------------------------------------------------

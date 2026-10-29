@@ -1,0 +1,33 @@
+.signIn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--control-bg);
+  color: var(--label);
+  font: var(--type-body) var(--font-text);
+  text-decoration: none;
+  box-shadow: var(--shadow-control);
+}
+
+.signIn:hover {
+  background: var(--control-bg-hover);
+}
+
+.signIn:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.name {
+  margin: 0;
+  font-weight: 600;
+}

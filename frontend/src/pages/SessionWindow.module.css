@@ -1,0 +1,108 @@
+.spacer {
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--type-headline) var(--font-text);
+  font-weight: 600;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.tab {
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--label-secondary);
+  font: var(--type-subheadline) var(--font-text);
+  cursor: pointer;
+}
+
+.tab[aria-selected="true"] {
+  background: var(--control-bg);
+  color: var(--label);
+  font-weight: 600;
+}
+
+.tab:focus-visible {
+  outline: 3px solid var(--focus-ring);
+}
+
+.editor {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.loading {
+  padding: var(--space-6);
+  color: var(--label-secondary);
+}
+
+.joinCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: min(360px, calc(100% - 2 * var(--space-4)));
+  margin: var(--space-8) auto;
+  padding: var(--space-6);
+  border-radius: var(--radius-sheet);
+  background: var(--content-bg);
+  box-shadow: var(--shadow-sheet);
+}
+
+.joinTitle {
+  margin: 0;
+  font: var(--type-title3) var(--font-text);
+  font-weight: 600;
+}
+
+.joinForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.joinActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.invite {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.inviteLabel {
+  font: var(--type-subheadline) var(--font-text);
+  color: var(--label-secondary);
+}
+
+.inviteInput {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--window-bg);
+  color: var(--label);
+  font: var(--type-callout) var(--font-mono);
+}
+
+.inviteInput:focus-visible {
+  outline: 3px solid var(--focus-ring);
+}

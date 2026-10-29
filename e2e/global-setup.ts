@@ -83,29 +83,39 @@ async function createUser(token: string, username: string, password: string): Pr
   }
   const location = created.headers.get("location") ?? "";
   const userId = location.split("/").pop();
+  // Client roles on the app's own client: the app reads no others (spec 005 FR3).
   const roleNames = TEST_USERS[username] ?? [];
   if (roleNames.length > 0 && userId) {
+    const client = await clientUuid(token);
     const roles = await Promise.all(
       roleNames.map(async (name) => {
-        const r = await adminFetch(token, `/roles/${name}`);
+        const r = await adminFetch(token, `/clients/${client}/roles/${name}`);
         return r.json();
       }),
     );
-    await adminFetch(token, `/users/${userId}/role-mappings/realm`, {
+    const mapped = await adminFetch(token, `/users/${userId}/role-mappings/clients/${client}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(roles),
     });
+    if (!mapped.ok) {
+      throw new Error(`could not give ${username} ${roleNames}: ${mapped.status}`);
+    }
   }
 }
 
-async function rotateClientSecret(token: string): Promise<string> {
+async function clientUuid(token: string): Promise<string> {
   const clients = await adminFetch(token, `/clients?clientId=${CLIENT_ID}`);
   const [client] = (await clients.json()) as Array<{ id: string }>;
   if (!client) {
     throw new Error(`no Keycloak client with clientId ${CLIENT_ID}`);
   }
-  const rotated = await adminFetch(token, `/clients/${client.id}/client-secret`, {
+  return client.id;
+}
+
+async function rotateClientSecret(token: string): Promise<string> {
+  const client = await clientUuid(token);
+  const rotated = await adminFetch(token, `/clients/${client}/client-secret`, {
     method: "POST",
   });
   const body = (await rotated.json()) as { value: string };

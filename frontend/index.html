@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Collaborative coding</title>
+    <script>
+      // Sets data-appearance before first paint (no flash). Same rules as src/theme/appearance.ts.
+      (() => {
+        let choice = "system";
+        try {
+          const stored = localStorage.getItem("appearance");
+          if (stored === "light" || stored === "dark") choice = stored;
+        } catch {}
+        if (choice === "system") {
+          const osDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+          choice = osDark ? "dark" : "light";
+        }
+        document.documentElement.setAttribute("data-appearance", choice);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

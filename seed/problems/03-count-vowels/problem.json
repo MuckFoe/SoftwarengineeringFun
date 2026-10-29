@@ -1,6 +1,6 @@
 {
   "title": "Count Vowels",
-  "description": "Count how many characters in a lowercase string are vowels (a, e, i, o, u).",
+  "description": "## Task\n\nCount how many characters of a lowercase string are vowels. The vowels are `a`, `e`, `i`, `o` and `u`; `y` is not a vowel.\n\n## Input\n\n- `s` — a string of lowercase English letters. It may be empty.\n\n## Output\n\nAn integer: the number of vowels in `s`, counting repeats.\n\n## Example\n\n```python\ncount_vowels(\"banana\")  # returns 3\ncount_vowels(\"rhythm\")  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `s` ≤ 10^4\n",
   "signature": "def count_vowels(s: str) -> int",
   "topic": "strings",
   "difficulty": "easy",

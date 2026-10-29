@@ -1,6 +1,6 @@
 {
   "title": "Valid Brackets",
-  "description": "Return whether a string containing only the characters ()[]{} has matching, properly nested brackets.",
+  "description": "## Task\n\nDecide whether the brackets in a string are balanced: every opening bracket is closed by the same kind of bracket, and pairs are properly nested.\n\n## Input\n\n- `s` — a string made only of the characters `(`, `)`, `[`, `]`, `{` and `}`. It may be empty.\n\n## Output\n\nA boolean: `True` if the brackets are balanced, otherwise `False`. The empty string is balanced.\n\n## Example\n\n```python\nis_balanced(\"[{}]()\")  # returns True\nis_balanced(\"{(})\")  # returns False\nis_balanced(\"((\")  # returns False\n```\n\n## Constraints\n\n- 0 ≤ length of `s` ≤ 10^4\n",
   "signature": "def is_balanced(s: str) -> bool",
   "topic": "stacks",
   "difficulty": "easy",

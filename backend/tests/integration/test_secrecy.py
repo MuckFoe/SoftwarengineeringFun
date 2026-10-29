@@ -1,4 +1,5 @@
 """Task 42: test-secrecy sweep. NFR-5, FR-9, FR-22.
+Spec 002 task 18 extends it to descriptions, images and chat (002 FR9).
 
 A problem's tests are unique sentinel strings. Every public HTTP endpoint and every
 WebSocket message type is exercised as an anonymous visitor and as `plain1`, and every
@@ -14,18 +15,23 @@ HTTP routes (app/main.py, app/problems/api.py, app/sessions/api.py, app/sessions
   GET    /api/me
   GET    /api/problems, /api/problems/{id}, /api/problems/{id}/edit (refused)
   POST   /api/problems (refused), PUT/DELETE /api/problems/{id} (refused)
-  POST   /api/sessions, GET /api/sessions/{invite},
+  POST   /api/problems/preview (editor1's response scanned; refused to the observer)
+  POST   /api/images (refused), GET /api/images/{id}
+  POST   /api/sessions, GET /api/sessions/{invite}, GET /api/sessions/stale (refused),
   POST   /api/sessions/{invite}/reactivate (refused)
+  GET    /api/sessions/{invite}/chat, DELETE /api/sessions/{invite}/chat/{id} (refused)
   WS     /api/sessions/{invite}/ws
   FastAPI's /openapi.json, /docs, /docs/oauth2-redirect, /redoc, and the SPA fallback.
 
 WebSocket messages, server -> client (app/sessions/ws.py, app/sessions/service.py):
   JSON: welcome, presence, problem_switched (with and without a last run), run_started,
-        run_finished (wrong answer and error outcomes), problem_deleted, error.
+        run_finished (wrong answer and error outcomes), problem_deleted, error,
+        chat_message, chat_removed. `welcome` and `problem_switched` carry the problem's
+        `description_html`, which here includes an uploaded image.
         `error` is built from a literal code only; it is exercised here via
         `problem_deleted` (the `run_in_progress` and `infra_error` codes share the shape).
   Binary (Yjs): sync step 2 (reply to step 1), update, awareness relay.
-Client -> server: switch_problem, run, sync step 1, update, awareness.
+Client -> server: switch_problem, run, chat_send, sync step 1, update, awareness.
 
 FR-22: a run result never shows inputs, expected or actual values, so run_finished must
 not carry a sentinel either. The code under test returns a value derived from the input
@@ -33,10 +39,14 @@ argument, so a leak of the actual value would also show up. The accepted NFR-5 l
 exception message containing a test input) is avoided by raising a fixed message.
 """
 
+import base64
+import html
 import json
 import os
+import re
 import uuid
 from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
@@ -44,14 +54,18 @@ import asyncpg
 import httpx
 import pycrdt
 import pytest
-from fastapi.routing import APIRoute, APIWebSocketRoute
+from fastapi.routing import APIRoute, APIWebSocketRoute, iter_route_contexts
 from fastapi.testclient import TestClient
 from starlette.routing import Mount
 
 from app import db as app_db
+from app.chat import service as chat_service
 from app.config import Settings
 from app.main import create_app
 from app.problems import repo as problems_repo
+from app.problems.seed import load_seed
+from app.sessions import hub as hub_module
+from app.sessions import repo as sessions_repo
 from app.sessions import service as sessions_service
 from tests.integration.keycloak_fixtures import (  # noqa: F401  (pytest fixtures)
     Keycloak,
@@ -61,8 +75,12 @@ from tests.integration.keycloak_fixtures import (  # noqa: F401  (pytest fixture
 
 COOKIE_KEY = "test-session-cookie-key"  # noqa: S105  (placeholder, not a real secret)
 RUNNER_URL = os.environ.get("RUNNER_URL", "http://127.0.0.1:58080")
+SEED_DIR = Path(__file__).resolve().parents[3] / "seed" / "problems"
 SIGNATURE = "def shout(word: str) -> str"
 FORBIDDEN_KEYS = {"tests", "args", "expected"}
+PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGBgAAAABQABXvMqGgAAAABJRU5ErkJggg=="
+)
 
 # Routes whose body is a schema description, not data: their field *names* include
 # "tests", "args" and "expected" (ProblemIn's schema), so only the sentinel check applies.
@@ -76,6 +94,8 @@ EXPECTED_WS_JSON = {
     "run_finished",
     "problem_deleted",
     "error",
+    "chat_message",
+    "chat_removed",
 }
 EXPECTED_WS_BINARY = {"sync_step2", "update", "awareness"}
 
@@ -182,10 +202,10 @@ def _ws_url(invite: str, name: str) -> str:
     return f"/api/sessions/{invite}/ws?name={quote(name)}"
 
 
-def _problem_body(title: str, arg: str, expected: str) -> dict:
+def _problem_body(title: str, arg: str, expected: str, description: str = "Shout a word.") -> dict:
     return {
         "title": title,
-        "description": "Shout a word.",
+        "description": description,
         "signature": SIGNATURE,
         "tests": [{"args": [arg], "expected": expected}],
     }
@@ -200,16 +220,20 @@ def _set_code(ws, doc: pycrdt.Doc, problem_id: str, code: str) -> None:
 
 
 def _app_routes(client: TestClient) -> set[tuple[str, str]]:
+    # `iter_route_contexts` flattens included routers; iterating `app.routes` directly
+    # sees each router as one opaque entry and would miss every route in it.
     routes: set[tuple[str, str]] = set()
-    for route in client.app.routes:
+    for context in iter_route_contexts(client.app.routes):
+        route = context.original_route
         if isinstance(route, APIWebSocketRoute):
-            routes.add(("WS", route.path))
+            routes.add(("WS", context.path))
         elif isinstance(route, Mount):
             continue  # /assets: static frontend build files, no data
-        elif isinstance(route, APIRoute) or hasattr(route, "methods"):
-            for method in route.methods or ():
+        elif isinstance(route, APIRoute) or context.methods:
+            for method in context.methods or ():
                 if method != "HEAD":
-                    routes.add((method, route.path))
+                    routes.add((method, context.path))
+    assert ("GET", "/api/problems") in routes, "route listing missed the included routers"
     return routes
 
 
@@ -231,8 +255,18 @@ async def test_nfr5_fr9_tests_reach_only_editors(
 
     # --- editor1 creates two problems with sentinel tests and sees them (FR-9). ---
     login_as(client, "editor1")
+    uploaded = sweep.http(
+        ("POST", "/api/images"),
+        client.post("/api/images", content=PNG, headers={"Content-Type": "image/png"}),
+    )
+    assert uploaded.status_code == 201
+    image_url = uploaded.json()["url"]
+    description_p = f"Shout a word.\n\n![a shout]({image_url})\n"
     created_p = client.post(
-        "/api/problems", json=_problem_body(f"Shout {tag[:8]}", secret["arg_p"], secret["exp_p"])
+        "/api/problems",
+        json=_problem_body(
+            f"Shout {tag[:8]}", secret["arg_p"], secret["exp_p"], description=description_p
+        ),
     )
     assert created_p.status_code == 201, created_p.text
     created_q = client.post(
@@ -248,6 +282,13 @@ async def test_nfr5_fr9_tests_reach_only_editors(
     probe = Sweep(sweep.sentinels)
     probe.http(("GET", "/api/problems/{problem_id}/edit"), edit)
     assert len(probe.violations) == 5  # two sentinels, plus tests/args/expected keys
+    # 002 FR5/FR9: the preview renders only the source it was sent.
+    preview = sweep.http(
+        ("POST", "/api/problems/preview"),
+        client.post("/api/problems/preview", json={"description": description_p}),
+    )
+    assert preview.status_code == 200
+    assert image_url in preview.json()["html"]
 
     # --- switch to the observer; everything from here on is scanned. ---
     sweep.http(("POST", "/api/auth/logout"), client.post("/api/auth/logout"))
@@ -266,9 +307,13 @@ async def test_nfr5_fr9_tests_reach_only_editors(
     listing = sweep.http(("GET", "/api/problems"), client.get("/api/problems"))
     assert any(row["id"] == p for row in listing.json())
     sweep.http(("GET", "/api/problems"), client.get("/api/problems", params={"q": tag[:8]}))
-    sweep.http(("GET", "/api/problems/{problem_id}"), client.get(f"/api/problems/{p}"))
+    public_p = sweep.http(("GET", "/api/problems/{problem_id}"), client.get(f"/api/problems/{p}"))
+    assert image_url in public_p.json()["description_html"]
+    image = sweep.http(("GET", "/api/images/{image_id}"), client.get(image_url))
+    assert image.status_code == 200
 
-    # FR-9: viewing tests, creating, editing and deleting are all refused.
+    # FR-9: viewing tests, creating, editing and deleting are all refused, and so are the
+    # other editor- and admin-only routes.
     refused_edit = sweep.http(
         ("GET", "/api/problems/{problem_id}/edit"), client.get(f"/api/problems/{p}/edit")
     )
@@ -281,9 +326,18 @@ async def test_nfr5_fr9_tests_reach_only_editors(
             client.put(f"/api/problems/{p}", json=harmless),
         ),
         sweep.http(("DELETE", "/api/problems/{problem_id}"), client.delete(f"/api/problems/{p}")),
+        sweep.http(
+            ("POST", "/api/problems/preview"),
+            client.post("/api/problems/preview", json={"description": description_p}),
+        ),
+        sweep.http(
+            ("POST", "/api/images"),
+            client.post("/api/images", content=PNG, headers={"Content-Type": "image/png"}),
+        ),
+        sweep.http(("GET", "/api/sessions/stale"), client.get("/api/sessions/stale")),
     ]
     expected_status = 401 if observer == "anonymous" else 403
-    assert [r.status_code for r in refused] == [expected_status] * 4
+    assert [r.status_code for r in refused] == [expected_status] * len(refused)
 
     started = sweep.http(
         ("POST", "/api/sessions"), client.post("/api/sessions", json={"problem_id": p})
@@ -304,7 +358,9 @@ async def test_nfr5_fr9_tests_reach_only_editors(
     # --- the session WebSocket, two participants. ---
     sweep.routes_hit.add(("WS", "/api/sessions/{invite}/ws"))
     with client.websocket_connect(_ws_url(invite, "Ada")) as ada:
-        assert sweep.ws_text(ada.receive_json())["type"] == "welcome"
+        welcome = sweep.ws_text(ada.receive_json())
+        assert welcome["type"] == "welcome"
+        assert image_url in welcome["current_problem"]["description_html"]
         ada_doc = pycrdt.Doc()
         ada.send_bytes(pycrdt.create_sync_message(ada_doc))
         reply = sweep.ws_bytes(ada.receive_bytes())
@@ -320,6 +376,24 @@ async def test_nfr5_fr9_tests_reach_only_editors(
             # Awareness relay.
             linus.send_bytes(bytes([pycrdt.YMessageType.AWARENESS, 0]))
             sweep.ws_bytes(ada.receive_bytes())
+
+            # 002 chat: two messages, a refused one, and an admin removal.
+            for text in ("kept", "removed"):
+                ada.send_text(json.dumps({"type": "chat_send", "client_id": text, "text": text}))
+                for ws in (ada, linus):
+                    assert _next_json(ws, sweep)["type"] == "chat_message"
+            ada.send_text(json.dumps({"type": "chat_send", "client_id": "empty", "text": " "}))
+            assert _next_json(ada, sweep)["code"] == "chat_empty"
+            session_id = (await sessions_repo.get_by_invite(conn, invite)).id
+            removed_id = await conn.fetchval(
+                "select id from chat_message where session_id = $1 and body = 'removed'",
+                session_id,
+            )
+            await chat_service.remove(
+                conn, hub_module.peek_hub(session_id), session_id, removed_id, "admin-sub"
+            )
+            for ws in (ada, linus):
+                assert _next_json(ws, sweep)["type"] == "chat_removed"
 
             # Wrong answer: the actual value is built from the sentinel input (FR-22).
             _set_code(ada, ada_doc, p, 'def shout(word: str) -> str:\n    return word + "!"\n')
@@ -367,6 +441,16 @@ async def test_nfr5_fr9_tests_reach_only_editors(
         # Linus leaves: presence update.
         assert sweep.ws_text(ada.receive_json())["type"] == "presence"
 
+    chat = sweep.http(
+        ("GET", "/api/sessions/{invite}/chat"), client.get(f"/api/sessions/{invite}/chat")
+    )
+    assert [m["text"] for m in chat.json()["messages"]] == ["kept"]
+    refused_removal = sweep.http(
+        ("DELETE", "/api/sessions/{invite}/chat/{message_id}"),
+        client.delete(f"/api/sessions/{invite}/chat/{chat.json()['messages'][0]['id']}"),
+    )
+    assert refused_removal.status_code == expected_status
+
     # A deleted problem's public view, after runs exist.
     sweep.http(("GET", "/api/problems/{problem_id}"), client.get(f"/api/problems/{p}"))
 
@@ -379,3 +463,94 @@ async def test_nfr5_fr9_tests_reach_only_editors(
     assert sweep.ws_binary >= EXPECTED_WS_BINARY
 
     assert sweep.violations == []
+
+
+def _views_text(html_text: str) -> str:
+    """What a participant reads: the HTML's text, without tags or attribute values."""
+    return html.unescape(re.sub(r"<[^>]+>", " ", html_text))
+
+
+def _hidden_values(tests: list[dict]) -> set[str]:
+    """Each hidden test's arguments (as a list and as call arguments, JSON and Python
+    spellings), each argument alone, and its expected value."""
+    values: set[str] = set()
+    for test in tests:
+        args, expected = test["args"], test["expected"]
+        for dump in (json.dumps, repr):
+            values.add(dump(args))
+            values.add(", ".join(dump(a) for a in args))
+            values.add(dump(expected))
+            values.update(dump(a) for a in args)
+    return {v for v in values if v}
+
+
+def _mentions(text: str, value: str) -> bool:
+    # A whole token: `5` must not match inside `15`, `5.0` or an id.
+    return re.search(rf"(?<![\w.]){re.escape(value)}(?![\w.])", text) is not None
+
+
+def _next_of_type(ws, msg_type: str) -> dict:
+    """The next JSON message of this type, skipping Yjs frames and anything else."""
+    while True:
+        message = ws.receive()
+        if message.get("text") is not None:
+            payload = json.loads(message["text"])
+            if payload["type"] == msg_type:
+                return payload
+
+
+async def test_002_fr9_starter_descriptions_reveal_no_hidden_test_values(
+    client: TestClient,
+    conn: asyncpg.Connection,
+    login_as,  # noqa: F811
+) -> None:
+    """002 FR9 for every starter problem: the public problem, `welcome`, `problem_switched`
+    and the preview show no hidden test value that the description source doesn't already
+    contain. The sentinel sweep above covers whole payloads; this covers the description
+    a participant reads, with the real starter content."""
+    await load_seed(conn, SEED_DIR)
+    starter_ids = [
+        str(r["id"])
+        for r in await conn.fetch(
+            "select id from problem where seed_key is not null and deleted_at is null"
+            " order by seed_key"
+        )
+    ]
+    assert len(starter_ids) == 20
+
+    login_as(client, "editor1")
+    sources: dict[str, str] = {}
+    hidden: dict[str, set[str]] = {}
+    shown: dict[str, list[tuple[str, str]]] = {pid: [] for pid in starter_ids}
+    for pid in starter_ids:
+        editable = client.get(f"/api/problems/{pid}/edit").json()
+        sources[pid], hidden[pid] = editable["description"], _hidden_values(editable["tests"])
+        public = client.get(f"/api/problems/{pid}").json()
+        shown[pid].append(("GET /api/problems/{id}", public["description_html"]))
+        preview = client.post("/api/problems/preview", json={"description": sources[pid]})
+        shown[pid].append(("POST /api/problems/preview", preview.json()["html"]))
+
+    for pid in starter_ids:
+        invite = client.post("/api/sessions", json={"problem_id": pid}).json()["invite_id"]
+        with client.websocket_connect(_ws_url(invite, "Ada")) as ws:
+            welcome = _next_of_type(ws, "welcome")
+        shown[pid].append(("welcome", welcome["current_problem"]["description_html"]))
+
+    invite = client.post("/api/sessions", json={"problem_id": starter_ids[-1]}).json()
+    with client.websocket_connect(_ws_url(invite["invite_id"], "Ada")) as ws:
+        _next_of_type(ws, "welcome")
+        for pid in starter_ids:
+            ws.send_text(json.dumps({"type": "switch_problem", "problem_id": pid}))
+            switched = _next_of_type(ws, "problem_switched")
+            assert switched["problem"]["id"] == pid
+            shown[pid].append(("problem_switched", switched["problem"]["description_html"]))
+
+    leaks = [
+        f"{pid} {where}: {value!r}"
+        for pid in starter_ids
+        for where, html_text in shown[pid]
+        for value in hidden[pid]
+        if _mentions(_views_text(html_text), value) and not _mentions(sources[pid], value)
+    ]
+    assert all(len(views) == 4 for views in shown.values())
+    assert leaks == []

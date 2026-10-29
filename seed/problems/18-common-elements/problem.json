@@ -1,6 +1,6 @@
 {
   "title": "Common Elements",
-  "description": "Return the sorted list of distinct integers that appear in both of two given lists.",
+  "description": "## Task\n\nFind the values that appear in both of two lists of integers.\n\n## Input\n\n- `a` — a list of integers. It may be empty and contain repeats.\n- `b` — a list of integers. It may be empty and contain repeats.\n\n## Output\n\nA list of the distinct values found in both lists, sorted in ascending order. An empty list if they share none.\n\n## Example\n\n```python\ncommon_elements([4, 9, 4, 1], [9, 4, 7])  # returns [4, 9]\ncommon_elements([2], [3])  # returns []\n```\n\n## Constraints\n\n- 0 ≤ length of `a`, `b` ≤ 10^4\n- -10^9 ≤ each value ≤ 10^9\n",
   "signature": "def common_elements(a: list[int], b: list[int]) -> list[int]",
   "topic": "sets",
   "difficulty": "easy",

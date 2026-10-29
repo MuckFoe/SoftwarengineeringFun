@@ -1,0 +1,13 @@
+.hud {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-8);
+  translate: -50% 0;
+  z-index: 10;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sheet);
+  background: var(--material-bg-opaque, var(--content-bg));
+  color: var(--label);
+  font: var(--type-body) var(--font-text);
+  box-shadow: var(--shadow-popover);
+}

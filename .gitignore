@@ -8,3 +8,6 @@ __pycache__/
 .pytest_cache/
 node_modules/
 dist/
+.env.proxmox
+.env.hub
+e2e/test-results/

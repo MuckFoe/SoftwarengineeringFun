@@ -1,0 +1,67 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font: var(--type-body) var(--font-text);
+  color: var(--label);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.accepted {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--status-success-bg);
+  color: var(--status-success);
+  font-weight: 600;
+}
+
+.running {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--label-secondary);
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.result {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  align-items: start;
+  column-gap: var(--space-2);
+}
+
+.result[data-outcome="passed"] > svg {
+  color: var(--status-success);
+}
+
+.result:not([data-outcome="passed"]) > svg {
+  color: var(--status-error);
+}
+
+.traceback {
+  grid-column: 2;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--window-bg);
+  font: var(--type-callout) var(--font-mono);
+  white-space: pre-wrap;
+  overflow-x: auto;
+}

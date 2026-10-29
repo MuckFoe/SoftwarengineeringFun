@@ -150,7 +150,9 @@ class _HeldSocket:
 
     def __init__(self, pool: asyncpg.Pool) -> None:
         self.app = SimpleNamespace(
-            state=SimpleNamespace(pool=pool, settings=SimpleNamespace(runner_url="http://unused"))
+            state=SimpleNamespace(
+                pool=pool, settings=SimpleNamespace(runner_url="http://unused", base_path="")
+            )
         )
         self.close_code: int | None = None
         self.settled = asyncio.Event()  # joined (waiting in receive) or closed

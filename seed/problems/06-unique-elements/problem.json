@@ -1,6 +1,6 @@
 {
   "title": "First Occurrences Only",
-  "description": "Return the elements of a list of integers in their original order, keeping only the first occurrence of each value.",
+  "description": "## Task\n\nRemove repeated values from a list of integers, keeping the first occurrence of each value and the original order.\n\n## Input\n\n- `xs` — a list of integers. It may be empty.\n\n## Output\n\nA list of integers: each distinct value of `xs` once, in the order it first appears.\n\n## Example\n\n```python\nunique_elements([7, 3, 7, 9, 3])  # returns [7, 3, 9]\nunique_elements([-2, -2])  # returns [-2]\n```\n\n## Constraints\n\n- 0 ≤ length of `xs` ≤ 10^4\n- -10^9 ≤ each value ≤ 10^9\n",
   "signature": "def unique_elements(xs: list[int]) -> list[int]",
   "topic": "arrays",
   "difficulty": "easy",

@@ -27,6 +27,17 @@ step "biome ci"
 step "tsc --noEmit"
 (cd "$ROOT/frontend" && npx --no-install tsc --noEmit)
 
+step "frontend build"
+(cd "$ROOT/frontend" && npx --no-install vite build)
+
+step "no Apple assets (self-test, then frontend/dist and keycloak-theme)"
+"$ROOT/scripts/check-no-apple-assets.sh" --self-test
+"$ROOT/scripts/check-no-apple-assets.sh"
+
+step "Keycloak theme tokens match the app's (self-test, then the tree)"
+"$ROOT/scripts/check-theme-tokens.sh" --self-test
+"$ROOT/scripts/check-theme-tokens.sh"
+
 step "gitleaks (git history)"
 "$GITLEAKS" git --no-banner --redact "$ROOT"
 

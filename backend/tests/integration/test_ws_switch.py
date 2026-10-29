@@ -1,6 +1,6 @@
 """Task 38: WebSocket problem switching and deleted-problem handling.
 
-FR-10, FR-17.
+FR-10, FR-17. Spec 002 task 16: `description_html` in `welcome` and `problem_switched`.
 """
 
 import json
@@ -214,3 +214,75 @@ async def test_switching_to_an_unknown_problem_errors_and_keeps_the_connection(
 
         ws.send_text(json.dumps({"type": "switch_problem", "problem_id": str(reverse_list)}))
         assert ws.receive_json()["type"] == "problem_switched"
+
+
+# ---- Spec 002 task 16: description_html on the session WebSocket (FR6, FR7) ----
+
+
+async def _described(conn: asyncpg.Connection, description: str, sig=ADD) -> uuid.UUID:
+    return await problems_repo.create(
+        conn,
+        title=f"Described {uuid.uuid4().hex[:8]}",
+        description=description,
+        sig=sig,
+        tests=[TestInput(args=[2, 3], expected=5)],
+        created_by_sub=None,
+        created_by_name=None,
+    )
+
+
+async def test_002_fr6_welcome_carries_the_rendered_description(
+    client: TestClient, migrated: asyncpg.Connection
+) -> None:
+    image = f"/api/images/{uuid.uuid4()}"
+    problem_id = await _described(migrated, f"## Task\n\nAdd `a` and `b`.\n\n![sum]({image})")
+    session = await sessions_repo.create(migrated, problem_id)
+
+    with client.websocket_connect(_ws_url(session.invite_id, "Ana")) as ws:
+        welcome = ws.receive_json()
+
+    current = welcome["current_problem"]
+    assert current["description_html"] == (
+        f"<h2>Task</h2>\n<p>Add <code>a</code> and <code>b</code>.</p>\n"
+        f'<p><img src="{image}" alt="sum" /></p>\n'
+    )
+    assert current["description"].startswith("## Task")
+
+
+async def test_002_fr6_problem_switched_carries_the_new_problems_description(
+    client: TestClient, migrated: asyncpg.Connection
+) -> None:
+    first = await _described(migrated, "First *one*.")
+    second = await _described(migrated, "1. step\n2. step", sig=REVERSE)
+    session = await sessions_repo.create(migrated, first)
+
+    with client.websocket_connect(_ws_url(session.invite_id, "Ana")) as ws:
+        ws.receive_json()  # welcome
+        _switch(ws, second)
+        switched = ws.receive_json()
+
+    assert switched["type"] == "problem_switched"
+    assert switched["problem"]["description_html"] == "<ol>\n<li>step</li>\n<li>step</li>\n</ol>\n"
+
+
+async def test_002_fr7_a_new_join_after_an_edit_gets_the_new_description(
+    client: TestClient, migrated: asyncpg.Connection
+) -> None:
+    problem_id = await _described(migrated, "Old text.")
+    session = await sessions_repo.create(migrated, problem_id)
+
+    with client.websocket_connect(_ws_url(session.invite_id, "Ana")) as ws:
+        before = ws.receive_json()
+    await problems_repo.update(
+        migrated,
+        problem_id,
+        title="Described",
+        description="New **text**.",
+        sig=ADD,
+        tests=[TestInput(args=[2, 3], expected=5)],
+    )
+    with client.websocket_connect(_ws_url(session.invite_id, "Ana")) as ws:
+        after = ws.receive_json()
+
+    assert before["current_problem"]["description_html"] == "<p>Old text.</p>\n"
+    assert after["current_problem"]["description_html"] == "<p>New <strong>text</strong>.</p>\n"

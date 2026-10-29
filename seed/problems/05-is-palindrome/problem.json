@@ -1,6 +1,6 @@
 {
   "title": "Palindrome Check",
-  "description": "Return whether a lowercase string reads the same forwards and backwards.",
+  "description": "## Task\n\nDecide whether a lowercase string reads the same forwards and backwards.\n\n## Input\n\n- `s` — a string of lowercase English letters. It may be empty.\n\n## Output\n\nA boolean: `True` if `s` is a palindrome, otherwise `False`. The empty string counts as a palindrome.\n\n## Example\n\n```python\nis_palindrome(\"racecar\")  # returns True\nis_palindrome(\"rotors\")  # returns False\n```\n\n## Constraints\n\n- 0 ≤ length of `s` ≤ 10^4\n",
   "signature": "def is_palindrome(s: str) -> bool",
   "topic": "strings",
   "difficulty": "easy",

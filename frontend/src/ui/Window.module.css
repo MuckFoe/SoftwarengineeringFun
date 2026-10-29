@@ -1,0 +1,64 @@
+.window {
+  display: grid;
+  grid-template-columns: auto minmax(420px, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "top top top"
+    "sidebar center inspector";
+  height: 100vh;
+  overflow: hidden;
+  background: var(--window-bg);
+  color: var(--label);
+}
+
+.top {
+  grid-area: top;
+}
+
+.sidebar {
+  grid-area: sidebar;
+  width: 220px;
+  min-height: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--separator);
+}
+
+.sidebar[data-open="false"] {
+  width: 0;
+  border-right-width: 0;
+}
+
+.center {
+  grid-area: center;
+  display: flex;
+  flex-direction: column;
+  min-width: 420px;
+  min-height: 0;
+}
+
+.inspector {
+  grid-area: inspector;
+  display: flex;
+  min-height: 0;
+}
+
+.main {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--content-bg);
+}
+
+/* NFR-2: narrower than 1200 px, the sidebar floats over the main area. */
+@media (max-width: 1199px) {
+  .sidebar,
+  .center {
+    grid-column: sidebar / center;
+  }
+
+  .sidebar {
+    justify-self: start;
+    z-index: 2;
+    box-shadow: var(--shadow-popover);
+  }
+}

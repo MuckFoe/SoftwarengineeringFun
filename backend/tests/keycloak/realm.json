@@ -1,6 +1,7 @@
 {
   "realm": "collab-test",
   "enabled": true,
+  "loginTheme": "collab",
   "sslRequired": "none",
   "registrationAllowed": false,
   "loginWithEmailAllowed": false,
@@ -8,7 +9,17 @@
     "realm": [
       { "name": "editor", "description": "May create, edit and delete problems (FR-2)" },
       { "name": "admin", "description": "May reactivate stale sessions (FR-31)" }
-    ]
+    ],
+    "client": {
+      "collab-coding": [
+        { "name": "editor", "description": "May create, edit and delete problems (FR-2)" },
+        { "name": "admin", "description": "May reactivate stale sessions (FR-31)" }
+      ],
+      "other-app": [
+        { "name": "editor", "description": "Decoy: another app's role, never honoured here (spec 005 FR3)" },
+        { "name": "admin", "description": "Decoy: another app's role, never honoured here (spec 005 FR3)" }
+      ]
+    }
   },
   "clients": [
     {
@@ -28,6 +39,18 @@
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://testserver/*"
       }
+    },
+    {
+      "clientId": "other-app",
+      "name": "Another app on the hub (decoy, spec 005 FR3)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
     }
   ]
 }

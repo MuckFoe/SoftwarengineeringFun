@@ -1,6 +1,6 @@
 {
   "title": "Sum Two Numbers",
-  "description": "Return the sum of two integers.",
+  "description": "## Task\n\nAdd two integers and return their sum.\n\n## Input\n\n- `a` — an integer.\n- `b` — an integer.\n\n## Output\n\nAn integer: `a + b`.\n\n## Example\n\n```python\nadd(7, 12)  # returns 19\nadd(-8, 3)  # returns -5\n```\n\n## Constraints\n\n- -10^9 ≤ `a`, `b` ≤ 10^9\n",
   "signature": "def add(a: int, b: int) -> int",
   "topic": "math",
   "difficulty": "easy",

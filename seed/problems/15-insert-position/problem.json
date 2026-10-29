@@ -1,6 +1,6 @@
 {
   "title": "Find Insert Position",
-  "description": "Given a list of integers sorted in non-decreasing order and a target value, return the index where the target should be inserted to keep the list sorted. If the target already appears, return the index of its leftmost occurrence.",
+  "description": "## Task\n\nFind where a value belongs in a sorted list: the index at which inserting it keeps the list sorted. If the value is already present, return the index of its leftmost occurrence.\n\n## Input\n\n- `xs` — a list of integers sorted in non-decreasing order. It may be empty.\n- `target` — the value to place.\n\n## Output\n\nAn integer from 0 to the length of `xs`, inclusive.\n\n## Example\n\n```python\ninsert_position([2, 4, 4, 9], 4)  # returns 1\ninsert_position([2, 4, 4, 9], 10)  # returns 4\n```\n\n## Constraints\n\n- 0 ≤ length of `xs` ≤ 10^4\n- -10^9 ≤ each value, `target` ≤ 10^9\n",
   "signature": "def insert_position(xs: list[int], target: int) -> int",
   "topic": "binary search",
   "difficulty": "easy",
