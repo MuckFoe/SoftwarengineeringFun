@@ -74,3 +74,23 @@ On VM 105, after the hub repo's first commit and spec 004's deploy, follow
 `deploy/hub/RUNBOOK.md`. Then record here: smoke `--fresh` (FR1 cert, FR4,
 FR9), FR2a (public device), FR7 (reboot), FR8 (on the VM), and Memory (peak
 under 5 participants / 3 sessions).
+
+## 2026-10-29 — first deploy to VM 105
+
+Hub (`../hub` a814724) and collab (0db55cc) deployed per `deploy/hub/RUNBOOK.md`.
+Tailnet `rhinoceros-themis` (shared with Home Assistant); node `hub.rhinoceros-themis.ts.net`, tag `tag:hub`, Funnel on 443, admin on 8443 tailnet-only.
+
+| Check | Result |
+|---|---|
+| `smoke.sh --fresh` `services` | PASS (api db runner) |
+| `smoke.sh --fresh` `fresh` | PASS (problem=20 session=0 chat_message=0) |
+| `smoke.sh --fresh` `cert` | FAIL on the VM: the VM host isn't on the tailnet (Tailscale runs in the container), so the host can't reach its own name. From the public internet: `/collab/` 200, Let's Encrypt cert for `hub.rhinoceros-themis.ts.net` verifies. |
+| Sign-in | `/collab/api/auth/login` → 302 to hub Keycloak, `client_id=collab` |
+
+Findings:
+
+1. `smoke.sh`'s `cert` check can't pass from the VM host by design; run it from off-VM or through the `ts-hub` container.
+2. The hub's `auth` healthcheck reported healthy ~1 min before Keycloak listened on 8080; `bin/add-client` failed on the first try. Tighten the healthcheck (hub repo).
+3. `check/static.sh` needs `jq` on the VM; it wasn't installed (now is). Add it to the hub README's VM step.
+
+Still open: FR2a (public device), FR7 (reboot), FR8 (on the VM), Memory (peak under load).
