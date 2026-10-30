@@ -1,0 +1,32 @@
+/* Rows match ui/SourceList: same height, padding, hover and accent selection. */
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-control);
+  color: var(--label);
+  font: var(--type-body) var(--font-text);
+  text-decoration: none;
+  cursor: default;
+}
+
+.row:hover {
+  background: var(--row-hover-bg);
+}
+
+.row[aria-current="page"] {
+  background: var(--accent);
+  color: var(--accent-label);
+}
+
+.row:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -1px;
+}

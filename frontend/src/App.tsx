@@ -1,6 +1,8 @@
 import { type ReactNode, useState } from "react";
 import { Route, Routes, useParams } from "react-router";
 import { RequireRole } from "./auth/RequireRole";
+import { LearningSessionWindow } from "./learn/LearningSessionWindow";
+import { LearnWindow } from "./learn/LearnWindow";
 import { NotFound } from "./pages/NotFound";
 import { ProblemsWindow } from "./pages/ProblemsWindow";
 import { SessionWindow } from "./pages/SessionWindow";
@@ -59,6 +61,8 @@ function AppShell() {
           }
         />
         <Route path="/s/:invite" element={<SessionWindow />} />
+        <Route path="/learn" element={<LearnWindow />} />
+        <Route path="/learn/s/:invite" element={<LearningSessionWindow />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <ShortcutList open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />

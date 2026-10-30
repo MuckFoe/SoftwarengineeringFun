@@ -1,0 +1,13 @@
+title = "Broken"
+summary = "A quiz with no correct answer."
+minutes = 5
+
+[[steps]]
+kind = "quiz"
+title = "Pick"
+body = "Pick one."
+[steps.check]
+type = "choice"
+options = ["A", "B"]
+correct = []
+multiple = false

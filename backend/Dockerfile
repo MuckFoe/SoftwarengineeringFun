@@ -20,10 +20,11 @@ COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --frozen --no-dev
 COPY backend/app ./app
 
-# Mirrors the repo's layout, so main.py's FRONTEND_DIST and SEED_DIR (both resolved
-# relative to backend/app/) find their siblings.
+# Mirrors the repo's layout, so main.py's FRONTEND_DIST and asgi.py's SEED_DIR and
+# LESSONS_DIR (all resolved relative to backend/app/) find their siblings.
 COPY --from=frontend-builder /frontend/dist /app/frontend/dist
 COPY seed /app/seed
+COPY lessons /app/lessons
 
 EXPOSE 8000
 # The venv's own uvicorn, not `uv run`: the latter re-resolves (and, for this frozen,

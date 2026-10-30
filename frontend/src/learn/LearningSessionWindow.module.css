@@ -1,0 +1,117 @@
+.spacer {
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--type-headline) var(--font-text);
+  font-weight: 600;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-6);
+}
+
+.summaryTitle {
+  margin: 0 0 var(--space-2);
+  font: var(--type-title3) var(--font-text);
+  font-weight: 600;
+}
+
+/* Step rows match ui/SourceList and AreaNav: height, padding, hover, accent selection. */
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 24px;
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--label);
+  font: var(--type-body) var(--font-text);
+  text-align: left;
+  cursor: default;
+}
+
+.step:hover:not(:disabled) {
+  background: var(--row-hover-bg);
+}
+
+.step:disabled {
+  color: var(--label-secondary);
+}
+
+.step[aria-current="step"] {
+  font-weight: 600;
+}
+
+.step[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-label);
+}
+
+.step:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -1px;
+}
+
+.stepTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.passed {
+  font: var(--type-caption) var(--font-text);
+  color: inherit;
+}
+
+.loading {
+  padding: var(--space-6);
+  color: var(--label-secondary);
+}
+
+.joinCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: min(360px, calc(100% - 2 * var(--space-4)));
+  margin: var(--space-8) auto;
+  padding: var(--space-6);
+  border-radius: var(--radius-sheet);
+  background: var(--content-bg);
+  box-shadow: var(--shadow-sheet);
+}
+
+.joinTitle {
+  margin: 0;
+  font: var(--type-title3) var(--font-text);
+  font-weight: 600;
+}
+
+.joinForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.joinActions {
+  display: flex;
+  justify-content: flex-end;
+}

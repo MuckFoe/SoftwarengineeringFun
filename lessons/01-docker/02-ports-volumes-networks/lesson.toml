@@ -1,0 +1,393 @@
+title = "Ports, volumes and networks"
+summary = "Reach a container from your machine, keep data outside it, and let containers talk by name."
+minutes = 25
+
+[[steps]]
+kind = "explanation"
+title = "Containers are isolated"
+body = """
+Each container gets its own network stack. nginx inside a container listens on port 80,
+but that's the **container's** port 80: from your machine, nothing answers on it.
+
+To reach it you **publish** a port with `-p HOST_PORT:CONTAINER_PORT`. Docker then
+forwards connections that arrive on the host's port to the container's port.
+
+`-p 8080:80` means: host port 8080 → container port 80. The host side always comes first.
+"""
+
+[[steps]]
+kind = "terminal"
+title = "Publish a port"
+body = """
+Start nginx again, detached and named `web`, and publish container port 80 on host
+port 8080:
+
+`docker run -d --name web -p 8080:80 nginx`
+"""
+hint = "`-p` takes `host:container`. nginx listens on 80 inside the container."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "docker run -d --name web -p 8080:80 nginx"
+output = "4ffdf4629862edbb180220edf534a272af9bf93798976b206509e10f49ae07cb"
+[[steps.check.accept]]
+command = "docker run -d -p 8080:80 --name web nginx"
+output = "4ffdf4629862edbb180220edf534a272af9bf93798976b206509e10f49ae07cb"
+[[steps.check.accept]]
+command = "docker run --name web -d -p 8080:80 nginx"
+output = "4ffdf4629862edbb180220edf534a272af9bf93798976b206509e10f49ae07cb"
+[[steps.check.accept]]
+command = "docker run -d --name web --publish 8080:80 nginx"
+output = "4ffdf4629862edbb180220edf534a272af9bf93798976b206509e10f49ae07cb"
+
+[[steps]]
+kind = "terminal"
+title = "Check the mapping"
+body = """
+`docker port <container>` shows which host ports lead to which container ports. Check `web`.
+"""
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "docker port web"
+output = '''
+80/tcp -> 0.0.0.0:8080
+80/tcp -> [::]:8080'''
+[[steps.check.accept]]
+command = "docker container port web"
+output = '''
+80/tcp -> 0.0.0.0:8080
+80/tcp -> [::]:8080'''
+
+[[steps]]
+kind = "terminal"
+title = "Call it from the host"
+body = """
+Now fetch the page from your machine with `curl`, on the **host** port you published.
+"""
+hint = "You published host port 8080: `curl http://localhost:8080`."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "curl http://localhost:8080"
+output = '''
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>'''
+[[steps.check.accept]]
+command = "curl localhost:8080"
+output = '''
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>'''
+[[steps.check.responses]]
+command = "curl http://localhost:80"
+output = "curl: (7) Failed to connect to localhost port 80 after 0 ms: Couldn't connect to server"
+[[steps.check.responses]]
+command = "curl localhost:80"
+output = "curl: (7) Failed to connect to localhost port 80 after 0 ms: Couldn't connect to server"
+[[steps.check.responses]]
+command = "curl localhost"
+output = "curl: (7) Failed to connect to localhost port 80 after 0 ms: Couldn't connect to server"
+
+[[steps]]
+kind = "quiz"
+title = "Which side is which?"
+body = """
+You run `docker run -d -e POSTGRES_PASSWORD=example -p 5433:5432 postgres:16`. Postgres listens on 5432 inside the
+container. Which port do you connect to **from your machine**?
+"""
+hint = "In `-p A:B`, A is on the host and B is in the container."
+[steps.check]
+type = "choice"
+options = ["5432", "5433", "Either one", "Neither: Postgres can't be published"]
+correct = [2]
+multiple = false
+
+[[steps]]
+kind = "explanation"
+title = "Container files are temporary"
+body = """
+Whatever a container writes goes into its own writable layer, and `docker rm` deletes that
+layer. To keep data, or to give a container files from outside, you **mount** storage
+into it with `-v SOURCE:TARGET` (target = a path inside the container):
+
+- A **bind mount** maps a file or folder from the host: `-v "$(pwd)/site":/usr/share/nginx/html`.
+  The source is a path (absolute, or starting with `./`). Edit the files on the host and the
+  container sees the change at once. Good for code and config during development.
+- A **named volume** is storage Docker creates and manages: `-v pgdata:/var/lib/postgresql/data`.
+  The source is just a name. It outlives any container that uses it. Good for databases.
+
+Add `:ro` at the end to mount read-only.
+"""
+
+[[steps]]
+kind = "terminal"
+title = "Bind-mount a folder"
+body = """
+In your current folder there's a `site/index.html` you wrote. Serve it with a second nginx,
+named `site`, on host port 8081, by bind-mounting the `site` folder read-only over nginx's
+web root:
+
+`docker run -d --name site -p 8081:80 -v "$(pwd)/site":/usr/share/nginx/html:ro nginx`
+"""
+hint = "The source of a bind mount must be a path. `$(pwd)` expands to the current folder."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = 'docker run -d --name site -p 8081:80 -v "$(pwd)/site":/usr/share/nginx/html:ro nginx'
+output = "17602924a3940cb715c5f65ac4575e1f9754566916666dda0141a9570c648a19"
+[[steps.check.accept]]
+command = 'docker run -d --name site -p 8081:80 -v "$(pwd)"/site:/usr/share/nginx/html:ro nginx'
+output = "17602924a3940cb715c5f65ac4575e1f9754566916666dda0141a9570c648a19"
+[[steps.check.accept]]
+command = "docker run -d --name site -p 8081:80 -v $(pwd)/site:/usr/share/nginx/html:ro nginx"
+output = "17602924a3940cb715c5f65ac4575e1f9754566916666dda0141a9570c648a19"
+[[steps.check.accept]]
+command = "docker run -d --name site -p 8081:80 -v ./site:/usr/share/nginx/html:ro nginx"
+output = "17602924a3940cb715c5f65ac4575e1f9754566916666dda0141a9570c648a19"
+[[steps.check.accept]]
+command = 'docker run -d --name site -p 8081:80 --mount type=bind,source="$(pwd)/site",target=/usr/share/nginx/html,readonly nginx'
+output = "17602924a3940cb715c5f65ac4575e1f9754566916666dda0141a9570c648a19"
+
+[[steps]]
+kind = "terminal"
+title = "See your page"
+body = "Fetch the page from host port 8081."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "curl http://localhost:8081"
+output = '''
+<!DOCTYPE html>
+<html>
+<body>
+<h1>Hello from my laptop</h1>
+</body>
+</html>'''
+[[steps.check.accept]]
+command = "curl localhost:8081"
+output = '''
+<!DOCTYPE html>
+<html>
+<body>
+<h1>Hello from my laptop</h1>
+</body>
+</html>'''
+
+[[steps]]
+kind = "quiz"
+title = "Path or name?"
+body = """
+Suppose you had typed `-v site:/usr/share/nginx/html` instead (no `./`, no `$(pwd)`).
+The container starts without an error. What does Docker mount?
+"""
+hint = "A source with no slash in it is not a path."
+[steps.check]
+type = "choice"
+options = [
+  "The site folder in the current directory",
+  "A new, empty named volume called site",
+  "Nothing: the option is ignored",
+]
+correct = [2]
+multiple = false
+
+[[steps]]
+kind = "terminal"
+title = "Create a named volume"
+body = """
+Create a named volume called `pgdata` for a database. Docker prints its name.
+
+`docker volume create pgdata`
+"""
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "docker volume create pgdata"
+output = "pgdata"
+[[steps.check.responses]]
+command = "docker create volume pgdata"
+output = '''
+Unable to find image 'volume:latest' locally
+Error response from daemon: pull access denied for volume, repository does not exist or may require 'docker login': denied: requested access to the resource is denied'''
+
+[[steps]]
+kind = "terminal"
+title = "Use the volume"
+body = """
+Start Postgres 16 as `db`, with a password set through an environment variable, and its data
+directory on the `pgdata` volume:
+
+`docker run -d --name db -e POSTGRES_PASSWORD=example -v pgdata:/var/lib/postgresql/data postgres:16`
+"""
+hint = "For a named volume, the part before the colon is the volume's name, not a path."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "docker run -d --name db -e POSTGRES_PASSWORD=example -v pgdata:/var/lib/postgresql/data postgres:16"
+output = '''
+Unable to find image 'postgres:16' locally
+16: Pulling from library/postgres
+Digest: sha256:9d5b1b8c51a1e7b3a6f4bbd51c2a1e4d1e0c7a0bfa9e6e6bfe6a2f38a1a0c3f2
+Status: Downloaded newer image for postgres:16
+27fe5647a3335d436a39ff5a5048eb612f90f7a2abf78de36041115b8f806701'''
+[[steps.check.accept]]
+command = "docker run -d --name db -v pgdata:/var/lib/postgresql/data -e POSTGRES_PASSWORD=example postgres:16"
+output = '''
+Unable to find image 'postgres:16' locally
+16: Pulling from library/postgres
+Digest: sha256:9d5b1b8c51a1e7b3a6f4bbd51c2a1e4d1e0c7a0bfa9e6e6bfe6a2f38a1a0c3f2
+Status: Downloaded newer image for postgres:16
+27fe5647a3335d436a39ff5a5048eb612f90f7a2abf78de36041115b8f806701'''
+
+[[steps]]
+kind = "terminal"
+title = "List volumes"
+body = "List the volumes Docker manages."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "docker volume ls"
+output = '''
+DRIVER    VOLUME NAME
+local     pgdata'''
+[[steps.check.responses]]
+command = "docker volumes"
+output = '''
+docker: 'volumes' is not a docker command.
+See 'docker --help''''
+
+[[steps]]
+kind = "quiz"
+title = "Does the data survive?"
+body = """
+You run `docker rm -f db` (force-remove, even while running), then start a new Postgres
+container with the same `-v pgdata:/var/lib/postgresql/data`. Which is true?
+"""
+[steps.check]
+type = "choice"
+options = [
+  "The database is empty again",
+  "The tables and rows from before are still there",
+  "Docker refuses: the volume belongs to the old container",
+]
+correct = [2]
+multiple = false
+
+[[steps]]
+kind = "explanation"
+title = "User-defined networks"
+body = """
+Containers that should talk to each other (an app and its database) go on the same
+**user-defined bridge network**, made with `docker network create NAME`.
+
+On a user-defined network, Docker runs a small DNS server: containers find each other
+**by container name** (`db`, `web`). The default `bridge` network that containers join
+when you don't say `--network` has no such name lookup, only IP addresses.
+
+Containers on the same network reach each other on the container's own ports; you don't
+need `-p` for that. Publish only what must be reached from outside.
+"""
+
+[[steps]]
+kind = "terminal"
+title = "Create a network"
+body = "Create a network called `appnet`. Docker prints its ID."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "docker network create appnet"
+output = "53cb66d2dbf90587dca7634fe073e4465b25312f5bf8cdc0ae14dc8bc84917e8"
+[[steps.check.responses]]
+command = "docker create network appnet"
+output = '''
+Unable to find image 'network:latest' locally
+Error response from daemon: pull access denied for network, repository does not exist or may require 'docker login': denied: requested access to the resource is denied'''
+
+[[steps]]
+kind = "terminal"
+title = "Connect the database"
+body = """
+`db` is already running. Attach it to `appnet` with `docker network connect NETWORK
+CONTAINER`. It prints nothing when it works.
+"""
+hint = "The network comes first, then the container: `docker network connect appnet db`."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "docker network connect appnet db"
+output = ""
+[[steps.check.responses]]
+command = "docker network connect db appnet"
+output = "Error response from daemon: network db not found"
+
+[[steps]]
+kind = "terminal"
+title = "Reach it by name"
+body = """
+Start a throwaway container on `appnet` (`--rm` deletes it when it exits) and ask
+Postgres whether `db` is accepting connections:
+
+`docker run --rm --network appnet postgres:16 pg_isready -h db`
+"""
+hint = "Without `--network appnet` the throwaway container lands on the default bridge, where the name `db` doesn't resolve."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "docker run --rm --network appnet postgres:16 pg_isready -h db"
+output = "db:5432 - accepting connections"
+[[steps.check.accept]]
+command = "docker run --network appnet --rm postgres:16 pg_isready -h db"
+output = "db:5432 - accepting connections"
+[[steps.check.responses]]
+command = "docker run --rm postgres:16 pg_isready -h db"
+output = "db:5432 - no response"
+
+[[steps]]
+kind = "quiz"
+title = "Finding each other"
+body = "On a user-defined network, containers reach each other by their container …"
+[steps.check]
+type = "text"
+accept = ["name", "names", "container name", "container names", "hostname"]

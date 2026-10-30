@@ -1,0 +1,13 @@
+title = "Exit nodes"
+summary = "Route traffic through a node."
+minutes = 5
+
+[[steps]]
+kind = "quiz"
+title = "Which"
+body = "Which is an exit node?"
+[steps.check]
+type = "choice"
+options = ["A laptop", "A node that routes traffic"]
+correct = [2]
+multiple = false

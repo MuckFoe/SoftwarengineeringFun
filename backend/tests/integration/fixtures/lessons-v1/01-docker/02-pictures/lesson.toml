@@ -1,0 +1,16 @@
+title = "Pictures"
+summary = "A lesson with an image."
+minutes = 5
+
+[[steps]]
+kind = "explanation"
+title = "Look"
+body = "Layers: ![layers](layers.png)"
+
+[[steps]]
+kind = "quiz"
+title = "Name it"
+body = "What is it?"
+[steps.check]
+type = "text"
+accept = ["layers"]

@@ -1,0 +1,218 @@
+title = "Basics"
+summary = "What a tailnet is, joining it with tailscale up, and checking it with status, ip and ping."
+minutes = 20
+
+[[steps]]
+kind = "explanation"
+title = "What a tailnet is"
+body = """
+Tailscale connects your devices into one private network called a **tailnet**. A laptop, a
+home server and a phone can reach each other as if they sat on the same LAN, wherever they
+actually are.
+
+- Traffic is encrypted end to end with **WireGuard**. Each device has its own key pair.
+- A **coordination server** run by Tailscale hands out keys, addresses and the list of
+  peers. It never sees your traffic.
+- Devices connect **directly, peer to peer**, punching through NAT where they can. When no
+  direct path exists, traffic goes through a **DERP relay**, still encrypted.
+- Each device joins by logging in with an identity (Google, GitHub, Microsoft, ...). The
+  tailnet belongs to that account or organisation.
+
+In this lesson you are on a laptop called `laptop`, owned by `alice`. Her tailnet also has a
+home server called `nas` and a phone called `phone`.
+"""
+
+[[steps]]
+kind = "quiz"
+title = "Who carries the traffic?"
+body = "When two devices in a tailnet talk to each other, where does their traffic normally go?"
+hint = "The coordination server only exchanges keys and peer lists."
+[steps.check]
+type = "choice"
+options = [
+  "Directly between the two devices, encrypted with WireGuard",
+  "Through Tailscale's coordination server, which decrypts and forwards it",
+  "Over the public internet unencrypted, because both devices are trusted",
+  "Always through a DERP relay",
+]
+correct = [1]
+multiple = false
+
+[[steps]]
+kind = "explanation"
+title = "Installing"
+body = """
+Tailscale has two parts on each device:
+
+- `tailscaled`, the daemon that runs in the background and holds the WireGuard tunnel.
+- `tailscale`, the command-line client you use to talk to the daemon.
+
+On Linux the official script detects the distribution, adds Tailscale's package repository
+and installs both:
+
+```
+curl -fsSL https://tailscale.com/install.sh | sh
+```
+
+On macOS, Windows, iOS and Android you install the Tailscale app instead; it bundles the
+daemon, and on macOS and Windows the same `tailscale` CLI.
+
+Installing does not join a tailnet yet. That is the next step.
+"""
+
+[[steps]]
+kind = "terminal"
+title = "Join the tailnet"
+body = """
+Bring Tailscale up on this Linux laptop. Changing the network needs root, so use `sudo`.
+
+The first time, `tailscale up` prints a login URL. Opening it in a browser and signing in
+adds the device to your tailnet.
+"""
+hint = "The subcommand that connects the device is `up`."
+[steps.check]
+type = "terminal"
+prompt = "alice@laptop:~$ "
+[[steps.check.accept]]
+command = "sudo tailscale up"
+output = '''
+
+To authenticate, visit:
+
+	https://login.tailscale.com/a/1a2b3c4d5e6f
+
+Success.'''
+[[steps.check.accept]]
+command = "tailscale up"
+output = '''
+
+To authenticate, visit:
+
+	https://login.tailscale.com/a/1a2b3c4d5e6f
+
+Success.'''
+
+[[steps]]
+kind = "explanation"
+title = "Servers without a browser"
+body = """
+A headless server has no browser to open the login URL. Instead you create an **auth key**
+in the admin console (Settings, Keys) and pass it to `tailscale up`:
+
+```
+sudo tailscale up --auth-key=tskey-auth-EXAMPLE0000000000-NOTAREALKEY
+```
+
+The key above is a made-up example. A real auth key logs a device into your tailnet, so
+treat it like a password: never commit it, and prefer short-lived or one-off keys.
+
+`sudo tailscale down` disconnects without logging out; `sudo tailscale logout` also removes
+the device's login.
+"""
+
+[[steps]]
+kind = "terminal"
+title = "Who is online?"
+body = "You are connected. List the devices in your tailnet and whether they are reachable."
+hint = "It shows the connection's status."
+[steps.check]
+type = "terminal"
+prompt = "alice@laptop:~$ "
+[[steps.check.accept]]
+command = "tailscale status"
+output = '''
+100.101.42.7    laptop               alice@       linux   -
+100.88.12.34    nas                  alice@       linux   active; direct 192.168.1.20:41641, tx 2148 rx 1964
+100.77.5.6      phone                alice@       iOS     offline'''
+
+[[steps]]
+kind = "explanation"
+title = "100.x addresses"
+body = """
+Each line of `tailscale status` shows a device's **Tailscale IP**, its name, its owner, its
+operating system and the connection state:
+
+- `-` means nothing is going on with it right now (your own device always shows `-`).
+- `active; direct 192.168.1.20:41641` means traffic is flowing over a direct connection to
+  that address.
+- `offline` means the device is not connected to Tailscale.
+
+The IPv4 addresses all start with `100.`. Tailscale takes them from **100.64.0.0/10**, the
+range reserved for carrier-grade NAT, which runs from `100.64.0.0` to `100.127.255.255`.
+It is rarely used on home or office networks, so it seldom clashes with them. A device keeps
+its address when it moves between networks. Each device also gets an IPv6 address in
+`fd7a:115c:a1e0::/48`.
+
+`tailscale ip -4` prints just this device's IPv4 address, which is handy in scripts.
+"""
+
+[[steps]]
+kind = "terminal"
+title = "Your own address"
+body = "Print only this laptop's Tailscale IPv4 address."
+hint = "The subcommand is `ip`; `-4` limits it to IPv4."
+[steps.check]
+type = "terminal"
+prompt = "alice@laptop:~$ "
+[[steps.check.accept]]
+command = "tailscale ip -4"
+output = "100.101.42.7"
+[[steps.check.accept]]
+command = "tailscale ip"
+output = '''
+100.101.42.7
+fd7a:115c:a1e0::b901:2a07'''
+
+[[steps]]
+kind = "quiz"
+title = "Spot the Tailscale address"
+body = "Which of these could be a Tailscale IPv4 address?"
+hint = "100.64.0.0/10 covers 100.64.0.0 up to 100.127.255.255."
+[steps.check]
+type = "choice"
+options = ["100.101.42.7", "192.168.1.20", "10.0.0.5", "100.200.1.1"]
+correct = [1]
+multiple = false
+
+[[steps]]
+kind = "terminal"
+title = "Ping a peer"
+body = """
+`tailscale ping` checks the Tailscale path to another device, by name or by 100.x address.
+Unlike the ordinary `ping`, it reports **how** the packets got there: through a DERP relay
+or over a direct connection.
+
+Ping the home server `nas`.
+"""
+hint = "`tailscale ping` followed by the device name."
+[steps.check]
+type = "terminal"
+prompt = "alice@laptop:~$ "
+[[steps.check.accept]]
+command = "tailscale ping nas"
+output = '''
+pong from nas (100.88.12.34) via DERP(fra) in 31ms
+pong from nas (100.88.12.34) via 192.168.1.20:41641 in 3ms'''
+[[steps.check.accept]]
+command = "tailscale ping 100.88.12.34"
+output = '''
+pong from nas (100.88.12.34) via DERP(fra) in 31ms
+pong from nas (100.88.12.34) via 192.168.1.20:41641 in 3ms'''
+
+[[steps]]
+kind = "quiz"
+title = "Reading the pongs"
+body = """
+The first reply said `via DERP(fra)`, the second `via 192.168.1.20:41641`. What happened?
+"""
+hint = "DERP is the relay Tailscale falls back to while it looks for a direct path."
+[steps.check]
+type = "choice"
+options = [
+  "The first ping went through a relay in Frankfurt; then a direct connection was found",
+  "The nas changed its Tailscale IP between the two pings",
+  "The first ping failed and was retried over the public internet unencrypted",
+  "Both pings went through the coordination server",
+]
+correct = [1]
+multiple = false

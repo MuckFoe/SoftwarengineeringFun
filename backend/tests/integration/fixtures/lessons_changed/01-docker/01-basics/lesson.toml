@@ -1,0 +1,17 @@
+title = "Basics"
+summary = "Images vs containers."
+minutes = 10
+
+[[steps]]
+kind = "explanation"
+title = "Images and containers"
+body = "An image: ![layers](layers.png)"
+
+[[steps]]
+kind = "quiz"
+title = "Name it"
+body = "A running instance of an image is called a ..."
+hint = "Think *running*."
+[steps.check]
+type = "text"
+accept = ["container"]

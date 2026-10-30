@@ -19,6 +19,9 @@ from app.auth.deps import current_user
 from app.auth.oidc import build_oauth, session_claims, verified_access_token_claims
 from app.chat.api import router as chat_router
 from app.config import Settings
+from app.learn import stale as learn_stale
+from app.learn.api import router as learn_router
+from app.learn.ws import router as learn_ws_router
 from app.problems.api import router as problems_router
 from app.problems.images_api import router as images_router
 from app.problems.service import register_on_problem_deleted, unregister_on_problem_deleted
@@ -49,11 +52,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     register_on_problem_deleted(_on_problem_deleted)
     stale_task = asyncio.create_task(run_periodically(pool))
+    learn_stale_task = asyncio.create_task(learn_stale.run_periodically(pool))
     try:
         yield
     finally:
         unregister_on_problem_deleted(_on_problem_deleted)
         stale_task.cancel()
+        learn_stale_task.cancel()
         await drain_runs()
         await pool.close()
 
@@ -92,6 +97,8 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(sessions_router)
     app.include_router(chat_router)
     app.include_router(sessions_ws_router)
+    app.include_router(learn_router)
+    app.include_router(learn_ws_router)
 
     @app.exception_handler(HTTPException)
     async def _http_exception(request: Request, exc: HTTPException) -> JSONResponse:

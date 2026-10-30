@@ -22,9 +22,15 @@ function since(iso: string, now: number): string {
   return `${value} ${unit}${value === 1 ? "" : "s"}`;
 }
 
+const titleOf = (s: StaleSession): string => s.problem_title ?? s.lesson_title ?? "";
+
 interface Props {
   /** The current time; injectable so "stale for …" is testable. */
   now?: () => number;
+  /** Where the list comes from; reactivation goes to the same sessions root. */
+  endpoint?: string;
+  /** Rows link to `sessionPath + invite_id`. */
+  sessionPath?: string;
 }
 
 /**
@@ -32,7 +38,13 @@ interface Props {
  * has been stale, a link into it, and Reactivate inline. A reactivated session (or one
  * that turned out not to be stale any more, 409) fades out of the list with a HUD.
  */
-export function StaleSessionsList({ now = Date.now }: Props) {
+export function StaleSessionsList({
+  now = Date.now,
+  endpoint = "/api/sessions/stale",
+  sessionPath = "/s/",
+}: Props) {
+  // "/api/learn/sessions/stale" → "/learn/sessions": the client adds the API prefix itself.
+  const sessionsRoot = endpoint.replace(/^\/api/, "").replace(/\/stale$/, "");
   const [sessions, setSessions] = useState<StaleSession[] | null>(null);
   const [leaving, setLeaving] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
@@ -41,7 +53,7 @@ export function StaleSessionsList({ now = Date.now }: Props) {
 
   useEffect(() => {
     let current = true;
-    listStaleSessions().then(
+    listStaleSessions(sessionsRoot).then(
       (found) => {
         if (current) setSessions(found);
       },
@@ -52,16 +64,16 @@ export function StaleSessionsList({ now = Date.now }: Props) {
     return () => {
       current = false;
     };
-  }, []);
+  }, [sessionsRoot]);
 
   async function reactivate(session: StaleSession) {
     setBusy(session.invite_id);
     setError(null);
     try {
-      await reactivateSession(session.invite_id);
+      await reactivateSession(session.invite_id, sessionsRoot);
     } catch (err) {
       if (!(err instanceof ApiError && err.error.kind === "conflict")) {
-        setError(`Could not reactivate “${session.problem_title}”.`);
+        setError(`Could not reactivate “${titleOf(session)}”.`);
         setBusy(null);
         return;
       }
@@ -87,13 +99,13 @@ export function StaleSessionsList({ now = Date.now }: Props) {
               className={`${styles.row} ${isLeaving ? "anim-row-out" : "anim-row-in"}`}
               aria-hidden={isLeaving || undefined}
             >
-              <Link className={styles.link} to={`/s/${s.invite_id}`}>
-                <span className={styles.title}>{s.problem_title}</span>
+              <Link className={styles.link} to={`${sessionPath}${s.invite_id}`}>
+                <span className={styles.title}>{titleOf(s)}</span>
                 <span className={styles.age}>stale for {since(s.stale_at, now())}</span>
               </Link>
               <Button
                 variant="bordered"
-                label={`Reactivate ${s.problem_title}`}
+                label={`Reactivate ${titleOf(s)}`}
                 busy={busy === s.invite_id}
                 disabled={isLeaving}
                 onClick={() => void reactivate(s)}

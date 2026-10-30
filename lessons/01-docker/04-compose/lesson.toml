@@ -1,0 +1,226 @@
+title = "Docker Compose"
+summary = "Describe a multi-container app in one compose file, start and stop it with up and down, and wire services with environment, depends_on and volumes."
+minutes = 30
+
+[[steps]]
+kind = "explanation"
+title = "One file for the whole app"
+body = """
+A real app is rarely one container. Starting a web app and its database by hand means a network, a volume and two long `docker run` commands, typed in the right order every time. **Docker Compose** writes all of that down in one YAML file, `compose.yaml`, and runs it with one command.
+
+```yaml
+services:
+  web:
+    image: myapp:1.0
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgres://app:example@db:5432/app
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: app
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
+```
+
+- Each entry under `services` is a **service**: one kind of container, with the same options you would give `docker run` (`image`, `ports`, `environment`, `volumes`, ...). A service can also say `build: .` to build its image from a Dockerfile.
+- The top-level `volumes` section declares the named volumes the services use.
+- Compose puts every service on a network it creates for the project, where **each service is reachable by its service name**.
+
+Compose comes with Docker as the `docker compose` command (two words). The older stand-alone `docker-compose` tool is no longer maintained.
+"""
+
+[[steps]]
+kind = "quiz"
+title = "Finding the database"
+body = """
+In the file above, `web` connects to Postgres through `DATABASE_URL`. Which host name does it use to reach the database container?
+"""
+hint = "Look at the part between `@` and `:5432`, and at the service names."
+[steps.check]
+type = "text"
+accept = ["db"]
+
+[[steps]]
+kind = "terminal"
+title = "Start everything"
+body = """
+You are in the project folder `myapp`, next to `compose.yaml`. Start all services **in the background**, so the terminal stays free.
+"""
+hint = "`docker compose up` with the flag that detaches, as with `docker run`."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "docker compose up -d"
+output = """
+[+] Running 4/4
+ ✔ Network myapp_default      Created                                              0.1s
+ ✔ Volume "myapp_db-data"     Created                                              0.0s
+ ✔ Container myapp-db-1       Started                                              0.5s
+ ✔ Container myapp-web-1      Started                                              0.7s
+"""
+[[steps.check.accept]]
+command = "docker compose up --detach"
+output = """
+[+] Running 4/4
+ ✔ Network myapp_default      Created                                              0.1s
+ ✔ Volume "myapp_db-data"     Created                                              0.0s
+ ✔ Container myapp-db-1       Started                                              0.5s
+ ✔ Container myapp-web-1      Started                                              0.7s
+"""
+[[steps.check.responses]]
+command = "docker-compose up -d"
+output = "bash: docker-compose: command not found"
+[[steps.check.responses]]
+command = "docker compose up"
+output = """
+[+] Running 4/4
+ ✔ Network myapp_default      Created                                              0.1s
+ ✔ Volume "myapp_db-data"     Created                                              0.0s
+ ✔ Container myapp-db-1       Created                                              0.1s
+ ✔ Container myapp-web-1      Created                                              0.1s
+Attaching to db-1, web-1
+db-1   | PostgreSQL init process complete; ready for start up.
+db-1   | LOG:  database system is ready to accept connections
+web-1  | Listening on http://0.0.0.0:8000
+(the terminal is now attached to the logs; press Ctrl+C to stop everything)
+"""
+
+[[steps]]
+kind = "terminal"
+title = "What is running?"
+body = "List the containers of this project."
+hint = "Compose has its own `ps`, which shows only this project's containers."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "docker compose ps"
+output = """
+NAME          IMAGE         COMMAND                  SERVICE   CREATED          STATUS          PORTS
+myapp-db-1    postgres:16   "docker-entrypoint.s…"   db        15 seconds ago   Up 14 seconds   5432/tcp
+myapp-web-1   myapp:1.0     "python app.py"          web       15 seconds ago   Up 14 seconds   0.0.0.0:8000->8000/tcp
+"""
+
+[[steps]]
+kind = "explanation"
+title = "depends_on: order, not readiness"
+body = """
+`depends_on` tells Compose that `web` needs `db`: `up` creates and starts `db` first, and `down` stops `web` first.
+
+By default it only waits for the `db` **container to start**, not for Postgres inside it to accept connections, which takes a few more seconds. If the app can't cope with that, give the database a `healthcheck` and wait for it to pass:
+
+```yaml
+services:
+  web:
+    image: myapp:1.0
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app"]
+      interval: 5s
+      retries: 10
+```
+
+The short list form `depends_on: [db]` is the same as `condition: service_started`.
+"""
+
+[[steps]]
+kind = "quiz"
+title = "What does depends_on promise?"
+body = "With the short form `depends_on: [db]` on `web`, what does Compose guarantee when you run `docker compose up`?"
+[steps.check]
+type = "choice"
+options = [
+  "The `db` container is started before the `web` container",
+  "Postgres is ready to accept connections before `web` starts",
+  "`web` is restarted whenever `db` restarts",
+  "`web` can reach `db`, but no other service can",
+]
+correct = [1]
+multiple = false
+
+[[steps]]
+kind = "explanation"
+title = "Environment and volumes"
+body = """
+**environment** sets variables in a service's containers, as a map (`KEY: value`) or a list (`- KEY=value`). To keep values out of the compose file, use `env_file: .env.web` to load them from a file, or `${VAR}` to fill them in from your shell or from a `.env` file next to `compose.yaml`:
+
+```yaml
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+```
+
+Keep files holding real passwords out of git.
+
+**volumes** under a service take the same two forms as `docker run -v`:
+
+- `db-data:/var/lib/postgresql/data` mounts the **named volume** `db-data`, which must be declared in the top-level `volumes:` section. Compose prefixes it with the project name (`myapp_db-data`).
+- `./src:/app/src` is a **bind mount** of a folder on your machine, handy for live-editing code during development.
+
+Named volumes outlive the containers: `docker compose down` removes containers and the network, but keeps the volumes, so the database survives a restart. `docker compose down -v` removes them too, and the data with them.
+"""
+
+[[steps]]
+kind = "quiz"
+title = "What survives down?"
+body = "You run `docker compose down` (no extra flags). Which of these are still there afterwards? Select all that apply."
+[steps.check]
+type = "choice"
+options = [
+  "The containers `myapp-web-1` and `myapp-db-1`",
+  "The network `myapp_default`",
+  "The named volume `myapp_db-data` and the data in it",
+  "The images `myapp:1.0` and `postgres:16`",
+]
+correct = [3, 4]
+multiple = true
+
+[[steps]]
+kind = "terminal"
+title = "Shut it down"
+body = "Stop and remove the project's containers and network, keeping the database volume."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "docker compose down"
+output = """
+[+] Running 3/3
+ ✔ Container myapp-web-1   Removed                                                 0.4s
+ ✔ Container myapp-db-1    Removed                                                 0.3s
+ ✔ Network myapp_default   Removed                                                 0.1s
+"""
+[[steps.check.responses]]
+command = "docker-compose down"
+output = "bash: docker-compose: command not found"
+[[steps.check.responses]]
+command = "docker compose down -v"
+output = """
+[+] Running 4/4
+ ✔ Container myapp-web-1   Removed                                                 0.4s
+ ✔ Container myapp-db-1    Removed                                                 0.3s
+ ✔ Volume myapp_db-data    Removed                                                 0.0s
+ ✔ Network myapp_default   Removed                                                 0.1s
+(the database volume is gone, and the data with it)
+"""
+
+[[steps]]
+kind = "quiz"
+title = "Wipe the data"
+body = "Which flag do you add to `docker compose down` to also remove the named volumes?"
+hint = "Short for *volumes*."
+[steps.check]
+type = "text"
+accept = ["-v", "--volumes"]

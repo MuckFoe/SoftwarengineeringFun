@@ -272,10 +272,14 @@ export interface ChatSendMessage {
 
 export type ClientMessage = RunMessage | SwitchProblemMessage | ChatSendMessage;
 
-/** GET /api/sessions/stale (spec 003, admin only): one stale session. */
+/**
+ * GET /api/sessions/stale (spec 003, admin only): one stale session. The learning-session
+ * list (spec 006, GET /api/learn/sessions/stale) names a lesson instead of a problem.
+ */
 export interface StaleSession {
   invite_id: string;
-  problem_title: string;
+  problem_title?: string;
+  lesson_title?: string;
   stale_at: string;
   last_activity_at: string;
 }

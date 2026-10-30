@@ -1,0 +1,258 @@
+title = "ACLs and tags"
+summary = "The tailnet policy file: rules, groups, tags and the tests that guard them."
+minutes = 25
+
+[[steps]]
+kind = "explanation"
+title = "The policy file"
+body = '''
+Who may reach what in a tailnet is decided by one **policy file**. You edit it in the
+admin console under **Access controls**. It is written in **HuJSON**: JSON that also
+allows comments and trailing commas.
+
+A new tailnet starts with a policy that lets every device reach every other device:
+
+```json
+{
+  "acls": [
+    // Allow all connections.
+    {"action": "accept", "src": ["*"], "dst": ["*:*"]},
+  ],
+}
+```
+
+The file is **deny by default**: a connection is allowed only if some rule accepts it.
+Delete that one rule and nothing can connect to anything.
+'''
+
+[[steps]]
+kind = "explanation"
+title = "Rules: src and dst"
+body = '''
+Each entry in `"acls"` is a rule with three parts:
+
+- `"action"`: always `"accept"`. There are no deny rules; anything not accepted is denied.
+- `"src"`: who starts the connection: a user, a group, a tag, an IP or `"*"`.
+- `"dst"`: what they may reach, written as `host:ports`, e.g. `"tag:server:22"`,
+  `"100.101.102.103:80,443"`, `"tag:db:5432"` or `"*:*"`.
+
+```json
+{"action": "accept", "src": ["alice@example.com"], "dst": ["tag:server:22,443"]}
+```
+
+Rules only open connections in the direction they name. Replies to an allowed
+connection flow back automatically; you never need a rule for the return traffic.
+'''
+
+[[steps]]
+kind = "quiz"
+title = "Deny by default"
+body = '''
+A policy file has exactly one rule:
+
+```json
+{"action": "accept", "src": ["alice@example.com"], "dst": ["tag:server:22"]}
+```
+
+What happens when Bob's laptop tries to open port 22 on a `tag:server` device?
+'''
+hint = "Think about what the file does with connections no rule mentions."
+[steps.check]
+type = "choice"
+options = [
+  "It is allowed, because nothing denies it",
+  "It is blocked, because no rule accepts it",
+  "It is allowed only for replies to Alice",
+  "The policy file is rejected as incomplete",
+]
+correct = [2]
+multiple = false
+
+[[steps]]
+kind = "explanation"
+title = "Groups"
+body = '''
+Listing people one by one in every rule gets unwieldy. A **group** names a set of
+users once, under `"groups"`. Group names always start with `group:`.
+
+```json
+{
+  "groups": {
+    "group:eng": ["alice@example.com", "bob@example.com"],
+    "group:ops": ["carol@example.com"],
+  },
+  "acls": [
+    {"action": "accept", "src": ["group:eng"], "dst": ["tag:server:22,443"]},
+    {"action": "accept", "src": ["group:ops"], "dst": ["*:*"]},
+  ],
+}
+```
+
+When someone joins the team you add them to the group; every rule that mentions the
+group then applies to them. There are also built-in groups such as
+`autogroup:member`, every user in the tailnet.
+'''
+
+[[steps]]
+kind = "quiz"
+title = "Naming a group"
+body = "Every group name in the policy file starts with which prefix?"
+hint = "It is the word itself, followed by a colon."
+[steps.check]
+type = "text"
+accept = ["group:", "group"]
+
+[[steps]]
+kind = "explanation"
+title = "Tags"
+body = '''
+A device normally belongs to the user who logged it in. Servers shouldn't: if Alice
+sets up the database and later leaves, the database shouldn't leave with her.
+
+A **tag** gives a device a role-based identity instead. Tag names start with `tag:`.
+Before a tag can be used, `"tagOwners"` must define it and say who may apply it:
+
+```json
+{
+  "tagOwners": {
+    "tag:server": ["group:ops"],
+    "tag:db":     ["group:ops"],
+  },
+}
+```
+
+A tagged device is owned by its tags, not by a person, and its node key does not
+expire by default. Rules can then name `tag:server` in `src` or `dst`.
+
+You apply tags when the device logs in, with `--advertise-tags`, or later in the
+admin console with **Edit ACL tags** on the machine's menu.
+'''
+
+[[steps]]
+kind = "terminal"
+title = "Bring up a tagged server"
+body = '''
+You are setting up a fresh server, `web-1`, as Carol (who is in `group:ops`). Log it
+in to the tailnet with the tag `tag:server`.
+'''
+hint = "Use `tailscale up` with `--advertise-tags=` and the full tag name."
+[steps.check]
+type = "terminal"
+prompt = "root@web-1:~# "
+[[steps.check.accept]]
+command = "tailscale up --advertise-tags=tag:server"
+output = '''
+To authenticate, visit:
+
+	https://login.tailscale.com/a/example1234
+
+Success.'''
+[[steps.check.accept]]
+command = "sudo tailscale up --advertise-tags=tag:server"
+output = '''
+To authenticate, visit:
+
+	https://login.tailscale.com/a/example1234
+
+Success.'''
+[[steps.check.responses]]
+command = "tailscale up --advertise-tags=server"
+output = "tag: \"server\": tags must start with 'tag:'"
+[[steps.check.responses]]
+command = "tailscale up"
+output = '''
+To authenticate, visit:
+
+	https://login.tailscale.com/a/example1234
+
+Success.
+# web-1 is now logged in as Carol's own device, untagged. Run tailscale up again with --advertise-tags.'''
+
+[[steps]]
+kind = "terminal"
+title = "Who owns it now?"
+body = '''
+Check the tailnet's device list. The third column shows each device's owner; a
+tagged device shows `tagged-devices` there instead of a person.
+'''
+hint = "The command that lists the devices in your tailnet is `tailscale status`."
+[steps.check]
+type = "terminal"
+prompt = "root@web-1:~# "
+[[steps.check.accept]]
+command = "tailscale status"
+output = '''
+100.101.102.103  web-1         tagged-devices  linux  -
+100.90.12.34     carol-laptop  carol@          macOS  -
+100.88.7.21      alice-laptop  alice@          macOS  -'''
+
+[[steps]]
+kind = "explanation"
+title = "Tests in the policy"
+body = '''
+A policy file is easy to break with one wrong line. The `"tests"` section states what
+must stay true. Each test names a `src` and lists destinations it must reach
+(`"accept"`) and destinations it must not (`"deny"`), each with a specific port:
+
+```json
+{
+  "tests": [
+    {
+      "src": "alice@example.com",
+      "accept": ["tag:server:22", "tag:server:443"],
+      "deny":   ["tag:db:5432"],
+    },
+  ],
+}
+```
+
+The tests run every time the policy is saved. If any test fails, the save is
+**rejected** and the previous policy stays in force, so a mistake never reaches
+the tailnet.
+'''
+
+[[steps]]
+kind = "quiz"
+title = "A failing test"
+body = '''
+Carol edits the policy and accidentally removes the rule that lets `group:eng` reach
+`tag:server:22`. The test above, with `"accept": ["tag:server:22", ...]` for Alice, is
+still in the file. What happens when she saves?
+'''
+[steps.check]
+type = "choice"
+options = [
+  "The policy is saved; Alice loses SSH access to the servers",
+  "The policy is saved, and the failing test is shown as a warning",
+  "The save is rejected and the old policy stays in force",
+  "The test is removed automatically because it no longer matches",
+]
+correct = [3]
+multiple = false
+
+[[steps]]
+kind = "quiz"
+title = "Putting it together"
+body = '''
+Given this policy, which statements are true? Select all that apply.
+
+```json
+{
+  "groups":    {"group:eng": ["alice@example.com", "bob@example.com"]},
+  "tagOwners": {"tag:server": ["group:ops"]},
+  "acls": [
+    {"action": "accept", "src": ["group:eng"], "dst": ["tag:server:22"]},
+  ],
+}
+```
+'''
+[steps.check]
+type = "choice"
+options = [
+  "Bob may SSH (port 22) to a device tagged tag:server",
+  "Alice may open port 443 on a device tagged tag:server",
+  "A tag:server device may open port 22 on Alice's laptop",
+  "Members of group:ops may apply tag:server to devices they log in",
+]
+correct = [1, 4]
+multiple = true

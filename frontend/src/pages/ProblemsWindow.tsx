@@ -5,6 +5,7 @@ import type { ProblemSummary } from "../api/types";
 import { useMe } from "../auth/useMe";
 import { AccountControl } from "../components/AccountControl";
 import { AppearanceControl } from "../components/AppearanceControl";
+import { AreaNav } from "../components/AreaNav";
 import { StaleSessionsList } from "../components/StaleSessionsList";
 import { ShortcutScope, useShortcut } from "../shortcuts/useShortcut";
 import { Button } from "../ui/Button";
@@ -107,6 +108,7 @@ export function ProblemsWindow({ initialSheet }: Props) {
         sidebarOpen={sidebarOpen}
         sidebar={
           <Sidebar label="Sidebar">
+            <AreaNav />
             <SidebarSection title="Problems">
               <SourceList
                 label="Problems"

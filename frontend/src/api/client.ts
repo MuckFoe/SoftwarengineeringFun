@@ -144,9 +144,11 @@ export const createSession = (problemId: string) =>
   request<CreatedSession>("POST", "/sessions", { problem_id: problemId });
 export const getSession = (inviteId: string) =>
   request<SessionState>("GET", `/sessions/${enc(inviteId)}`);
-export const listStaleSessions = () => request<StaleSession[]>("GET", "/sessions/stale");
-export const reactivateSession = (inviteId: string) =>
-  request<void>("POST", `/sessions/${enc(inviteId)}/reactivate`);
+/** `sessions` is the API-relative sessions root, e.g. "/learn/sessions" for learning sessions. */
+export const listStaleSessions = (sessions = "/sessions") =>
+  request<StaleSession[]>("GET", `${sessions}/stale`);
+export const reactivateSession = (inviteId: string, sessions = "/sessions") =>
+  request<void>("POST", `${sessions}/${enc(inviteId)}/reactivate`);
 
 export const getChat = (inviteId: string) =>
   request<ChatHistory>("GET", `/sessions/${enc(inviteId)}/chat`);

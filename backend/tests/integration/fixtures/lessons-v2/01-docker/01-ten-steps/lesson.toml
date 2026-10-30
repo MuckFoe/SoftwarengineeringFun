@@ -1,0 +1,77 @@
+title = "Ten steps"
+summary = "A lesson of ten steps."
+minutes = 10
+
+[[steps]]
+kind = "explanation"
+title = "Step 1"
+body = "Read this first."
+
+[[steps]]
+kind = "quiz"
+title = "Step 2"
+body = "Type two."
+hint = "It comes after one."
+[steps.check]
+type = "text"
+accept = ["two"]
+
+[[steps]]
+kind = "quiz"
+title = "Step 3"
+body = "Pick the third option."
+[steps.check]
+type = "choice"
+options = ["first", "second", "third"]
+correct = [3]
+multiple = false
+
+[[steps]]
+kind = "terminal"
+title = "Step 4"
+body = "Print four."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "echo four"
+output = "four"
+
+[[steps]]
+kind = "quiz"
+title = "Step 6"
+body = "Type six."
+[steps.check]
+type = "text"
+accept = ["six"]
+
+[[steps]]
+kind = "quiz"
+title = "Step 7"
+body = "Type seven."
+[steps.check]
+type = "text"
+accept = ["seven"]
+
+[[steps]]
+kind = "quiz"
+title = "Step 8"
+body = "Type eight."
+[steps.check]
+type = "text"
+accept = ["eight"]
+
+[[steps]]
+kind = "quiz"
+title = "Step 9"
+body = "Type nine."
+[steps.check]
+type = "text"
+accept = ["nine"]
+
+[[steps]]
+kind = "quiz"
+title = "Step 10"
+body = "Type ten."
+[steps.check]
+type = "text"
+accept = ["ten"]

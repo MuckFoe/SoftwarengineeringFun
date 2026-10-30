@@ -21,6 +21,11 @@ HTTP routes (app/main.py, app/problems/api.py, app/sessions/api.py, app/sessions
   POST   /api/sessions/{invite}/reactivate (refused)
   GET    /api/sessions/{invite}/chat, DELETE /api/sessions/{invite}/chat/{id} (refused)
   WS     /api/sessions/{invite}/ws
+  GET    /api/learn/topics, /api/learn/sessions/{invite}, .../record, /api/learn/assets/{sha256},
+  POST   /api/learn/sessions (spec 006 task 24; no problem data, swept for coverage)
+  WS     /api/learn/sessions/{invite}/ws (spec 006 task 25; unknown invite, closed 4404)
+  GET    /api/learn/sessions/stale, POST /api/learn/sessions/{invite}/reactivate (task 26)
+  GET    /api/learn/sessions/{invite}/chat, DELETE .../chat/{message_id} (task 29; not found)
   FastAPI's /openapi.json, /docs, /docs/oauth2-redirect, /redoc, and the SPA fallback.
 
 WebSocket messages, server -> client (app/sessions/ws.py, app/sessions/service.py):
@@ -57,6 +62,7 @@ import pytest
 from fastapi.routing import APIRoute, APIWebSocketRoute, iter_route_contexts
 from fastapi.testclient import TestClient
 from starlette.routing import Mount
+from starlette.websockets import WebSocketDisconnect
 
 from app import db as app_db
 from app.chat import service as chat_service
@@ -450,6 +456,32 @@ async def test_nfr5_fr9_tests_reach_only_editors(
         client.delete(f"/api/sessions/{invite}/chat/{chat.json()['messages'][0]['id']}"),
     )
     assert refused_removal.status_code == expected_status
+
+    # Spec 006 learn routes (task 24) hold no problem data; swept for coverage. No lessons
+    # are loaded here, so these are their not-found answers.
+    learn = "/api/learn/sessions/{invite}"
+    sweep.http(("GET", "/api/learn/topics"), client.get("/api/learn/topics"))
+    sweep.http(
+        ("POST", "/api/learn/sessions"),
+        client.post("/api/learn/sessions", json={"lesson_key": "none/none"}),
+    )
+    sweep.http(("GET", learn), client.get("/api/learn/sessions/no-such-invite"))
+    sweep.http(("GET", learn + "/record"), client.get("/api/learn/sessions/no-such/record"))
+    sweep.http(("GET", "/api/learn/assets/{sha256}"), client.get("/api/learn/assets/" + "0" * 64))
+    sweep.http(("GET", "/api/learn/sessions/stale"), client.get("/api/learn/sessions/stale"))
+    sweep.http(
+        ("POST", learn + "/reactivate"), client.post("/api/learn/sessions/no-such/reactivate")
+    )
+    sweep.http(("GET", learn + "/chat"), client.get("/api/learn/sessions/no-such/chat"))
+    sweep.http(
+        ("DELETE", learn + "/chat/{message_id}"),
+        client.delete("/api/learn/sessions/no-such/chat/1"),
+    )
+    sweep.routes_hit.add(("WS", learn + "/ws"))
+    with client.websocket_connect("/api/learn/sessions/no-such/ws?name=Ada") as learn_ws:
+        with pytest.raises(WebSocketDisconnect) as closed:
+            learn_ws.receive_json()
+    assert closed.value.code == 4404
 
     # A deleted problem's public view, after runs exist.
     sweep.http(("GET", "/api/problems/{problem_id}"), client.get(f"/api/problems/{p}"))

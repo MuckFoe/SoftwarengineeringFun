@@ -1,0 +1,66 @@
+.title {
+  margin: 0;
+  font: var(--type-headline) var(--font-text);
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.content {
+  padding: var(--space-4) var(--space-6);
+}
+
+.topic + .topic {
+  margin-top: var(--space-6);
+}
+
+.topicTitle {
+  margin: 0 0 var(--space-2);
+  font: var(--type-headline) var(--font-text);
+  font-weight: 600;
+}
+
+.lessons {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--separator);
+}
+
+.lessons > li:nth-child(even) {
+  background: var(--row-alt-bg);
+}
+
+.lessons > li:hover {
+  background: var(--row-hover-bg);
+}
+
+.lesson {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2);
+  font: var(--type-body) var(--font-text);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.lessonTitle {
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+}
+
+.summary {
+  margin: var(--space-1) 0 0;
+}
+
+.meta {
+  margin: var(--space-1) 0 0;
+  color: var(--label-secondary);
+}

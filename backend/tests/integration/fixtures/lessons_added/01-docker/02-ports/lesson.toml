@@ -1,0 +1,16 @@
+title = "Ports"
+summary = "Publishing ports."
+minutes = 5
+
+[[steps]]
+kind = "terminal"
+title = "Publish a port"
+body = "Run nginx on port 8080."
+[steps.check]
+type = "terminal"
+[[steps.check.accept]]
+command = "docker run -p 8080:80 nginx"
+output = "abc123"
+[[steps.check.responses]]
+command = "docker run nginx"
+output = "abc123 (no port published)"

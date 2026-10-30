@@ -1,0 +1,211 @@
+title = "MagicDNS and sharing"
+summary = "Reach devices by name, share one with someone else, and publish a local service with serve and funnel."
+minutes = 20
+
+[[steps]]
+kind = "explanation"
+title = "MagicDNS names"
+body = """
+Remembering `100.88.12.34` gets old. With **MagicDNS** every device in the tailnet gets a DNS
+name, taken from its machine name (which you can rename in the admin console):
+
+- the short name, such as `nas`, works on every device in the tailnet;
+- the full name is `<machine>.<tailnet DNS name>`, for example `nas.tail1a2b3c.ts.net`.
+
+Each tailnet has its own name under `ts.net`. Alice's tailnet is `tail1a2b3c.ts.net`.
+
+Tailscale answers these lookups itself, on every device, at the resolver address
+`100.100.100.100`; other names are passed on to your normal DNS. MagicDNS is on by default
+for new tailnets and can be switched on or off on the admin console's DNS page.
+"""
+
+[[steps]]
+kind = "terminal"
+title = "Ping by name"
+body = """
+Use the ordinary `ping` to send three packets to the home server by its short name, and
+watch which address the name resolves to.
+"""
+hint = "`ping -c 3` stops after three packets."
+[steps.check]
+type = "terminal"
+prompt = "alice@laptop:~$ "
+[[steps.check.accept]]
+command = "ping -c 3 nas"
+output = '''
+PING nas.tail1a2b3c.ts.net (100.88.12.34) 56(84) bytes of data.
+64 bytes from nas.tail1a2b3c.ts.net (100.88.12.34): icmp_seq=1 ttl=64 time=3.41 ms
+64 bytes from nas.tail1a2b3c.ts.net (100.88.12.34): icmp_seq=2 ttl=64 time=2.97 ms
+64 bytes from nas.tail1a2b3c.ts.net (100.88.12.34): icmp_seq=3 ttl=64 time=3.05 ms
+
+--- nas.tail1a2b3c.ts.net ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2003ms
+rtt min/avg/max/mdev = 2.970/3.143/3.410/0.188 ms'''
+[[steps.check.accept]]
+command = "ping -c 3 nas.tail1a2b3c.ts.net"
+output = '''
+PING nas.tail1a2b3c.ts.net (100.88.12.34) 56(84) bytes of data.
+64 bytes from nas.tail1a2b3c.ts.net (100.88.12.34): icmp_seq=1 ttl=64 time=3.41 ms
+64 bytes from nas.tail1a2b3c.ts.net (100.88.12.34): icmp_seq=2 ttl=64 time=2.97 ms
+64 bytes from nas.tail1a2b3c.ts.net (100.88.12.34): icmp_seq=3 ttl=64 time=3.05 ms
+
+--- nas.tail1a2b3c.ts.net ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2003ms
+rtt min/avg/max/mdev = 2.970/3.143/3.410/0.188 ms'''
+
+[[steps]]
+kind = "quiz"
+title = "The full name"
+body = "Alice's laptop is called `laptop`. What is its full MagicDNS name?"
+hint = "Machine name, then the tailnet's DNS name `tail1a2b3c.ts.net`."
+[steps.check]
+type = "text"
+accept = ["laptop.tail1a2b3c.ts.net", "laptop.tail1a2b3c.ts.net."]
+
+[[steps]]
+kind = "explanation"
+title = "Sharing a device"
+body = """
+Alice's friend Bob has his own tailnet. To let him use her `nas` without adding him to her
+tailnet, Alice **shares** that one machine:
+
+1. In the admin console's Machines page, open the machine's menu and choose **Share**.
+2. Tailscale gives her an invite link (or sends it by email) to pass to Bob.
+3. Bob accepts it, and `nas` appears in his tailnet next to his own devices.
+
+What Bob gets:
+
+- Only the shared machine, not the rest of Alice's tailnet.
+- The shared machine is **quarantined**: Bob's devices can connect to it, but it cannot open
+  connections to Bob's devices.
+- Alice can revoke the share at any time from the same menu.
+
+Inviting Bob as a *user* of Alice's tailnet is different: he would then be a member of it and
+reach whatever her access rules allow.
+"""
+
+[[steps]]
+kind = "quiz"
+title = "What does a share give?"
+body = "Alice shares `nas` with Bob, who has his own tailnet. Which statements are true?"
+hint = "Sharing is one machine, one direction."
+[steps.check]
+type = "choice"
+options = [
+  "Bob's devices can connect to nas",
+  "Bob can also reach Alice's laptop and phone",
+  "nas cannot start connections to Bob's devices",
+  "Bob has to join Alice's tailnet first",
+]
+correct = [1, 3]
+multiple = true
+
+[[steps]]
+kind = "explanation"
+title = "tailscale serve"
+body = """
+Alice runs a web app on the laptop at `http://localhost:3000`. **`tailscale serve`** puts it on
+the tailnet at the laptop's MagicDNS name, over HTTPS with a certificate Tailscale obtains
+for that name:
+
+```
+tailscale serve 3000
+```
+
+- Only devices in the tailnet (and those it is shared with) can reach it; it is not on the
+  public internet.
+- It runs in the foreground until you press Ctrl+C. Add `--bg` to keep it running in the
+  background, and `tailscale serve status` shows what is being served.
+- It needs HTTPS certificates enabled for the tailnet (admin console, DNS page).
+"""
+
+[[steps]]
+kind = "terminal"
+title = "Serve the app to the tailnet"
+body = "Make the app on local port 3000 available to the tailnet over HTTPS."
+hint = "`tailscale serve` followed by the local port."
+[steps.check]
+type = "terminal"
+prompt = "alice@laptop:~$ "
+[[steps.check.accept]]
+command = "tailscale serve 3000"
+output = '''
+Available within your tailnet:
+
+https://laptop.tail1a2b3c.ts.net/
+|-- proxy http://127.0.0.1:3000
+
+Press Ctrl+C to exit.'''
+[[steps.check.accept]]
+command = "tailscale serve --bg 3000"
+output = '''
+Available within your tailnet:
+
+https://laptop.tail1a2b3c.ts.net/
+|-- proxy http://127.0.0.1:3000
+
+Serve started and running in the background.
+To disable the proxy, run: tailscale serve --https=443 off'''
+
+[[steps]]
+kind = "explanation"
+title = "tailscale funnel"
+body = """
+**`tailscale funnel`** works like `serve`, but makes the service reachable from the **public
+internet**, by anyone with the URL:
+
+```
+tailscale funnel 3000
+```
+
+- Visitors' traffic reaches the device through Tailscale's Funnel relay servers; TLS is
+  still terminated on your device, so the relays do not see the contents.
+- It needs MagicDNS and HTTPS certificates enabled, and the tailnet's policy file must give
+  the device the `funnel` attribute.
+- It can listen only on ports 443, 8443 and 10000.
+
+Funnel publishes the app to the whole internet. Only funnel something that is meant to be
+public, and protect it with its own login if it needs one.
+"""
+
+[[steps]]
+kind = "terminal"
+title = "Open the app to the internet"
+body = "Now make the same app on port 3000 reachable from the public internet."
+hint = "Same shape as `tailscale serve 3000`, with a different subcommand."
+[steps.check]
+type = "terminal"
+prompt = "alice@laptop:~$ "
+[[steps.check.accept]]
+command = "tailscale funnel 3000"
+output = '''
+Available on the internet:
+
+https://laptop.tail1a2b3c.ts.net/
+|-- proxy http://127.0.0.1:3000
+
+Press Ctrl+C to exit.'''
+[[steps.check.accept]]
+command = "tailscale funnel --bg 3000"
+output = '''
+Available on the internet:
+
+https://laptop.tail1a2b3c.ts.net/
+|-- proxy http://127.0.0.1:3000
+
+Funnel started and running in the background.
+To disable the proxy, run: tailscale funnel --https=443 off'''
+
+[[steps]]
+kind = "quiz"
+title = "Serve or funnel?"
+body = """
+Alice wants Bob, who has `nas` shared with him, to open a dashboard on `nas`, and nobody else
+on the internet. Which command should she run on `nas`?
+"""
+hint = "Shared devices count as part of the tailnet; the public internet does not."
+[steps.check]
+type = "choice"
+options = ["tailscale serve", "tailscale funnel"]
+correct = [1]
+multiple = false

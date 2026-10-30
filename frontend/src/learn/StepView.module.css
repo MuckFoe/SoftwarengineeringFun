@@ -1,0 +1,138 @@
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font: var(--type-body) var(--font-text);
+  color: var(--label);
+}
+
+.title {
+  margin: 0;
+}
+
+.check {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.legend {
+  margin-bottom: var(--space-1);
+  font-weight: 600;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.option input:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.options:disabled .option {
+  opacity: 0.6;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.box {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--control-bg);
+}
+
+.boxTitle {
+  margin: 0 0 var(--space-1);
+  font: var(--type-body) var(--font-text);
+  font-weight: 600;
+}
+
+.answerList {
+  margin: 0;
+  padding-left: var(--space-4, 1.25rem);
+}
+
+.answerText {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.code {
+  margin: 0;
+  font: var(--type-body) var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.attempts {
+  display: flex;
+  flex-direction: column;
+}
+
+.attemptList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attempt {
+  display: grid;
+  grid-template-columns: 16px auto 1fr auto;
+  align-items: start;
+  column-gap: var(--space-2);
+}
+
+.attempt[data-correct="true"] > svg,
+.attempt[data-correct="true"] .result {
+  color: var(--status-success);
+}
+
+.attempt[data-correct="false"] > svg,
+.attempt[data-correct="false"] .result {
+  color: var(--status-error);
+}
+
+.by {
+  font-weight: 600;
+}
+
+.submitted {
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.passed {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--status-success);
+  font-weight: 600;
+}
+
+.revealed {
+  margin-left: var(--space-2);
+  color: var(--label-secondary);
+  font-weight: 400;
+}

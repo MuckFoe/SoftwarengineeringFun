@@ -1,12 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getChat, removeChatMessage } from "../api/client";
-import type { ChatErrorCode } from "../api/types";
+import type {
+  ChatErrorCode,
+  ChatMessageFrame,
+  ChatRemovedMessage,
+  ChatSendMessage,
+  ErrorMessage,
+  WelcomeMessage,
+} from "../api/types";
 import { useMe } from "../auth/useMe";
-import type { CollabProvider } from "../collab/provider";
 import { chatError } from "./chatRules";
 import { addMessage, type ChatState, removeMessage, replaceHistory } from "./chatState";
 
 export type SendResult = "ok" | ChatErrorCode;
+
+/** The messages useChat listens to, with only the fields it reads. */
+export type ChatEvents = {
+  welcome: Pick<WelcomeMessage, "chat">;
+  chat_message: Pick<ChatMessageFrame, "message" | "client_id">;
+  chat_removed: Pick<ChatRemovedMessage, "id">;
+  error: Pick<ErrorMessage, "code" | "client_id">;
+  closed: unknown;
+};
+
+/**
+ * What useChat needs from a session connection: send a JSON message, subscribe to JSON
+ * messages. `CollabProvider` satisfies it as is; spec 006's learning socket implements it too.
+ */
+export interface ChatTransport {
+  send(message: ChatSendMessage): void;
+  on<K extends keyof ChatEvents>(type: K, handler: (payload: ChatEvents[K]) => void): () => void;
+}
 
 interface Pending {
   resolve(result: SendResult): void;
@@ -29,7 +53,7 @@ export function useChat({
   stale,
 }: {
   invite: string;
-  provider: CollabProvider | null;
+  provider: ChatTransport | null;
   stale: boolean;
 }) {
   const [state, setState] = useState<ChatState>(EMPTY);
