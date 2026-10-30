@@ -61,3 +61,34 @@ The automated tests above back every result. The ones marked *(read)* were also 
 - `service._locks` keeps one `asyncio.Lock` per session that has seen an action, and never drops them. This is negligible at the expected scale and well inside NFR-3, but locks for completed or stale sessions could be dropped.
 - An empty or whitespace-only command gets the reply `: not available in this exercise` (the first word is empty). It's correct per FR-21 but reads oddly. This is a cosmetic fix for a later change.
 - The `httpx`/`authlib.jose` deprecation warnings are shared by the whole backend and were not introduced by this feature.
+
+## 2026-10-30 — Re-validation after deploy (`/sdd-validate 006`)
+
+Since the first validation, no code, test or lesson has changed. The only change is plan.md, which gained a *Diagrams* section (uncommitted). All 31 tasks are still ticked. 006 is deployed on VM 105 at `558d0af`.
+
+### Test runs
+
+- `scripts/check.sh`: exit 0. pytest **731 passed**, Vitest **440 passed** (44 files), Playwright **71 passed**. Lint, format, type check, build, asset/theme checks and gitleaks are all clean. Same counts as the first run.
+
+### Checked on the live hub (read-only; nothing created)
+
+| AC | Result | Observed |
+|---|---|---|
+| AC-1 | pass | `/collab/learn` and `/collab/learn/s/<invite>` serve the app (200) |
+| AC-2, AC-3 (listing) | pass | `GET /api/learn/topics`: Docker (Basics 12 steps/20 min; Ports, volumes and networks 18/25; Building images 13/30; Docker Compose 10/30), Tailscale (Basics 11/20; MagicDNS and sharing 10/20; ACLs and tags 11/25; Exit nodes and subnet routers 12/25). Spec order, each with a summary |
+| AC-4 | pass | `POST /api/learn/topics` → 405; no lesson-writing route |
+| unknown invite | pass | `GET /api/learn/sessions/does-not-exist` → 404 `{"error":"not_found"}` |
+| AC-30 | partial | At idle: api 57 MiB, db 48 MiB, runner 19 MiB (124 MiB total). The compose limits add up to 448 MiB (224 + 160 + 64), under 1 GB. `collab-api-1` runs one process. **Not yet measured on the hub under 3 sessions × 5 participants.** That needs creating sessions in production, and sessions are never deleted (FR-27). |
+
+There is already 1 learning session in the hub database, so it has been used since the deploy.
+
+### Fresh code read (areas not read in the first pass)
+
+- FR-5: `lesson_file.py` refuses a choice quiz with no correct answer ("choice has no correct answer…"), a terminal step with no accepted command, out-of-range or duplicate options, and duplicate commands. Each error names the file. An explanation's check is optional, as the spec's *Step* definition says.
+- NFR-4: the only HTML rendered in the browser is `body_html` and `hint_html`, which come from the server's renderer (`DescriptionView`). There is no `dangerouslySetInnerHTML` or `innerHTML` in `src/learn/`.
+
+### Drift
+
+1. **Still open from the first validation: spec.md is now stale on AC-29's "passes unchanged".** Update it before the next change to this feature. See the first entry above.
+2. Drawing the plan's lifecycle diagram showed that a **completed** session also goes stale after 30 days without activity, and reactivating it returns it to completed. This is consistent with spec.md: FR-27 applies to any learning session, and stale and completed are both read-only. But the plan's text never said it. Only the plan's diagram records it now. No spec change is needed.
+3. AC-30 is unchanged: it passes on the stand-in and is within the limits at idle on the hub, but has not been measured on the hub under load.

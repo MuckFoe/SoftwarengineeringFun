@@ -303,6 +303,141 @@ Text inputs (`submit_text`, `submit_command`) longer than 1000 characters are re
 - Hint / *Show answer* buttons appear only when `has_hint` / `show_answer_available` are true.
 - Stale: the page fetches `GET …/record` and `…/chat` and renders read-only, with *Reactivate* for admins (same pattern as `SessionWindow`).
 
+## Diagrams
+
+Mermaid, drawn from the design above and the code as built. GitHub renders these blocks; the specs viewer shows them as code.
+
+### Session lifecycle (FR-6, FR-24, FR-26, FR-27)
+
+`completed_at` and `stale_at` are independent: a completed session goes stale too after 30 days without activity (joins and chat count), and reactivating it returns it to completed, not active.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Active: POST /api/learn/sessions (step 0 of the current lesson version)
+    Active --> Active: step passed, current_step + 1
+    Active --> Completed: last step passed (completed_at, summary)
+    Active --> Stale: 30 days without activity
+    Completed --> Stale: 30 days without activity
+    Stale --> Active: admin reactivates (not completed)
+    Stale --> Completed: admin reactivates (completed)
+```
+
+| State | WebSocket | Step actions | Chat |
+|---|---|---|---|
+| Active | join (cap 5) | submit, continue, hint, show answer | open |
+| Completed | join (cap 5) | refused, `session_completed` | open |
+| Stale | closed `4410`; page reads `GET …/record` | none | read-only |
+
+### One step (FR-11, FR-13, FR-14a, FR-15)
+
+Wrong attempts are unlimited in every inner state. A hint can be revealed at any point while the step is current, independently of these states. A pass after the answer was revealed is recorded as `after_reveal`. A passed step is read-only look-back: content, answer, attempts.
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> Current: becomes current
+    state Current {
+        [*] --> Open
+        Open --> AnswerOffered: 3rd wrong attempt
+        AnswerOffered --> Revealed: show_answer
+    }
+    Current --> Passed: correct submit, or continue if no check
+    Passed --> [*]
+```
+
+### Joining (FR-7, FR-8, FR-9)
+
+```mermaid
+sequenceDiagram
+    actor P as New participant
+    participant WS as ws.py
+    participant H as Session hub (in memory)
+    participant DB as PostgreSQL
+
+    P->>WS: connect /api/learn/sessions/{invite}/ws?name=…
+    WS->>DB: session by invite
+    alt unknown invite, stale, or name not 1–30 characters
+        WS-->>P: close 4404, 4410 or 4422
+    else 5 already connected
+        WS->>H: try_reserve() refused
+        WS-->>P: close 4403
+    else seat reserved
+        WS->>H: try_reserve()
+        WS->>DB: insert learning_participant, touch last_activity_at
+        WS->>DB: re-read session, build Record (passed steps and current)
+        WS-->>P: welcome {record, chat}
+        WS->>H: presence to everyone
+    end
+```
+
+### A submission (FR-10–FR-12, FR-19–FR-23)
+
+Any step action (`submit_*`, `continue`, `reveal_hint`, `show_answer`) follows this pattern. Only committed state is broadcast.
+
+```mermaid
+sequenceDiagram
+    actor A as Participant A
+    actor B as Participant B
+    participant WS as ws.py
+    participant S as service.py
+    participant DB as PostgreSQL
+
+    A->>WS: submit_command {step: 2, command}
+    WS->>S: submit_command(…)
+    S->>S: take the session's lock
+    S->>DB: read session
+    alt stale, completed, step ≠ current_step, or over 1000 characters
+        S-->>WS: LearnError(code)
+        WS-->>A: error {code} (A only, nothing stored)
+    else
+        S->>S: judge against the session's own lesson version (compared, never run)
+        S->>DB: BEGIN, insert learning_attempt
+        opt correct
+            S->>DB: pass step 2, current_step = 3 where current_step = 2
+            S->>DB: insert step 3 row, or set completed_at on the last step
+        end
+        S->>DB: touch last_activity_at, COMMIT
+        S-->>WS: attempt [, step_passed [, completed]]
+        WS-->>A: attempt, step_passed
+        WS-->>B: attempt, step_passed
+    end
+```
+
+### Loading lessons at startup (FR-4, FR-5, FR-28)
+
+```mermaid
+flowchart TD
+    start["App start: asgi._migrate_and_seed"] --> read["Read lessons/*/*/lesson.toml in folder order"]
+    read --> valid{"Every file valid?"}
+    valid -- no --> fail["Exit: lessons/…/lesson.toml: problem<br/>nothing stored"]
+    valid -- yes --> snap["Snapshot each lesson: canonical JSON,<br/>images replaced by their SHA-256"]
+    snap --> known{"(lesson_key, content_hash)<br/>already stored?"}
+    known -- no --> insert["Insert lesson_version and new lesson_assets"]
+    known -- yes --> reuse["Reuse that version"]
+    insert --> current["lesson.current_version_id = this version"]
+    reuse --> current
+    current --> gone["Lessons whose folder is gone:<br/>current_version_id = null"]
+    gone --> commit["Commit: one transaction"]
+    commit --> keep["Existing sessions keep their lesson_version_id;<br/>new sessions start on the current version"]
+```
+
+### Tables (`0004_learning_sessions.sql`)
+
+`lesson_version.content` refers to `lesson_asset` rows by SHA-256 inside the JSON, not by a foreign key.
+
+```mermaid
+erDiagram
+    lesson |o--o| lesson_version : "current_version_id"
+    lesson_version ||--o{ learning_session : "started on"
+    learning_session ||--o{ learning_participant : "joined by"
+    learning_session ||--o{ learning_step : "steps reached"
+    learning_session ||--o{ learning_attempt : "attempts"
+    learning_participant ||--o{ learning_attempt : "makes"
+    learning_participant |o--o{ learning_step : "passed_by"
+    learning_session ||--o{ learning_chat_message : "chat"
+    learning_participant ||--o{ learning_chat_message : "sends"
+```
+
 ## Test strategy
 
 Levels follow the existing suite: `backend/tests/unit` (pure, no DB), `backend/tests/integration` (real PostgreSQL via the existing fixture, real app via ASGI/WebSocket test client; nothing mocked), `frontend` Vitest component tests, `e2e/` Playwright against the compose stack. Fixture lessons live in `backend/tests/integration/fixtures/lessons*/` (valid set, one folder per invalid case).
