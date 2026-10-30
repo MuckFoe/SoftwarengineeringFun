@@ -467,14 +467,14 @@ function JoinedWindow({ provider, joined, chat, inviteLink, onRun: run }: Joined
             </Button>
             <Button
               variant="plain"
-              icon="doc"
+              icon="bottomPanel"
               label={runPanelOpen ? "Hide run results" : "Show run results"}
               aria-pressed={runPanelOpen}
               onClick={() => setRunPanelOpen((open) => !open)}
             />
             <Button
               variant="plain"
-              icon="doc"
+              icon="inspector"
               label={inspectorOpen ? "Hide inspector" : "Show inspector"}
               aria-pressed={inspectorOpen}
               onClick={() => setInspectorOpen((open) => !open)}
@@ -564,7 +564,12 @@ function InspectorTabs({ tab, onTab, descriptionHtml, chat }: InspectorTabsProps
           </button>
         ))}
       </div>
-      <div role="tabpanel" id={`${id}-${selected}`} aria-labelledby={`${id}-${selected}-tab`}>
+      <div
+        role="tabpanel"
+        id={`${id}-${selected}`}
+        aria-labelledby={`${id}-${selected}-tab`}
+        className={styles.tabPanel}
+      >
         {selected === "description" && descriptionHtml !== undefined ? (
           <DescriptionPane html={descriptionHtml} />
         ) : (

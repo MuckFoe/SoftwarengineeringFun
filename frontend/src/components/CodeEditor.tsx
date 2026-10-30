@@ -1,5 +1,8 @@
+import { indentWithTab } from "@codemirror/commands";
 import { python } from "@codemirror/lang-python";
+import { indentUnit } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
+import { keymap } from "@codemirror/view";
 import { basicSetup, EditorView } from "codemirror";
 import { useEffect, useRef } from "react";
 import { yCollab } from "y-codemirror.next";
@@ -16,6 +19,10 @@ interface Props {
 /**
  * Binds CodeMirror (Python) to the session's shared `Y.Text` for this problem, with
  * remote cursors labelled by awareness `name` (FR-16, FR-18, FR-20).
+ *
+ * Tab indents by 4 spaces and Shift+Tab dedents, as Python expects. So keyboard users
+ * aren't trapped (spec 003 FR-21, WCAG 2.1.2), Esc then Tab moves focus out instead; that
+ * escape is CodeMirror's own tab-focus mode.
  */
 export function CodeEditor({ doc, awareness, problemId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -29,6 +36,8 @@ export function CodeEditor({ doc, awareness, problemId }: Props) {
       extensions: [
         basicSetup,
         python(),
+        indentUnit.of("    "),
+        keymap.of([indentWithTab]),
         editorTheme,
         yCollab(ytext, awareness, { undoManager: false }),
       ],

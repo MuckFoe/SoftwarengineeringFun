@@ -547,6 +547,16 @@ describe("SessionWindow, description inspector (spec 003 FR-14)", () => {
     fireEvent.click(within(toolbar).getByRole("button", { name: "Show inspector" }));
     expect(screen.getByRole("complementary", { name: "Inspector" })).toBeTruthy();
   });
+
+  it("F4: each panel toggle has its own icon, so you can tell which hides which", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    const toolbar = screen.getByRole("toolbar", { name: "Session" });
+    const icons = ["Hide sidebar", "Hide run results", "Hide inspector"].map(
+      (name) => within(toolbar).getByRole("button", { name }).querySelector("svg")?.innerHTML,
+    );
+    expect(new Set(icons).size).toBe(3);
+  });
 });
 
 describe("SessionWindow, chat inspector (spec 003 FR-15)", () => {

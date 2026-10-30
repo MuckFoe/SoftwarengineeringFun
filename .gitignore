@@ -11,3 +11,4 @@ dist/
 .env.proxmox
 .env.hub
 e2e/test-results/
+*.tsbuildinfo

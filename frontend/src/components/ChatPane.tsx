@@ -1,4 +1,4 @@
-import { type FormEvent, type KeyboardEvent, useId, useState } from "react";
+import { type FormEvent, type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import type { ChatMessage } from "../api/types";
 import { charCount, MAX_CHAT_CHARS } from "../chat/chatRules";
 import type { SendResult } from "../chat/useChat";
@@ -8,6 +8,9 @@ import styles from "./ChatPane.module.css";
 
 /** Consecutive messages from one sender within this long of the previous share a header. */
 const GROUP_GAP_MS = 5 * 60 * 1000;
+
+/** Scrolled to within this many pixels of the end counts as reading the newest messages. */
+const AT_END_PX = 24;
 
 const REFUSALS: Record<Exclude<SendResult, "ok">, string | null> = {
   chat_empty: null,
@@ -56,6 +59,8 @@ interface Props {
  * character count against the limit while typing, and in a stale session a disabled input
  * with the reason beside it. Return sends; Shift+Return starts a new line. A message's body
  * is a text node, so markup in it is shown as typed and never rendered (spec 002 FR15).
+ * The pane fills its panel: messages scroll above an input that stays at the bottom, and a
+ * new message scrolls into view unless you have scrolled back to read older ones (F3).
  */
 export function ChatPane({ messages, readOnly, send, canRemove = false, remove }: Props) {
   const id = useId();
@@ -65,6 +70,20 @@ export function ChatPane({ messages, readOnly, send, canRemove = false, remove }
   const [removeError, setRemoveError] = useState<string | null>(null);
   const messageId = `${id}-message`;
   const counterId = `${id}-counter`;
+  const listRef = useRef<HTMLOListElement>(null);
+  const atEndRef = useRef(true);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs for each new message list.
+  useEffect(() => {
+    const list = listRef.current;
+    if (list && atEndRef.current) list.scrollTop = list.scrollHeight;
+  }, [messages]);
+
+  function onScroll() {
+    const list = listRef.current;
+    if (list)
+      atEndRef.current = list.scrollHeight - list.scrollTop - list.clientHeight <= AT_END_PX;
+  }
 
   async function submit(e?: FormEvent) {
     e?.preventDefault();
@@ -103,7 +122,7 @@ export function ChatPane({ messages, readOnly, send, canRemove = false, remove }
 
   return (
     <div className={styles.pane}>
-      <ol aria-label="Messages" className={styles.list}>
+      <ol aria-label="Messages" className={styles.list} ref={listRef} onScroll={onScroll}>
         {groupMessages(messages).map((group) => (
           <li key={group.messages[0]?.id} className={styles.group}>
             <h3 className={styles.header}>

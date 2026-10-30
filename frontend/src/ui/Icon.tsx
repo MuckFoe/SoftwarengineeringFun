@@ -12,6 +12,20 @@ const PATHS = {
       <line x1="6" y1="2.75" x2="6" y2="13.25" />
     </>
   ),
+  /** The sidebar mirrored: a window with its right-hand inspector. */
+  inspector: (
+    <>
+      <rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2" />
+      <line x1="10" y1="2.75" x2="10" y2="13.25" />
+    </>
+  ),
+  /** A window with a panel along its bottom edge. */
+  bottomPanel: (
+    <>
+      <rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2" />
+      <line x1="1.75" y1="9.5" x2="14.25" y2="9.5" />
+    </>
+  ),
   play: (
     <path
       d="M5 3.2v9.6a.5.5 0 0 0 .76.43l7.6-4.8a.5.5 0 0 0 0-.86l-7.6-4.8A.5.5 0 0 0 5 3.2Z"

@@ -138,3 +138,43 @@ describe("ChatPane (spec 003 FR-15)", () => {
     expect(screen.queryByRole("button", { name: /^Remove/ })).toBeNull();
   });
 });
+
+describe("ChatPane scrolling (F3)", () => {
+  /** jsdom has no layout: give the message list a 100 px window onto `content` px. */
+  function sized(list: HTMLElement, content: number) {
+    Object.defineProperty(list, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(list, "scrollHeight", { configurable: true, value: content });
+  }
+  const more = (n: number): ChatMessage[] => [
+    ...MESSAGES,
+    { id: 5 + n, sender_name: "Ben", text: `new ${n}`, sent_at: at("10:20") },
+  ];
+  const send = async () => "ok" as const;
+
+  it("a new message scrolls the list to the end when you were reading the end", () => {
+    const { rerender } = render(<ChatPane messages={MESSAGES} readOnly={false} send={send} />);
+    const list = screen.getByRole("list", { name: "Messages" });
+    sized(list, 500);
+
+    rerender(<ChatPane messages={more(1)} readOnly={false} send={send} />);
+    expect(list.scrollTop).toBe(500);
+  });
+
+  it("leaves the list where it is when you have scrolled back to older messages", () => {
+    const { rerender } = render(<ChatPane messages={MESSAGES} readOnly={false} send={send} />);
+    const list = screen.getByRole("list", { name: "Messages" });
+    sized(list, 500);
+    list.scrollTop = 50;
+    fireEvent.scroll(list);
+
+    rerender(<ChatPane messages={more(1)} readOnly={false} send={send} />);
+    expect(list.scrollTop).toBe(50);
+  });
+
+  it("the input is outside the scrolling list, after it", () => {
+    render(<ChatPane messages={MESSAGES} readOnly={false} send={send} />);
+    const list = screen.getByRole("list", { name: "Messages" });
+    expect(list.contains(input())).toBe(false);
+    expect(list.compareDocumentPosition(input()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});

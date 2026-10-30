@@ -11,8 +11,11 @@
   border-left-width: 0;
 }
 
+/* A column, so content such as the chat can fill the height and pin its input to the bottom. */
 .inspectorContent {
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   width: 320px;
   height: 100%;
   overflow-y: auto;
