@@ -71,7 +71,6 @@ async def test_trending_asks_for_pg13(fake_giphy: FakeGiphy) -> None:
         "api_key": API_KEY,
         "rating": "pg-13",
         "limit": "24",
-        "bundle": "messaging_non_clips",
     }
 
 
@@ -131,14 +130,13 @@ async def test_search_sends_exactly_the_fixed_parameters_and_no_identifying_head
         await client.aclose()
 
     [recorded] = fake_giphy.requests
-    assert set(recorded.query) == {"api_key", "q", "rating", "limit", "bundle"}
-    assert len(recorded.query_pairs) == 5
+    assert set(recorded.query) == {"api_key", "q", "rating", "limit"}
+    assert len(recorded.query_pairs) == 4
     assert recorded.query == {
         "api_key": API_KEY,
         "q": "cat",
         "rating": "pg-13",
         "limit": "24",
-        "bundle": "messaging_non_clips",
     }
     for header in ("referer", "cookie", "x-forwarded-for"):
         assert header not in recorded.headers

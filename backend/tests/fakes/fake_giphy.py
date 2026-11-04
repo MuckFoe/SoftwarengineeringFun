@@ -269,6 +269,13 @@ def _handler_for(fake: FakeGiphy) -> type[BaseHTTPRequestHandler]:
                     ids = CAT_IDS if query.get("q", "").strip().lower() == "cat" else ()
                 limit = int(query["limit"]) if query.get("limit", "").isdigit() else len(ids)
                 data = [fake.item(i) for i in ids[:limit]]
+                if "bundle" in query:
+                    # Like real GIPHY: a rendition bundle (e.g. messaging_non_clips) omits the
+                    # *_still renditions, which reduced motion needs (spec 007 NFR-6).
+                    for item in data:
+                        item["images"] = {
+                            k: v for k, v in item["images"].items() if not k.endswith("_still")
+                        }
                 self._json(200, {"data": data, "meta": {"status": 200, "msg": "OK"}})
             elif what in _TITLES:
                 self._json(200, {"data": fake.item(what), "meta": {"status": 200, "msg": "OK"}})

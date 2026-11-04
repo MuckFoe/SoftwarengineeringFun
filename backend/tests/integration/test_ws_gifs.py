@@ -171,7 +171,7 @@ async def test_nfr1_the_outgoing_request_carries_only_the_term(
         assert _next(ada)["type"] == "gif_results"
 
     (recorded,) = _searches(fake_giphy)
-    assert set(recorded.query) == {"api_key", "q", "rating", "limit", "bundle"}
+    assert set(recorded.query) == {"api_key", "q", "rating", "limit"}
     assert recorded.query["q"] == "cat"
     everything = [recorded.url, *recorded.headers.keys(), *recorded.headers.values()]
     for forbidden in ("Ada", session.invite_id, str(session.id), "secret words", "secret"):

@@ -13,7 +13,6 @@ import httpx
 from app.gifs.models import GifRef
 from app.gifs.rules import REQUEST_RATING, RESULT_LIMIT, normalise_query, parse_result
 
-BUNDLE = "messaging_non_clips"
 _HEADERS = {"Accept": "application/json", "User-Agent": "projecthub-gifs"}
 
 
@@ -61,7 +60,9 @@ class GiphyClient:
         await self._http.aclose()
 
     def _list_params(self) -> dict[str, str]:
-        return {"rating": REQUEST_RATING, "limit": str(RESULT_LIMIT), "bundle": BUNDLE}
+        # No `bundle`: GIPHY's rendition bundles (messaging_non_clips included) omit the
+        # fixed_width_still rendition, so every result would fail parse_result.
+        return {"rating": REQUEST_RATING, "limit": str(RESULT_LIMIT)}
 
     async def _get(
         self, path: str, params: dict[str, str], *, allow_404: bool = False
