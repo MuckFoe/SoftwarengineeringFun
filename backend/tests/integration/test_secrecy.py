@@ -11,8 +11,11 @@ through `GET /api/problems/{id}/edit`.
 table and fails if a route exists that the sweep did not exercise.
 
 HTTP routes (app/main.py, app/problems/api.py, app/sessions/api.py, app/sessions/ws.py):
-  GET    /api/auth/login, /api/auth/callback (via login_as), POST /api/auth/logout
+  GET    /api/auth/login, /api/auth/register, /api/auth/callback (via login_as),
+         POST /api/auth/logout
   GET    /api/me
+  GET    /api/me/sessions, POST /api/me/sessions/{kind}/{invite}/hide,
+  PUT    /api/me/preferences (spec 012; signed in only, swept for coverage)
   GET    /api/problems, /api/problems/{id}, /api/problems/{id}/edit (refused)
   POST   /api/problems (refused), PUT/DELETE /api/problems/{id} (refused)
   POST   /api/problems/preview (editor1's response scanned; refused to the observer)
@@ -24,6 +27,8 @@ HTTP routes (app/main.py, app/problems/api.py, app/sessions/api.py, app/sessions
   GET    /api/learn/topics, /api/learn/sessions/{invite}, .../record, /api/learn/assets/{sha256},
   POST   /api/learn/sessions (spec 006 task 24; no problem data, swept for coverage)
   WS     /api/learn/sessions/{invite}/ws (spec 006 task 25; unknown invite, closed 4404)
+  GET/POST/PUT/DELETE /api/present/... and WS /api/present/sessions/{invite}/ws (spec 013;
+         refused or not found, swept for coverage)
   GET    /api/learn/sessions/stale, POST /api/learn/sessions/{invite}/reactivate (task 26)
   GET    /api/learn/sessions/{invite}/chat, DELETE .../chat/{message_id} (task 29; not found)
   FastAPI's /openapi.json, /docs, /docs/oauth2-redirect, /redoc, and the SPA fallback.
@@ -51,6 +56,7 @@ import os
 import re
 import uuid
 from collections.abc import AsyncIterator
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -299,6 +305,10 @@ async def test_nfr5_fr9_tests_reach_only_editors(
     # --- switch to the observer; everything from here on is scanned. ---
     sweep.http(("POST", "/api/auth/logout"), client.post("/api/auth/logout"))
     client.cookies.clear()
+    sweep.http(
+        ("GET", "/api/auth/register"),
+        client.get("/api/auth/register", follow_redirects=False),
+    )
     sweep.http(("GET", "/api/auth/login"), client.get("/api/auth/login", follow_redirects=False))
     if observer == "plain1":
         sweep.http(("GET", "/api/auth/callback"), login_as(client, "plain1"))
@@ -372,7 +382,16 @@ async def test_nfr5_fr9_tests_reach_only_editors(
         reply = sweep.ws_bytes(ada.receive_bytes())
         pycrdt.handle_sync_message(reply[1:], ada_doc)
 
-        with client.websocket_connect(_ws_url(invite, "Linus")) as linus:
+        # Linus joins signed out: a second socket with plain1's cookie would be the same
+        # participant and replace Ada's (spec 012, one connection per account, 4409).
+        with ExitStack() as linus_stack:
+            observer_cookies, client.cookies = client.cookies, httpx.Cookies()
+            try:
+                linus = linus_stack.enter_context(
+                    client.websocket_connect(_ws_url(invite, "Linus"))
+                )
+            finally:
+                client.cookies = observer_cookies
             assert sweep.ws_text(linus.receive_json())["type"] == "welcome"
             assert sweep.ws_text(ada.receive_json())["type"] == "presence"
             linus_doc = pycrdt.Doc()
@@ -482,6 +501,57 @@ async def test_nfr5_fr9_tests_reach_only_editors(
         with pytest.raises(WebSocketDisconnect) as closed:
             learn_ws.receive_json()
     assert closed.value.code == 4404
+
+    # Spec 013 present routes hold no problem data; swept for coverage. The observer is no
+    # editor, so the library writes are refused; the session routes answer not-found.
+    pres = "/api/present/presentations"
+    psess = "/api/present/sessions/{invite}"
+    sweep.http(("GET", pres), client.get(pres))
+    sweep.http(
+        ("POST", "/api/present/analyze"), client.post("/api/present/analyze", content=b"<p>")
+    )
+    sweep.http(
+        ("POST", pres), client.post(pres, params={"title": "t", "topic": "t"}, content=b"<p>")
+    )
+    sweep.http(
+        ("PUT", pres + "/{presentation_id}/html"), client.put(pres + "/1/html", content=b"<p>")
+    )
+    sweep.http(("DELETE", pres + "/{presentation_id}"), client.delete(pres + "/1"))
+    sweep.http(
+        ("POST", "/api/present/sessions"),
+        client.post("/api/present/sessions", json={"presentation_id": 0}),
+    )
+    sweep.http(("GET", psess), client.get("/api/present/sessions/no-such"))
+    sweep.http(("GET", psess + "/frame"), client.get("/api/present/sessions/no-such/frame"))
+    sweep.http(("GET", psess + "/chat"), client.get("/api/present/sessions/no-such/chat"))
+    sweep.http(
+        ("DELETE", psess + "/chat/{message_id}"),
+        client.delete("/api/present/sessions/no-such/chat/1"),
+    )
+    sweep.http(
+        ("POST", psess + "/reactivate"), client.post("/api/present/sessions/no-such/reactivate")
+    )
+    sweep.routes_hit.add(("WS", psess + "/ws"))
+    with client.websocket_connect("/api/present/sessions/no-such/ws?name=Ada") as present_ws:
+        with pytest.raises(WebSocketDisconnect) as closed:
+            present_ws.receive_json()
+    assert closed.value.code == 4404
+
+    # Spec 012 account routes hold no problem data; swept for coverage. Signed in only (not
+    # editor-only): the anonymous observer gets 401, plain1 its own (empty) rows.
+    signed_in_status = 200 if observer == "plain1" else 401
+    mine = sweep.http(("GET", "/api/me/sessions"), client.get("/api/me/sessions"))
+    assert mine.status_code == signed_in_status
+    hidden = sweep.http(
+        ("POST", "/api/me/sessions/{kind}/{invite}/hide"),
+        client.post("/api/me/sessions/coding/no-such/hide"),
+    )
+    assert hidden.status_code == (404 if observer == "plain1" else 401)
+    prefs = sweep.http(
+        ("PUT", "/api/me/preferences"),
+        client.put("/api/me/preferences", json={"appearance": "dark"}),
+    )
+    assert prefs.status_code == signed_in_status
 
     # A deleted problem's public view, after runs exist.
     sweep.http(("GET", "/api/problems/{problem_id}"), client.get(f"/api/problems/{p}"))

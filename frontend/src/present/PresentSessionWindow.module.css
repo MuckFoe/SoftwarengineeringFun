@@ -1,0 +1,168 @@
+.spacer {
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--type-headline) var(--font-text);
+  font-weight: 600;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.position {
+  min-width: 4em;
+  text-align: center;
+  font: var(--type-body) var(--font-text);
+  font-variant-numeric: tabular-nums;
+  color: var(--label-secondary);
+}
+
+/* The frame fills the main area. */
+.main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.main > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menuItem {
+  width: 100%;
+  min-height: 24px;
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--label);
+  font: var(--type-body) var(--font-text);
+  text-align: left;
+  cursor: default;
+}
+
+.menuItem:hover {
+  background: var(--accent);
+  color: var(--accent-label);
+}
+
+.menuItem:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -1px;
+}
+
+/* Participants on top, the chat filling the rest of the inspector. */
+.inspector {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.people {
+  flex: none;
+  padding: var(--space-2) var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--separator);
+}
+
+.sectionTitle {
+  margin: 0 0 var(--space-1);
+  padding: 0 var(--space-2);
+  font: var(--type-caption) var(--font-text);
+  font-weight: 600;
+  color: var(--label-secondary);
+}
+
+.presence {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 24px;
+  padding: var(--space-1) var(--space-2);
+  color: var(--label);
+  font: var(--type-body) var(--font-text);
+}
+
+.swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.tag {
+  color: var(--label-secondary);
+}
+
+/* ChatPane fills it: its messages scroll above an input pinned to the bottom. */
+.chat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.loading {
+  padding: var(--space-6);
+  color: var(--label-secondary);
+}
+
+.joinCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: min(360px, calc(100% - 2 * var(--space-4)));
+  margin: var(--space-8) auto;
+  padding: var(--space-6);
+  border-radius: var(--radius-sheet);
+  background: var(--content-bg);
+  box-shadow: var(--shadow-sheet);
+}
+
+.joinTitle {
+  margin: 0;
+  font: var(--type-title3) var(--font-text);
+  font-weight: 600;
+}
+
+.joinSubtitle {
+  margin: 0;
+  color: var(--label-secondary);
+  font: var(--type-body) var(--font-text);
+}
+
+.joinForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.joinActions {
+  display: flex;
+  justify-content: flex-end;
+}

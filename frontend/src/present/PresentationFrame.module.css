@@ -1,0 +1,70 @@
+.frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--content-bg);
+}
+
+.iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Exactly over the iframe, so frame-viewport coordinates are overlay coordinates. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  user-select: none;
+}
+
+.overlay[data-drawing] {
+  cursor: crosshair;
+}
+
+.strokes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.strokes polyline {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.arrow {
+  width: 12px;
+  height: 18px;
+  fill: var(--accent);
+  stroke: var(--accent-label);
+  stroke-width: 1;
+}
+
+.label {
+  margin-top: 14px;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--accent);
+  color: var(--accent-label);
+  font: var(--type-caption) var(--font-text);
+  white-space: nowrap;
+}

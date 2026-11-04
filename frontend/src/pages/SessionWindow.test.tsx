@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as syncProtocol from "y-protocols/sync";
 import * as Y from "yjs";
-import type { Problem, RunResult, ServerMessage, WelcomeMessage } from "../api/types";
+import type { Me, Problem, RunResult, ServerMessage, WelcomeMessage } from "../api/types";
 import type { SocketFactory, SocketLike } from "../collab/provider";
 import { ShortcutsProvider } from "../shortcuts/useShortcut";
 import { SessionWindow } from "./SessionWindow";
@@ -35,14 +35,20 @@ class FakeSocket implements SocketLike {
   }
 }
 
-function fakeSocketFactory(): { factory: SocketFactory; sockets: FakeSocket[] } {
+function fakeSocketFactory(): {
+  factory: SocketFactory;
+  sockets: FakeSocket[];
+  urls: string[];
+} {
   const sockets: FakeSocket[] = [];
-  const factory: SocketFactory = () => {
+  const urls: string[] = [];
+  const factory: SocketFactory = (url) => {
+    urls.push(url);
     const socket = new FakeSocket();
     sockets.push(socket);
     return socket;
   };
-  return { factory, sockets };
+  return { factory, sockets, urls };
 }
 
 function json(status: number, body: unknown) {
@@ -52,17 +58,26 @@ function json(status: number, body: unknown) {
   });
 }
 
-function stubServer(getResponses: Response[], reactivateResponse: Response = json(200, {})) {
+function stubServer(
+  getResponses: Response[],
+  reactivateResponse: Response = json(200, {}),
+  problem?: () => Response,
+  me?: Me,
+) {
   const responses = [...getResponses];
   const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), "http://localhost");
     const method = init?.method ?? "GET";
     const api = `${mockedBase.value}api`;
+    if (me && method === "GET" && url.pathname === `${api}/me`) return json(200, me);
     if (method === "GET" && url.pathname.startsWith(`${api}/sessions/`)) {
       return responses.shift() ?? json(404, { error: "not_found" });
     }
     if (method === "POST" && url.pathname.endsWith("/reactivate")) {
       return reactivateResponse;
+    }
+    if (problem && method === "GET" && url.pathname.startsWith(`${api}/problems/`)) {
+      return problem();
     }
     if (method === "GET" && url.pathname === `${api}/problems`) {
       return json(200, [
@@ -91,6 +106,7 @@ function renderPage(createSocket?: SocketFactory) {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  localStorage.clear();
   mockedBase.value = "/";
 });
 
@@ -231,9 +247,10 @@ function welcome(overrides: Partial<WelcomeMessage> = {}): WelcomeMessage {
   return {
     type: "welcome",
     participant_id: "me",
+    you: { participant_id: "me", name: "Ada", signed_in: false },
     current_problem: SUM_TWO,
     problems: { p1: { accepted: false } },
-    presence: [{ id: "me", name: "Ada" }],
+    presence: [{ id: "me", name: "Ada", signed_in: false }],
     run_in_progress: false,
     chat: [],
     ...overrides,
@@ -421,8 +438,8 @@ describe("SessionWindow, layout (spec 003)", () => {
       socket,
       welcome({
         presence: [
-          { id: "me", name: "Ada" },
-          { id: "l", name: "Linus" },
+          { id: "me", name: "Ada", signed_in: false },
+          { id: "l", name: "Linus", signed_in: false },
         ],
       }),
     );
@@ -505,15 +522,12 @@ describe("SessionWindow, description inspector (spec 003 FR-14)", () => {
       '<p><strong>Add</strong> them</p>\n<p><img src="/api/images/i1" alt="wide"></p>\n',
   };
 
-  it("shows the server's description HTML in a Description tab of the inspector, beside the editor", async () => {
+  it("shows the server's description HTML in a Description region of the inspector, beside the editor", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome({ current_problem: WITH_IMAGE }));
 
     const inspector = screen.getByRole("complementary", { name: "Inspector" });
-    expect(
-      within(inspector).getByRole("tab", { name: "Description", selected: true }),
-    ).toBeTruthy();
-    const panel = within(inspector).getByRole("tabpanel", { name: "Description" });
+    const panel = within(inspector).getByRole("region", { name: "Description" });
     expect(within(panel).getByText("Add").tagName).toBe("STRONG");
     expect(within(panel).getByRole("img", { name: "wide" }).getAttribute("src")).toBe(
       "/api/images/i1",
@@ -531,7 +545,7 @@ describe("SessionWindow, description inspector (spec 003 FR-14)", () => {
       by: "Linus",
       state: { accepted: false },
     });
-    const panel = screen.getByRole("tabpanel", { name: "Description" });
+    const panel = screen.getByRole("region", { name: "Description" });
     expect(within(panel).getByText("Reverse a list.")).toBeTruthy();
     expect(within(panel).queryByText("Add two integers.")).toBeNull();
   });
@@ -548,6 +562,21 @@ describe("SessionWindow, description inspector (spec 003 FR-14)", () => {
     expect(screen.getByRole("complementary", { name: "Inspector" })).toBeTruthy();
   });
 
+  it("spec 008 FR-1: the description is above the chat, with no Description/Chat tabs", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+
+    const inspector = screen.getByRole("complementary", { name: "Inspector" });
+    const description = within(inspector).getByRole("region", { name: "Description" });
+    const chat = within(inspector).getByRole("region", { name: "Chat" });
+    expect(
+      description.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.queryByRole("tabpanel")).toBeNull();
+  });
+
   it("F4: each panel toggle has its own icon, so you can tell which hides which", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
@@ -559,26 +588,147 @@ describe("SessionWindow, description inspector (spec 003 FR-14)", () => {
   });
 });
 
+describe("SessionWindow, chat toggle (spec 008 FR-2, FR-3, FR-4, FR-6, FR-7)", () => {
+  const toolbar = () => screen.getByRole("toolbar", { name: "Session" });
+  const chatRegion = () => screen.queryByRole("region", { name: "Chat" });
+  const descriptionRegion = () => screen.queryByRole("region", { name: "Description" });
+  const iconOf = (name: string) =>
+    within(toolbar()).getByRole("button", { name }).querySelector("svg")?.innerHTML;
+
+  it("FR-7: the chat button has its own icon, and is named Hide chat, then Show chat", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+
+    const chatButton = within(toolbar()).getByRole("button", { name: "Hide chat" });
+    expect(chatButton.getAttribute("aria-pressed")).toBe("true");
+    const chatIcon = iconOf("Hide chat");
+    expect(chatIcon).toBeTruthy();
+    for (const other of ["Hide sidebar", "Hide run results", "Hide inspector"]) {
+      expect(iconOf(other)).not.toBe(chatIcon);
+    }
+
+    fireEvent.click(chatButton);
+    const shown = within(toolbar()).getByRole("button", { name: "Show chat" });
+    expect(shown.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("the chat button sits directly after the inspector toggle", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    const inspectorToggle = within(toolbar()).getByRole("button", { name: "Hide inspector" });
+    expect(inspectorToggle.nextElementSibling).toBe(
+      within(toolbar()).getByRole("button", { name: "Hide chat" }),
+    );
+  });
+
+  it("FR-2: Hide chat hides the chat and keeps the description; Show chat brings it back", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+
+    fireEvent.click(within(toolbar()).getByRole("button", { name: "Hide chat" }));
+    expect(chatRegion()).toBeNull();
+    expect(descriptionRegion()).toBeTruthy();
+    expect(screen.getByRole("complementary", { name: "Inspector" })).toBeTruthy();
+
+    fireEvent.click(within(toolbar()).getByRole("button", { name: "Show chat" }));
+    expect(chatRegion()).toBeTruthy();
+    expect(descriptionRegion()).toBeTruthy();
+  });
+
+  it("FR-4: the choice is remembered in this browser", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    fireEvent.click(within(toolbar()).getByRole("button", { name: "Hide chat" }));
+    expect(localStorage.getItem("chatVisible")).toBe("hidden");
+    cleanup();
+
+    const again = await joinAsAda();
+    serverSends(again, welcome());
+    expect(chatRegion()).toBeNull();
+    expect(within(toolbar()).getByRole("button", { name: "Show chat" })).toBeTruthy();
+    fireEvent.click(within(toolbar()).getByRole("button", { name: "Show chat" }));
+    expect(localStorage.getItem("chatVisible")).toBe("shown");
+  });
+
+  it("FR-6: the inspector toggle leaves the chat choice alone", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    const toggleInspector = (name: string) =>
+      fireEvent.click(within(toolbar()).getByRole("button", { name }));
+
+    toggleInspector("Hide inspector");
+    expect(screen.queryByRole("complementary", { name: "Inspector" })).toBeNull();
+    expect(within(toolbar()).getByRole("button", { name: "Show chat" })).toBeTruthy();
+    toggleInspector("Show inspector");
+    expect(descriptionRegion()).toBeTruthy();
+    expect(chatRegion()).toBeTruthy();
+
+    fireEvent.click(within(toolbar()).getByRole("button", { name: "Hide chat" }));
+    toggleInspector("Hide inspector");
+    toggleInspector("Show inspector");
+    expect(descriptionRegion()).toBeTruthy();
+    expect(chatRegion()).toBeNull();
+  });
+
+  it("FR-3: with the inspector hidden, Show chat opens the inspector with the chat", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    fireEvent.click(within(toolbar()).getByRole("button", { name: "Hide inspector" }));
+
+    fireEvent.click(within(toolbar()).getByRole("button", { name: "Show chat" }));
+    expect(screen.getByRole("complementary", { name: "Inspector" })).toBeTruthy();
+    expect(descriptionRegion()).toBeTruthy();
+    expect(chatRegion()).toBeTruthy();
+  });
+
+  it("FR-3: with the inspector hidden, Ctrl+Alt+C opens the inspector with the chat", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    fireEvent.click(within(toolbar()).getByRole("button", { name: "Hide inspector" }));
+
+    fireEvent.keyDown(window, { key: "c", code: "KeyC", ctrlKey: true, altKey: true });
+    expect(screen.getByRole("complementary", { name: "Inspector" })).toBeTruthy();
+    expect(chatRegion()).toBeTruthy();
+  });
+});
+
 describe("SessionWindow, chat inspector (spec 003 FR-15)", () => {
   const HISTORY = [
-    { id: 1, sender_name: "Ben", text: "hello there", sent_at: "2026-10-25T10:00:00Z" },
-    { id: 2, sender_name: "Ben", text: "try a hashmap", sent_at: "2026-10-25T10:01:00Z" },
+    {
+      id: 1,
+      sender_name: "Ben",
+      participant_id: "p",
+      signed_in: false,
+      text: "hello there",
+      sent_at: "2026-10-25T10:00:00Z",
+    },
+    {
+      id: 2,
+      sender_name: "Ben",
+      participant_id: "p",
+      signed_in: false,
+      text: "try a hashmap",
+      sent_at: "2026-10-25T10:01:00Z",
+    },
   ];
-  const chatTab = () => screen.getByRole("tab", { name: "Chat" });
-  const chatPanel = () => screen.getByRole("tabpanel", { name: "Chat" });
+  const chatPanel = () => screen.getByRole("region", { name: "Chat" });
 
-  it("a Chat tab shows the welcome's history and new messages, and sends over the socket", async () => {
+  it("the Chat region shows the welcome's history and new messages, and sends over the socket", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome({ chat: HISTORY }));
 
-    fireEvent.click(chatTab());
-    expect(chatTab().getAttribute("aria-selected")).toBe("true");
-    expect(screen.queryByRole("tabpanel", { name: "Description" })).toBeNull();
     expect(within(chatPanel()).getByText("try a hashmap")).toBeTruthy();
 
     serverSends(socket, {
       type: "chat_message",
-      message: { id: 3, sender_name: "Ana", text: "on it", sent_at: "2026-10-25T10:02:00Z" },
+      message: {
+        id: 3,
+        sender_name: "Ana",
+        participant_id: "p",
+        signed_in: false,
+        text: "on it",
+        sent_at: "2026-10-25T10:02:00Z",
+      },
       client_id: "someone-else",
     });
     expect(within(chatPanel()).getByText("on it")).toBeTruthy();
@@ -589,18 +739,18 @@ describe("SessionWindow, chat inspector (spec 003 FR-15)", () => {
     expect(sent).toContainEqual(expect.objectContaining({ type: "chat_send", text: "ok" }));
   });
 
-  it("Ctrl+Alt+C shows the chat, and hides it when it is showing", async () => {
+  it("Ctrl+Alt+C hides the chat when it is showing, and shows it again", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome({ chat: HISTORY }));
     const press = () =>
       fireEvent.keyDown(window, { key: "c", code: "KeyC", ctrlKey: true, altKey: true });
 
-    press();
     expect(within(chatPanel()).getByText("hello there")).toBeTruthy();
     press();
-    expect(screen.queryByRole("complementary", { name: "Inspector" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Chat" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Description" })).toBeTruthy();
     press();
-    expect(chatTab().getAttribute("aria-selected")).toBe("true");
+    expect(within(chatPanel()).getByText("hello there")).toBeTruthy();
   });
 
   it("a stale session shows the chat history read-only, with the reason", async () => {
@@ -611,11 +761,120 @@ describe("SessionWindow, chat inspector (spec 003 FR-15)", () => {
     renderPage(fakeSocketFactory().factory);
     await screen.findByText(/gone stale/i);
 
-    fireEvent.click(chatTab());
     expect(await within(chatPanel()).findByText("try a hashmap")).toBeTruthy();
     const input = within(chatPanel()).getByLabelText("Message") as HTMLTextAreaElement;
     expect(input.disabled).toBe(true);
     expect(within(chatPanel()).getByText(/can't be sent/i)).toBeTruthy();
+  });
+
+  const STALE = { error: "stale", can_reactivate: false, problem_id: "p1" };
+  const staleWithDescription = () =>
+    stubServer(
+      [json(423, STALE), json(200, { messages: HISTORY, read_only: true })],
+      json(200, {}),
+      () => json(200, SUM_TWO),
+    );
+
+  it("spec 008 FR-9: a stale session shows its description above the read-only chat", async () => {
+    const fetchFn = staleWithDescription();
+    renderPage(fakeSocketFactory().factory);
+    await screen.findByText(/gone stale/i);
+
+    const description = await screen.findByRole("region", { name: "Description" });
+    expect(within(description).getByText("Add two integers.")).toBeTruthy();
+    expect(fetchFn.mock.calls.some(([input]) => String(input).endsWith("/api/problems/p1"))).toBe(
+      true,
+    );
+    const chat = chatPanel();
+    // Description comes first in document order, the chat below it.
+    expect(description.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(await within(chat).findByText("try a hashmap")).toBeTruthy();
+    const input = within(chat).getByLabelText("Message") as HTMLTextAreaElement;
+    expect(input.disabled).toBe(true);
+  });
+
+  it("spec 008 FR-9: if the description can't be loaded, the stale chat is shown alone", async () => {
+    stubServer(
+      [json(423, STALE), json(200, { messages: HISTORY, read_only: true })],
+      json(200, {}),
+      () => json(500, {}),
+    );
+    renderPage(fakeSocketFactory().factory);
+    await screen.findByText(/gone stale/i);
+
+    expect(await within(chatPanel()).findByText("try a hashmap")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Description" })).toBeNull();
+  });
+
+  it("spec 008 FR-2: the stale toolbar hides and shows the chat, and has no inspector toggle", async () => {
+    staleWithDescription();
+    renderPage(fakeSocketFactory().factory);
+    await screen.findByRole("region", { name: "Description" });
+    const toolbar = screen.getByRole("toolbar", { name: "Session" });
+    expect(within(toolbar).queryByRole("button", { name: /inspector/i })).toBeNull();
+
+    const hide = within(toolbar).getByRole("button", { name: "Hide chat" });
+    expect(hide.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(hide);
+    expect(screen.queryByRole("region", { name: "Chat" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Description" })).toBeTruthy();
+    expect(localStorage.getItem("chatVisible")).toBe("hidden");
+
+    fireEvent.click(within(toolbar).getByRole("button", { name: "Show chat" }));
+    expect(chatPanel()).toBeTruthy();
+    expect(localStorage.getItem("chatVisible")).toBe("shown");
+  });
+
+  it("spec 008 FR-4: a remembered hidden chat starts hidden in a stale session; Show chat brings it back", async () => {
+    localStorage.setItem("chatVisible", "hidden");
+    staleWithDescription();
+    renderPage(fakeSocketFactory().factory);
+    await screen.findByRole("region", { name: "Description" });
+    const toolbar = screen.getByRole("toolbar", { name: "Session" });
+
+    expect(screen.queryByRole("region", { name: "Chat" })).toBeNull();
+    const show = within(toolbar).getByRole("button", { name: "Show chat" });
+    expect(show.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(show);
+    expect(await within(chatPanel()).findByText("try a hashmap")).toBeTruthy();
+  });
+
+  const GIF_MESSAGE = {
+    id: 3,
+    sender_name: "Ben",
+    participant_id: "p",
+    signed_in: false,
+    sent_at: "2026-10-25T10:02:00Z",
+    kind: "gif" as const,
+    gif: {
+      id: "g1",
+      title: "party parrot",
+      url: "https://media.giphy.com/g1.gif",
+      still_url: "https://media.giphy.com/g1_s.gif",
+      width: 200,
+      height: 150,
+    },
+  };
+
+  it("spec 007 FR-1: an active session's chat offers a GIF button", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ chat: HISTORY }));
+
+    expect(within(chatPanel()).getByRole("button", { name: "GIF" })).toBeTruthy();
+  });
+
+  it("spec 007 FR-8: a stale session shows GIF messages and no GIF button", async () => {
+    stubServer([
+      json(423, { error: "stale", can_reactivate: false }),
+      json(200, { messages: [...HISTORY, GIF_MESSAGE], read_only: true }),
+    ]);
+    renderPage(fakeSocketFactory().factory);
+    await screen.findByText(/gone stale/i);
+
+    expect(await within(chatPanel()).findByRole("img", { name: "party parrot" })).toBeTruthy();
+    expect(within(chatPanel()).queryByRole("button", { name: "GIF" })).toBeNull();
   });
 });
 
@@ -709,5 +968,99 @@ describe("SessionWindow, shortcuts (spec 003 FR-17)", () => {
     expect(screen.queryByText("Invite link copied")).toBeNull();
     expect(fetchFn.mock.calls.length).toBe(calls);
     expect(screen.getByText(/gone stale/i)).toBeTruthy();
+  });
+});
+
+const NEWUSER: Me = { signed_in: true, name: "newuser", roles: [], preferences: null };
+const ANONYMOUS: Me = { signed_in: false, roles: [] };
+
+describe("SessionWindow, accounts (spec 012)", () => {
+  it("FR-1: signed in, opening /s/:invite shows no name sheet and connects without a name", async () => {
+    stubServer([json(200, { state: "active" })], undefined, undefined, NEWUSER);
+    const { factory, sockets, urls } = fakeSocketFactory();
+    renderPage(factory);
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    expect(urls[0]).toMatch(/\/api\/sessions\/abc\/ws$/);
+    expect(screen.queryByLabelText("Your name")).toBeNull();
+    const socket = sockets[0] as FakeSocket;
+    act(() => socket.onopen?.(new Event("open")));
+    serverSends(
+      socket,
+      welcome({
+        you: { participant_id: "me", name: "newuser", signed_in: true },
+        presence: [{ id: "me", name: "newuser", signed_in: true }],
+      }),
+    );
+    await screen.findByRole("heading", { name: "Sum two" });
+    expect(screen.queryByLabelText("Your name")).toBeNull();
+  });
+
+  it("AC-13 + FR-1: a signed-in admin who reactivates joins at once and still sees the Hud", async () => {
+    const ADMIN: Me = { signed_in: true, name: "admin1", roles: ["admin"], preferences: null };
+    stubServer([json(423, { error: "stale", can_reactivate: true })], undefined, undefined, ADMIN);
+    const { factory, sockets } = fakeSocketFactory();
+    renderPage(factory);
+    const banner = (await screen.findByText(/gone stale/i)).closest("[role=status]") as HTMLElement;
+
+    fireEvent.click(within(banner).getByRole("button", { name: "Reactivate" }));
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    const socket = sockets[0] as FakeSocket;
+    act(() => socket.onopen?.(new Event("open")));
+    serverSends(
+      socket,
+      welcome({
+        you: { participant_id: "me", name: "admin1", signed_in: true },
+        presence: [{ id: "me", name: "admin1", signed_in: true }],
+      }),
+    );
+    await screen.findByRole("heading", { name: "Sum two" });
+    expect(screen.getByText("Session reactivated").getAttribute("role")).toBe("status");
+  });
+
+  it("FR-6: not signed in, the name sheet is shown as today and nothing connects", async () => {
+    stubServer([json(200, { state: "active" })], undefined, undefined, ANONYMOUS);
+    const { factory, sockets, urls } = fakeSocketFactory();
+    renderPage(factory);
+
+    await screen.findByLabelText("Your name");
+    expect(sockets).toHaveLength(0);
+    fireEvent.change(screen.getByLabelText("Your name"), { target: { value: "Ada" } });
+    fireEvent.click(screen.getByRole("button", { name: /join/i }));
+    expect(urls).toHaveLength(1);
+    expect(urls[0]).toMatch(/\?name=Ada$/);
+  });
+
+  it("FR-5: a 4409 close says it was opened elsewhere, does not reconnect, and Use here reconnects", async () => {
+    stubServer([json(200, { state: "active" })], undefined, undefined, NEWUSER);
+    const { factory, sockets, urls } = fakeSocketFactory();
+    renderPage(factory);
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    const socket = sockets[0] as FakeSocket;
+    act(() => socket.onopen?.(new Event("open")));
+    serverSends(
+      socket,
+      welcome({ you: { participant_id: "me", name: "newuser", signed_in: true } }),
+    );
+    await screen.findByRole("heading", { name: "Sum two" });
+
+    act(() => socket.onclose?.({ code: 4409 } as CloseEvent));
+
+    await screen.findByText("This session was opened in another tab or window.");
+    expect(screen.queryByLabelText("Your name")).toBeNull();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(sockets).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Use here" }));
+    expect(sockets).toHaveLength(2);
+    expect(urls[1]).toMatch(/\/api\/sessions\/abc\/ws$/);
+    const again = sockets[1] as FakeSocket;
+    act(() => again.onopen?.(new Event("open")));
+    serverSends(
+      again,
+      welcome({ you: { participant_id: "me", name: "newuser", signed_in: true } }),
+    );
+    await screen.findByRole("heading", { name: "Sum two" });
   });
 });

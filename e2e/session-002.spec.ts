@@ -79,7 +79,7 @@ test("AC-15: description and editor are visible together at 1280 px, the wide im
   const editorArea = participant.getByRole("main").locator(".cm-content");
   const description = participant
     .getByRole("complementary", { name: "Inspector" })
-    .getByRole("tabpanel", { name: "Description" });
+    .getByRole("region", { name: "Description" });
   await expect(editorArea).toBeVisible();
   await expect(description).toContainText("Add a and b.");
   await expect(editorArea).toBeInViewport();
@@ -96,7 +96,7 @@ test("AC-15: description and editor are visible together at 1280 px, the wide im
     .poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
     .toBe(2400);
   const fit = await image.evaluate((img: HTMLImageElement) => {
-    const panel = img.closest('[role="tabpanel"]') as HTMLElement;
+    const panel = img.closest('section[aria-label="Description"]') as HTMLElement;
     const scroller = img.closest('[aria-label="Inspector"] > *') as HTMLElement;
     return {
       rendered: img.getBoundingClientRect().width,
@@ -154,7 +154,7 @@ function markStale(invite: string): void {
 const CHAT_SHORTCUT = process.platform === "darwin" ? "Control+Meta+c" : "Control+Alt+c";
 
 async function say(page: Page, text: string): Promise<void> {
-  const chat = page.getByRole("tabpanel", { name: "Chat" });
+  const chat = page.getByRole("region", { name: "Chat" });
   const input = chat.getByLabel("Message", { exact: true });
   await input.fill(text);
   await input.press("Enter");
@@ -176,13 +176,12 @@ test("AC-16: chat is grouped by sender, counts characters, is toggled by its sho
   await join(ana, invite, "Ana");
   await join(ben, invite, "Ben");
 
-  await ben.getByRole("tab", { name: "Chat" }).click();
   await say(ben, "one");
   await say(ben, "two");
 
-  // The shortcut opens the chat on the Chat tab, and hides it again.
-  const chat = ana.getByRole("tabpanel", { name: "Chat" });
-  await ana.keyboard.press(CHAT_SHORTCUT);
+  // The chat starts shown beside the description (spec 008 FR-1); the shortcut hides it
+  // and shows it again.
+  const chat = ana.getByRole("region", { name: "Chat" });
   await expect(chat).toBeVisible();
   await ana.keyboard.press(CHAT_SHORTCUT);
   await expect(chat).toBeHidden();
@@ -195,7 +194,8 @@ test("AC-16: chat is grouped by sender, counts characters, is toggled by its sho
   await expect(groups.nth(0).getByRole("heading")).toContainText("Ben");
   await expect(groups.nth(0).getByText("one", { exact: true })).toBeVisible();
   await expect(groups.nth(0).getByText("two", { exact: true })).toBeVisible();
-  await expect(groups.nth(1).getByRole("heading")).toContainText("Ana");
+  // Ana's own message, on her own screen, is "You" (spec 012 FR-3).
+  await expect(groups.nth(1).getByRole("heading")).toContainText("You");
 
   const input = chat.getByLabel("Message", { exact: true });
   await expect(chat.getByText("0/2000")).toBeVisible();
@@ -205,7 +205,7 @@ test("AC-16: chat is grouped by sender, counts characters, is toggled by its sho
   markStale(invite);
   await ana.reload();
   await expect(ana.getByText(/gone stale/i)).toBeVisible();
-  const staleChat = ana.getByRole("tabpanel", { name: "Chat" });
+  const staleChat = ana.getByRole("region", { name: "Chat" });
   await expect(staleChat.getByText("three", { exact: true })).toBeVisible();
   await expect(staleChat.getByLabel("Message", { exact: true })).toBeDisabled();
   await expect(staleChat.getByText("Messages can't be sent in a stale session.")).toBeVisible();

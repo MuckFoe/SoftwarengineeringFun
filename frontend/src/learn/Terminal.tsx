@@ -1,4 +1,5 @@
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
+import { SignedInMark } from "../ui/Icon";
 import type { Attempt } from "./learnTypes";
 import styles from "./Terminal.module.css";
 
@@ -68,7 +69,11 @@ export function Terminal({ prompt, history, onSubmit, disabled = false }: Props)
       >
         {history.map((a) => (
           <pre key={a.id} className={styles.entry}>
-            <span className={styles.command}>{`${a.by} $ ${String(a.submitted)}`}</span>
+            <span className={styles.command}>
+              {a.by}
+              {a.by_signed_in && <SignedInMark size={12} />}
+              {` $ ${String(a.submitted)}`}
+            </span>
             {a.output ? `\n${a.output}` : ""}
           </pre>
         ))}

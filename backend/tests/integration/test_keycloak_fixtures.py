@@ -10,6 +10,7 @@ import base64
 import hashlib
 import json
 import secrets
+from collections.abc import AsyncIterator
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -21,8 +22,11 @@ from fastapi.testclient import TestClient
 
 from tests.integration.keycloak_fixtures import (  # noqa: F401  (pytest fixtures)
     Keycloak,
+    _admin_client,
+    cookie_header,
     keycloak,
     login_as,
+    signed_in_jar,
 )
 
 REALM_FILE = Path(__file__).parents[1] / "keycloak" / "realm.json"
@@ -138,6 +142,8 @@ def test_passwords_are_random_per_run(keycloak: Keycloak) -> None:  # noqa: F811
         "admin1",
         "decoy1",
         "appadmin1",
+        "newuser",
+        "other",
     }
     assert len(set(passwords)) == len(passwords)
     assert all(len(p) >= 20 for p in passwords)
@@ -185,6 +191,8 @@ EXPECTED_ROLES: dict[str, tuple[set[str], set[str], set[str]]] = {
     "admin1": ({"admin"}, set(), {"admin"}),
     "decoy1": (set(), {"editor", "admin"}, {"editor"}),
     "appadmin1": ({"admin"}, set(), set()),
+    "newuser": (set(), set(), set()),
+    "other": (set(), set(), set()),
 }
 
 
@@ -224,3 +232,83 @@ def test_fr3_realm_file_declares_client_roles_and_decoy_client() -> None:
     assert {r["name"] for r in client_roles["collab-coding"]} == {"editor", "admin"}
     assert {r["name"] for r in client_roles[OTHER_CLIENT]} == {"editor", "admin"}
     assert OTHER_CLIENT in {c["clientId"] for c in realm["clients"]}
+
+
+# Spec 012 task 4: `newuser` and `other` (no app role), the editor, registration allowed
+# and one signed-in cookie jar per call (FR-10, FR-11; plan "Test strategy").
+
+APP_COOKIE_KEY = "test-session-cookie-key"  # noqa: S105  (placeholder, not a real secret)
+
+
+@pytest.fixture
+async def app_client(keycloak: Keycloak, database_url: str) -> AsyncIterator[TestClient]:  # noqa: F811
+    import asyncpg
+
+    from app import db as app_db
+    from app.config import Settings
+    from app.main import create_app
+
+    # Signed-in `/api/me` reads account preferences (012 task 11), so the app needs its DB.
+    conn = await asyncpg.connect(database_url)
+    try:
+        await app_db.migrate(conn)
+    finally:
+        await conn.close()
+    settings = Settings(
+        oidc_issuer=keycloak.issuer,
+        oidc_client_id=keycloak.client_id,
+        oidc_client_secret=keycloak.client_secret,
+        session_cookie_key=APP_COOKIE_KEY,
+        database_url=database_url,
+        runner_url="http://unused",
+    )
+    with TestClient(create_app(settings)) as test_client:
+        yield test_client
+
+
+@pytest.mark.parametrize(
+    ("user", "roles"), [("newuser", []), ("other", []), ("editor1", ["editor"])]
+)
+def test_012_users_sign_in_with_their_roles(
+    app_client: TestClient,
+    signed_in_jar,  # noqa: F811
+    user: str,
+    roles: list[str],
+) -> None:
+    jar = signed_in_jar(app_client, user)
+    app_client.cookies = jar
+    me = app_client.get("/api/me").json()
+
+    assert me["signed_in"] is True
+    assert me["name"] == user
+    assert me["roles"] == roles
+
+
+def test_012_two_jars_for_one_user_are_both_signed_in(
+    app_client: TestClient,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    first = signed_in_jar(app_client, "newuser")
+    second = signed_in_jar(app_client, "newuser")
+
+    # The app cookie is stateless, so equal values within one second are fine; what matters
+    # is two separate jars, each signed in, and the second sign-in not ending the first.
+    assert first is not second
+    assert first["collab_session"] and second["collab_session"]
+    assert not app_client.cookies  # the client's own jar is left as it was
+    for jar in (first, second):
+        app_client.cookies = jar
+        me = app_client.get("/api/me").json()
+        assert (me["signed_in"], me["name"]) == (True, "newuser")
+    # The jars work side by side as request headers too (e.g. two sockets at once).
+    app_client.cookies = httpx.Cookies()
+    for jar in (first, second):
+        me = app_client.get("/api/me", headers=cookie_header(jar)).json()
+        assert me["name"] == "newuser"
+
+
+def test_012_registration_is_allowed(keycloak: Keycloak) -> None:  # noqa: F811
+    assert json.loads(REALM_FILE.read_text())["registrationAllowed"] is True
+    with _admin_client() as admin:
+        realm = admin.get(str(admin.base_url).rstrip("/")).raise_for_status().json()
+    assert realm["registrationAllowed"] is True

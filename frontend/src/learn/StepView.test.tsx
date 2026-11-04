@@ -345,3 +345,34 @@ describe("StepView read-only (AC-14, FR-15)", () => {
     expect(screen.getByText(/Passed by Bob/).textContent).toContain("after answer shown");
   });
 });
+
+describe("StepView signed-in mark (012 FR-8)", () => {
+  it("marks an attempt's author exactly when by_signed_in", () => {
+    render(
+      <StepView
+        step={step({
+          attempts: [
+            attempt({ id: 1, by: "newuser", by_signed_in: true }),
+            attempt({ id: 2, by: "newuser", by_signed_in: false }),
+          ],
+        })}
+        onSend={vi.fn()}
+      />,
+    );
+    const rows = within(attemptsList()).getAllByRole("listitem");
+    expect(rows[0]?.querySelector("[data-signed-in]")).not.toBeNull();
+    expect(rows[1]?.querySelector("[data-signed-in]")).toBeNull();
+  });
+
+  it("marks who passed the step exactly when passed.by_signed_in", () => {
+    const passed = (by_signed_in: boolean) =>
+      step({
+        passed: { by: "newuser", at: "2026-10-29T10:00:00Z", after_reveal: false, by_signed_in },
+      });
+    const { rerender } = render(<StepView step={passed(true)} onSend={vi.fn()} />);
+    const line = () => screen.getByText(/Passed by newuser/).closest("p") as HTMLElement;
+    expect(line().querySelector("[data-signed-in]")).not.toBeNull();
+    rerender(<StepView step={passed(false)} onSend={vi.fn()} />);
+    expect(line().querySelector("[data-signed-in]")).toBeNull();
+  });
+});

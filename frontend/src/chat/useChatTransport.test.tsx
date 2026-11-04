@@ -30,7 +30,14 @@ class FakeTransport implements ChatTransport {
 }
 
 function msg(id: number, text: string): ChatMessage {
-  return { id, sender_name: "Ana", text, sent_at: "2026-10-29T09:00:00Z" };
+  return {
+    id,
+    sender_name: "Ana",
+    participant_id: "p",
+    signed_in: false,
+    text,
+    sent_at: "2026-10-29T09:00:00Z",
+  };
 }
 
 afterEach(() => {
@@ -61,7 +68,9 @@ describe("useChat over a plain transport", () => {
 
     transport.emit("chat_message", { message: msg(1, "hello"), client_id: clientId });
     await expect(sending).resolves.toBe("ok");
-    expect(result.current.messages.map((m) => m.text)).toEqual(["hello"]);
+    expect(result.current.messages.map((m) => (m.kind === "gif" ? null : m.text))).toEqual([
+      "hello",
+    ]);
 
     transport.emit("chat_removed", { id: 1 });
     await waitFor(() => expect(result.current.messages).toEqual([]));

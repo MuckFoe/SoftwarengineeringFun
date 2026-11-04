@@ -30,14 +30,24 @@ export interface SocketLike {
 export type SocketFactory = (url: string) => SocketLike;
 
 /** Why the connection ended. Anything without a contract close code is `disconnected`. */
-export type CloseError = "session_full" | "not_found" | "stale" | "invalid_name" | "disconnected";
+export type CloseError =
+  | "session_full"
+  | "not_found"
+  | "stale"
+  | "invalid_name"
+  | "replaced"
+  | "disconnected";
 
 export interface ClosedEvent {
   code: number;
   error: CloseError;
 }
 
+/** The same participant connected from another tab or device; newest wins (spec 012 FR-5). */
+export const CLOSE_REPLACED = WS_CLOSE.replaced;
+
 const CLOSE_ERRORS: Record<number, CloseError> = {
+  [CLOSE_REPLACED]: "replaced",
   [WS_CLOSE.full]: "session_full",
   [WS_CLOSE.notFound]: "not_found",
   [WS_CLOSE.stale]: "stale",
@@ -54,7 +64,8 @@ export type ProviderEvents = {
 
 export interface ProviderOptions {
   inviteId: string;
-  name: string;
+  /** The display name; omitted when signed in, as the server names the account (spec 012 FR-1). */
+  name?: string;
   createSocket?: SocketFactory;
 }
 
@@ -69,11 +80,16 @@ export class CollabProvider {
   private destroyed = false;
 
   constructor({ inviteId, name, createSocket = (url) => new WebSocket(url) }: ProviderOptions) {
-    this.awareness.setLocalStateField("user", { name });
+    if (name !== undefined) this.awareness.setLocalStateField("user", { name });
     this.doc.on("update", this.onDocUpdate);
     this.awareness.on("update", this.onAwarenessUpdate);
+    // The server's own name for us arrives in the welcome when we joined without one.
+    this.on("welcome", (msg) => {
+      if (name === undefined) this.awareness.setLocalStateField("user", { name: msg.you.name });
+    });
 
-    const socket = createSocket(sessionWsUrl(inviteId, name));
+    const url = sessionWsUrl(inviteId, name ?? "");
+    const socket = createSocket(name === undefined ? url.slice(0, url.indexOf("?")) : url);
     socket.binaryType = "arraybuffer";
     socket.onopen = () => this.onOpen();
     socket.onmessage = (ev) => this.onMessage(ev.data);

@@ -25,6 +25,8 @@ export type Answer =
 export interface Attempt {
   id: number;
   by: string;
+  /** The actor's participant has an account: show the *signed in* mark (012 FR-8). */
+  by_signed_in?: boolean;
   kind: "choice" | "text" | "command";
   submitted: number[] | string;
   correct: boolean;
@@ -34,6 +36,8 @@ export interface Attempt {
 
 export interface StepPassed {
   by: string;
+  /** The passer's participant has an account (012 FR-8). */
+  by_signed_in?: boolean;
   at: string;
   after_reveal: boolean;
 }
@@ -61,6 +65,8 @@ export interface Summary {
     title: string;
     attempts: number;
     passed_by: string;
+    /** The passer's participant has an account (012 FR-8). */
+    passed_by_signed_in?: boolean | null;
     after_reveal: boolean;
   }[];
 }

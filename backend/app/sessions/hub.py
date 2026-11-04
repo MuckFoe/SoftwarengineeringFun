@@ -4,7 +4,7 @@ of 5", "Live editing"). Valid only because there is one `api` process (config.py
 """
 
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from typing import Protocol
 
@@ -21,6 +21,8 @@ class Connection:
     websocket: SocketLike
     participant_id: uuid.UUID
     name: str
+    # Computed server-side from `account_sub is not null`, never from the client (FR-8).
+    signed_in: bool = False
 
 
 @dataclass
@@ -31,9 +33,13 @@ class SessionHub:
     # Seats taken by joins that passed the cap check but haven't been added yet (FR-13).
     reserved: int = 0
 
-    def try_reserve(self) -> bool:
-        """Takes a seat if one is free. Synchronous, so check-and-take is atomic with
-        respect to the event loop; the join's awaits come after it."""
+    def try_reserve(self, participant_id: uuid.UUID | None = None) -> bool:
+        """Takes a seat if one is free. A participant who is already connected (a
+        second device that will `replace`) needs no seat and takes none (FR-7).
+        Synchronous, so check-and-take is atomic with respect to the event loop; the
+        join's awaits come after it."""
+        if participant_id is not None and participant_id in self.connections:
+            return True
         if len(self.connections) + self.reserved >= MAX_PARTICIPANTS:
             return False
         self.reserved += 1
@@ -48,11 +54,28 @@ class SessionHub:
         self.reserved -= 1
         self.connections[connection.participant_id] = connection
 
-    def remove(self, participant_id: uuid.UUID) -> None:
-        self.connections.pop(participant_id, None)
+    def replace(self, participant_id: uuid.UUID, websocket: SocketLike) -> Connection:
+        """Swaps in a newer socket for a connected participant and returns the old
+        connection (to be closed with 4409), so the participant appears once (FR-5).
+        KeyError if not connected."""
+        old = self.connections[participant_id]
+        self.connections[participant_id] = replace(old, websocket=websocket)
+        return old
+
+    def remove(self, participant_id: uuid.UUID, websocket: SocketLike | None = None) -> bool:
+        """Removes the participant's connection — only if it is still `websocket`, when
+        given, so a replaced socket's handler can't remove its successor."""
+        current = self.connections.get(participant_id)
+        if current is None or (websocket is not None and current.websocket is not websocket):
+            return False
+        del self.connections[participant_id]
+        return True
 
     def presence(self) -> list[dict]:
-        return [{"id": str(c.participant_id), "name": c.name} for c in self.connections.values()]
+        return [
+            {"id": str(c.participant_id), "name": c.name, "signed_in": c.signed_in}
+            for c in self.connections.values()
+        ]
 
 
 _hubs: dict[uuid.UUID, SessionHub] = {}

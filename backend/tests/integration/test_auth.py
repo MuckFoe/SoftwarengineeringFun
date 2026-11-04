@@ -4,7 +4,7 @@ import html
 import json
 import re
 from base64 import b64decode
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from dataclasses import replace
 from urllib.parse import parse_qs, quote, urljoin, urlsplit
 
@@ -45,8 +45,21 @@ def _settings(kc: Keycloak) -> Settings:
 
 
 @pytest.fixture
-def client(keycloak: Keycloak) -> TestClient:  # noqa: F811
-    return TestClient(create_app(_settings(keycloak)))
+async def migrated_url(database_url: str) -> str:
+    """The test database, migrated: signed-in `/api/me` reads account preferences (012)."""
+    conn = await asyncpg.connect(database_url)
+    try:
+        await app_db.migrate(conn)
+    finally:
+        await conn.close()
+    return database_url
+
+
+@pytest.fixture
+def client(keycloak: Keycloak, migrated_url: str) -> Iterator[TestClient]:  # noqa: F811
+    settings = replace(_settings(keycloak), database_url=migrated_url)
+    with TestClient(create_app(settings)) as test_client:
+        yield test_client
 
 
 def _decode_session_cookie(client: TestClient) -> dict:
@@ -114,6 +127,7 @@ def _sign_in(
 def test_already_signed_in_to_keycloak_skips_the_login_form(
     client: TestClient,
     keycloak: Keycloak,  # noqa: F811
+    migrated_url: str,
 ) -> None:
     """FR-2b: a second relying-party login, in the same Keycloak SSO session, needs no form."""
     with httpx.Client() as browser:
@@ -121,8 +135,9 @@ def test_already_signed_in_to_keycloak_skips_the_login_form(
         assert first.status_code == 200
         assert first.json()["signed_in"] is True
 
-        other_client = TestClient(create_app(_settings(keycloak)))
-        second = _sign_in(other_client, browser, keycloak, expect_form=False)
+        settings = replace(_settings(keycloak), database_url=migrated_url)
+        with TestClient(create_app(settings)) as other_client:
+            second = _sign_in(other_client, browser, keycloak, expect_form=False)
 
     assert second.status_code == 200
     assert second.json()["signed_in"] is True
@@ -334,17 +349,63 @@ def test_fr1_public_base_url_sets_the_redirect_uri(keycloak: Keycloak) -> None: 
     assert query["redirect_uri"] == [f"{public}/api/auth/callback"]
 
 
-def test_fr1_discovery_uses_the_metadata_url(keycloak: Keycloak, login_as) -> None:  # noqa: F811
+def test_fr1_discovery_uses_the_metadata_url(
+    keycloak: Keycloak,  # noqa: F811
+    login_as,  # noqa: F811
+    migrated_url: str,
+) -> None:
     # The issuer's host does not resolve, so sign-in completes only if discovery goes to
     # the metadata URL instead.
     settings = replace(
         _settings(keycloak),
         oidc_issuer=f"http://issuer.invalid/realms/{keycloak.realm}",
         oidc_metadata_url=f"{keycloak.issuer}/.well-known/openid-configuration",
+        database_url=migrated_url,
     )
-    client = TestClient(create_app(settings))
-
-    final = login_as(client, "editor1", start=NEXT_TO_ME)
+    with TestClient(create_app(settings)) as client:
+        final = login_as(client, "editor1", start=NEXT_TO_ME)
 
     assert final.status_code == 200
     assert final.json()["signed_in"] is True
+
+
+# --- spec 012 task 15: register (FR-10) ------------------------------------------
+
+
+def test_fr10_register_redirects_to_keycloak_sign_up(
+    client: TestClient,
+    keycloak: Keycloak,  # noqa: F811
+) -> None:
+    response = client.get("/api/auth/register?next=/profile", follow_redirects=False)
+
+    assert response.status_code == 302
+    location = response.headers["location"]
+    assert location.startswith(f"{keycloak.issuer}/protocol/openid-connect/auth")
+    assert parse_qs(urlsplit(location).query)["prompt"] == ["create"]
+    with httpx.Client(follow_redirects=True) as browser:
+        page = browser.get(location)
+    assert page.status_code == 200
+    assert 'id="kc-register-form"' in page.text
+
+
+def test_fr10_register_passes_a_valid_appearance(client: TestClient) -> None:
+    assert _authorize_query(client, "/api/auth/register?appearance=dark")["appearance"] == ["dark"]
+    assert "appearance" not in _authorize_query(client, "/api/auth/register?appearance=purple")
+
+
+def test_fr10_login_does_not_ask_for_sign_up(client: TestClient) -> None:
+    assert "prompt" not in _authorize_query(client, "/api/auth/login")
+
+
+@pytest.mark.parametrize(
+    ("next_value", "stored"),
+    [("//evil", "/"), ("/\\evil", "/"), ("https://evil", "/"), ("/profile", "/profile")],
+)
+def test_fr10_register_sanitises_next_as_login_does(
+    client: TestClient, next_value: str, stored: str
+) -> None:
+    client.get(f"/api/auth/register?next={quote(next_value)}", follow_redirects=False)
+
+    raw = client.cookies["collab_session"].encode("utf-8")
+    signed = itsdangerous.TimestampSigner(COOKIE_KEY).unsign(raw, max_age=None)
+    assert json.loads(b64decode(signed))["next"] == stored

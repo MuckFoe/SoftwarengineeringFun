@@ -103,18 +103,28 @@ for (const screen of ["problems", "session"] as const) {
     await page.goto(start);
 
     const toolbar = page.getByRole("toolbar").first();
-    await toolbar.getByRole("link", { name: "Sign in" }).click();
+    // Spec 012: the toolbar's entry opens the profile, which offers Sign in.
+    await toolbar.getByRole("link", { name: "Profile" }).click();
+    await page.getByRole("main").getByRole("link", { name: "Sign in" }).click();
     await expect(page.locator("#kc-form-login")).toBeVisible();
     await page.locator("#username").fill(editor.username);
     await page.locator("#password").fill(editor.password);
     await page.locator("#kc-login").click();
 
-    await page.waitForURL((url) => url.origin === app && url.pathname === start);
+    await page.waitForURL((url) => url.origin === app && url.pathname === "/profile");
+    expect(new URL(page.url()).searchParams.get("from")).toBe(start);
     const me = (await (await page.request.get("/api/me")).json()) as { name: string };
     expect(me.name).toBeTruthy();
-    await expect(
-      page.getByRole("toolbar").first().getByRole("button", { name: me.name }),
-    ).toBeVisible();
+    // The profile shows the account (spec 012 FR-11) and no Sign in any more.
+    const account = page.getByRole("region", { name: "Account" });
+    await expect(account.getByText(me.name, { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Sign in" })).toHaveCount(0);
+
+    // Back returns to where they came from, signed in: the toolbar entry is their name.
+    await page.getByRole("toolbar", { name: "Profile" }).getByRole("link", { name: "Back" }).click();
+    await page.waitForURL((url) => url.origin === app && url.pathname === start);
+    await expect(
+      page.getByRole("toolbar").first().getByRole("link", { name: me.name }),
+    ).toBeVisible();
   });
 }

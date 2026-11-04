@@ -75,7 +75,7 @@ async function joinSessionOn(
 }
 
 const descriptionPanel = (p: Page) =>
-  p.getByRole("complementary", { name: "Inspector" }).getByRole("tabpanel", { name: "Description" });
+  p.getByRole("complementary", { name: "Inspector" }).getByRole("region", { name: "Description" });
 
 const CODE_BLOCK = "def f(x):\n    if x:\n        return  x";
 
@@ -239,7 +239,7 @@ test("NFR Readability: at 1024 px a wide image is scaled to fit, with no horizon
     .poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
     .toBe(2400);
   const fit = await image.evaluate((img: HTMLImageElement) => {
-    const panel = img.closest('[role="tabpanel"]') as HTMLElement;
+    const panel = img.closest('section[aria-label="Description"]') as HTMLElement;
     const scroller = img.closest('[aria-label="Inspector"] > *') as HTMLElement;
     return {
       rendered: img.getBoundingClientRect().width,

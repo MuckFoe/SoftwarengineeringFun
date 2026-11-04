@@ -1,0 +1,26 @@
+.picture {
+  display: inline-block;
+  line-height: 0;
+}
+
+.img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-control);
+}
+
+/* Same box as the GIF it replaces, so the row keeps its place (FR-12). */
+.placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: var(--space-2);
+  border: 1px dashed var(--separator);
+  border-radius: var(--radius-control);
+  color: var(--label-secondary);
+  font: var(--type-subheadline) var(--font-text);
+  text-align: center;
+}

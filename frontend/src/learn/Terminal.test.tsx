@@ -141,3 +141,16 @@ describe("Terminal security (AC-28)", () => {
     expect(log.textContent).toContain("<b>out</b>");
   });
 });
+
+describe("Terminal signed-in mark (012 FR-8)", () => {
+  it("marks a command's author exactly when by_signed_in", () => {
+    const history = [
+      { ...attempt(1, "newuser", "docker ps", "ok"), by_signed_in: true },
+      { ...attempt(2, "newuser", "ls", "a"), by_signed_in: false },
+    ];
+    render(<Terminal prompt={PROMPT} history={history} onSubmit={vi.fn()} />);
+    const entries = screen.getByRole("log", { name: "Terminal history" }).querySelectorAll("pre");
+    expect(entries[0]?.querySelector("[data-signed-in]")).not.toBeNull();
+    expect(entries[1]?.querySelector("[data-signed-in]")).toBeNull();
+  });
+});

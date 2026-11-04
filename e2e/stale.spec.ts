@@ -4,7 +4,14 @@
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import type { APIRequestContext, Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import {
+  appUrl,
+  createSession as createSessionOn,
+  expect,
+  markStale as markStaleOn,
+  openContexts,
+  test,
+} from "./fixtures";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 const PROBLEM_TITLE = "Sum Two Numbers";
@@ -91,4 +98,37 @@ test("AC-10b: Reactivate in the sidebar removes the row and the session is activ
   await expect(page.getByRole("status").filter({ hasText: "Session reactivated" })).toBeVisible();
   await expect(link).toHaveCount(0);
   expect((await request.get(`/api/sessions/${invite}`)).status()).toBe(200);
+});
+
+test("spec 008 FR-9: a stale session shows its chat history below the description, sending disabled", async ({
+  browser,
+  request,
+}) => {
+  const invite = await createSessionOn(request);
+  const [context] = await openContexts(browser, 1);
+  if (!context) throw new Error("no browser context");
+  const page = await context.newPage();
+  await page.goto(appUrl(`/s/${invite}`));
+  await page.getByLabel("Your name").fill("Ana");
+  await page.getByRole("button", { name: "Join" }).click();
+  const chat = page.getByRole("region", { name: "Chat" });
+  const input = chat.getByLabel("Message", { exact: true });
+  await input.fill("before it went stale");
+  await input.press("Enter");
+  await expect(chat.getByText("before it went stale")).toBeVisible();
+
+  markStaleOn(invite);
+  await page.reload();
+  await expect(page.getByText(/gone stale/i)).toBeVisible();
+  const description = page.getByRole("region", { name: "Description" });
+  await expect(description).toContainText("Add two integers and return their sum.");
+  const history = chat.getByRole("list", { name: "Messages" }).getByText("before it went stale");
+  await expect(history).toBeVisible();
+  await expect(input).toBeDisabled();
+
+  const descriptionBox = await description.boundingBox();
+  const historyBox = await history.boundingBox();
+  if (!descriptionBox || !historyBox) throw new Error("no layout boxes");
+  expect(historyBox.y).toBeGreaterThanOrEqual(descriptionBox.y + descriptionBox.height - 1);
+  await context.close();
 });

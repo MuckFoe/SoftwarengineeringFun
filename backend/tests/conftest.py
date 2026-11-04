@@ -20,6 +20,7 @@ import asyncpg
 import pytest
 
 from app import clock
+from tests.fakes.fake_giphy import FakeGiphy
 
 
 def _server_dsn(database: str) -> str:
@@ -82,3 +83,13 @@ class FrozenClock:
 def frozen_clock(monkeypatch: pytest.MonkeyPatch) -> FrozenClock:
     """Freezes `clock.now()` at a fixed instant; restored after the test."""
     return FrozenClock(monkeypatch, datetime(2026, 1, 1, tzinfo=UTC))
+
+
+@pytest.fixture
+def fake_giphy() -> Iterator[FakeGiphy]:
+    """A fake GIPHY on a real local port; `.base_url` plus its controls. Stopped afterwards."""
+    fake = FakeGiphy().start()
+    try:
+        yield fake
+    finally:
+        fake.stop()

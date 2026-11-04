@@ -39,7 +39,7 @@ test("FR-1: a visitor who is not signed in is redirected to the login URL", asyn
 });
 
 test("FR-2a: a signed-in user without the editor role sees the missing-role message, not the form", async () => {
-  stubMe({ signed_in: true, name: "Viewer", roles: ["viewer"] });
+  stubMe({ signed_in: true, name: "Viewer", roles: ["viewer"], preferences: null });
   const redirect = vi.fn();
 
   renderGuard(redirect);
@@ -50,7 +50,7 @@ test("FR-2a: a signed-in user without the editor role sees the missing-role mess
 });
 
 test("FR-2: a signed-in editor sees the guarded content", async () => {
-  stubMe({ signed_in: true, name: "Editor", roles: ["editor"] });
+  stubMe({ signed_in: true, name: "Editor", roles: ["editor"], preferences: null });
   const redirect = vi.fn();
 
   renderGuard(redirect);

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Participant } from "../api/types";
+import { SignedInMark } from "../ui/Icon";
 import styles from "./PresenceList.module.css";
 
 interface Props {
@@ -29,6 +30,7 @@ export function PresenceList({ participants }: Props) {
         <li key={p.id} className={`${styles.row} anim-row-in`}>
           <span data-dot className={styles.dot} style={{ background: colourOf(p.id) }} />
           {p.name}
+          {p.signed_in && <SignedInMark />}
         </li>
       ))}
       {leaving.map((p) => (

@@ -8,9 +8,11 @@ import type {
   EditableProblem,
   FieldError,
   Me,
+  Preferences,
   Problem,
   ProblemInput,
   ProblemSummary,
+  RecentSession,
   SessionState,
   StaleSession,
   UploadedImage,
@@ -23,7 +25,7 @@ export type ApiErrorDetail =
   | { kind: "not_found" }
   | { kind: "conflict" }
   | { kind: "validation"; errors: FieldError[] }
-  | { kind: "stale"; canReactivate: boolean }
+  | { kind: "stale"; canReactivate: boolean; problemId: string }
   | { kind: "image_too_large"; limitBytes: number }
   | { kind: "image_format"; accepted: string[] }
   | { kind: "description"; code: DescriptionErrorCode; limit?: number; id?: string }
@@ -73,7 +75,11 @@ function toDetail(status: number, body: unknown): ApiErrorDetail {
         errors: Array.isArray(b.errors) ? (b.errors as FieldError[]) : [],
       };
     case 423:
-      return { kind: "stale", canReactivate: b.can_reactivate === true };
+      return {
+        kind: "stale",
+        canReactivate: b.can_reactivate === true,
+        problemId: typeof b.problem_id === "string" ? b.problem_id : "",
+      };
     default:
       return { kind: "http" };
   }
@@ -118,6 +124,20 @@ export const getMe = () => request<Me>("GET", "/me");
 export const logout = () => request<void>("POST", "/auth/logout");
 /** `next` is router-relative ("/problems"), never prefixed with the base path. */
 export const loginUrl = (next: string) => apiPath(`/auth/login?next=${enc(next)}`);
+
+/** The appearance the page shows now, set on <html> by the pre-paint script. */
+const shownAppearance = (): "light" | "dark" =>
+  document.documentElement.getAttribute("data-appearance") === "dark" ? "dark" : "light";
+
+/** Keycloak's sign-up page (spec 012 FR-10), styled in the page's appearance. Like `loginUrl`. */
+export const registerUrl = (next: string) =>
+  apiPath(`/auth/register?next=${enc(next)}&appearance=${shownAppearance()}`);
+
+export const getMySessions = () => request<RecentSession[]>("GET", "/me/sessions");
+export const hideMySession = (kind: RecentSession["kind"], invite: string) =>
+  request<void>("POST", `/me/sessions/${enc(kind)}/${enc(invite)}/hide`);
+export const putPreferences = (p: Partial<Preferences>) =>
+  request<Preferences>("PUT", "/me/preferences", p);
 
 export const searchProblems = (q: string) =>
   request<ProblemSummary[]>("GET", `/problems?q=${enc(q)}`);

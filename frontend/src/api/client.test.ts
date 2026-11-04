@@ -4,15 +4,19 @@ import {
   createProblem,
   createSession,
   getChat,
+  getMySessions,
   getProblemForEdit,
   getSession,
+  hideMySession,
   previewDescription,
+  putPreferences,
+  registerUrl,
   removeChatMessage,
   searchProblems,
   updateProblem,
   uploadImage,
 } from "./client";
-import type { ProblemInput } from "./types";
+import type { Me, ProblemInput, RecentSession } from "./types";
 
 // The backend is not part of this unit; only the HTTP boundary is stubbed so the
 // status-to-error mapping can be checked in isolation.
@@ -61,14 +65,14 @@ describe("api client error mapping", () => {
     expect(err.error).toEqual({ kind: "validation", errors });
   });
 
-  it("maps a 423 to {stale, canReactivate}", async () => {
-    stubFetch(423, { error: "stale", can_reactivate: true });
+  it("maps a 423 to {stale, canReactivate, problemId}", async () => {
+    stubFetch(423, { error: "stale", can_reactivate: true, problem_id: "p-1" });
     const err = await caught(getSession("abc"));
-    expect(err.error).toEqual({ kind: "stale", canReactivate: true });
+    expect(err.error).toEqual({ kind: "stale", canReactivate: true, problemId: "p-1" });
 
-    stubFetch(423, { error: "stale", can_reactivate: false });
+    stubFetch(423, { error: "stale", can_reactivate: false, problem_id: "p-2" });
     const err2 = await caught(getSession("abc"));
-    expect(err2.error).toEqual({ kind: "stale", canReactivate: false });
+    expect(err2.error).toEqual({ kind: "stale", canReactivate: false, problemId: "p-2" });
   });
 
   it("maps a 403 to missing_role", async () => {
@@ -268,5 +272,80 @@ describe("URLs under the base path (spec 005 FR1)", () => {
     expect(client.sessionWsUrl("inv1", "Ada", location("http:"))).toBe(
       "ws://hub.example/api/sessions/inv1/ws?name=Ada",
     );
+  });
+});
+
+// ---- Spec 012: profile, recent sessions, preferences, register ----
+
+describe("my sessions and preferences (spec 012)", () => {
+  const rows: RecentSession[] = [
+    {
+      kind: "presentation",
+      invite_id: "p1",
+      title: "Deck",
+      last_activity_at: "2026-11-04T10:00:00Z",
+      stale: false,
+      hosted_by_me: true,
+    },
+    {
+      kind: "coding",
+      invite_id: "abc",
+      title: "Add",
+      last_activity_at: "2026-11-03T10:00:00Z",
+      stale: true,
+      hosted_by_me: false,
+    },
+  ];
+
+  it("getMySessions GETs /api/me/sessions and returns the parsed list", async () => {
+    const fetchMock = stubFetch(200, rows);
+    await expect(getMySessions()).resolves.toEqual(rows);
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("/api/me/sessions");
+    expect(init?.method).toBe("GET");
+  });
+
+  it("hideMySession POSTs /api/me/sessions/{kind}/{invite}/hide", async () => {
+    const fetchMock = stubFetch(204);
+    await expect(hideMySession("coding", "abc")).resolves.toBeUndefined();
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("/api/me/sessions/coding/abc/hide");
+    expect(init?.method).toBe("POST");
+  });
+
+  it("putPreferences PUTs the body to /api/me/preferences and returns the stored values", async () => {
+    const fetchMock = stubFetch(200, { appearance: "dark", chat_visible: true });
+    await expect(putPreferences({ appearance: "dark" })).resolves.toEqual({
+      appearance: "dark",
+      chat_visible: true,
+    });
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("/api/me/preferences");
+    expect(init?.method).toBe("PUT");
+    expect(JSON.parse(String(init?.body))).toEqual({ appearance: "dark" });
+  });
+});
+
+describe("registerUrl (spec 012 FR-10)", () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute("data-appearance");
+  });
+
+  it("builds /api/auth/register with next and the current appearance", () => {
+    document.documentElement.setAttribute("data-appearance", "dark");
+    expect(registerUrl("/profile")).toBe("/api/auth/register?next=%2Fprofile&appearance=dark");
+    document.documentElement.setAttribute("data-appearance", "light");
+    expect(registerUrl("/profile")).toBe("/api/auth/register?next=%2Fprofile&appearance=light");
+  });
+});
+
+describe("Me union (spec 012)", () => {
+  it("narrows on signed_in", () => {
+    const me = [
+      { signed_in: false, roles: [] },
+      { signed_in: true, name: "newuser", roles: [], preferences: null },
+    ] satisfies Me[];
+    const names = me.map((m) => (m.signed_in ? m.name : null));
+    expect(names).toEqual([null, "newuser"]);
   });
 });

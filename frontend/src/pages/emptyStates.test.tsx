@@ -27,7 +27,7 @@ it("NotFound is a window with appearance and account in its toolbar and a link h
   );
   const toolbar = screen.getByRole("toolbar");
   expect(toolbar.querySelector("[aria-label='Appearance']")).not.toBeNull();
-  expect(await screen.findByRole("link", { name: "Sign in" })).toBeTruthy();
+  expect(await screen.findByRole("link", { name: "Profile" })).toBeTruthy();
   expect(screen.getByRole("main").querySelector("h1")?.textContent).toBe("Page not found");
   expect(screen.getByRole("link", { name: "Back to problems" }).getAttribute("href")).toBe("/");
 });

@@ -90,9 +90,12 @@ async def test_fr12_a_second_visitor_joins_as_ada_both_see_presence(
         with client.websocket_connect(_ws_url(session.invite_id, "Ada")) as ws2:
             welcome2 = ws2.receive_json()  # welcome: already carries presence including Ada
             assert any(p["name"] == "Ada" for p in welcome2["presence"])
+            # Spec 012: anonymous entries carry the signed-in mark, false (FR-8).
+            assert all(p["signed_in"] is False for p in welcome2["presence"])
 
             presence_to_linus = ws1.receive_json()  # exactly one broadcast from Ada's join
             assert presence_to_linus["type"] == "presence"
+            assert sorted(presence_to_linus["participants"][0]) == ["id", "name", "signed_in"]
             assert any(p["name"] == "Ada" for p in presence_to_linus["participants"])
 
 
@@ -154,6 +157,7 @@ class _HeldSocket:
                 pool=pool, settings=SimpleNamespace(runner_url="http://unused", base_path="")
             )
         )
+        self.session: dict = {}  # signed out (spec 012: the socket reads its cookie session)
         self.close_code: int | None = None
         self.settled = asyncio.Event()  # joined (waiting in receive) or closed
         self.release = asyncio.Event()

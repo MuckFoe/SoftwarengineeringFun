@@ -77,6 +77,9 @@ services:
       SESSION_MAX_AGE_SECONDS: ${SESSION_MAX_AGE_SECONDS}
       DATABASE_URL: ${DATABASE_URL}
       RUNNER_URL: http://runner:8080
+      # Spec 007: GIF search. Unset key -> GIF search answers gif_unavailable.
+      GIPHY_API_KEY: ${GIPHY_API_KEY:-}
+      GIPHY_BASE_URL: ${GIPHY_BASE_URL:-https://api.giphy.com}
     networks:
       app: {}
       hub:

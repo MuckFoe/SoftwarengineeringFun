@@ -19,13 +19,18 @@ const WITHIN = { timeout: 1000 };
 
 const createSession = (request: APIRequestContext) => createSessionOn(request, FIRST);
 
-/** Joins the session (already on its page, or going there) and opens the Chat tab. */
+/** Joins the session (already on its page, or going there); the chat is beside the description. */
 async function joinChat(page: Page, invite: string, name: string): Promise<void> {
   if (appPathname(page.url()) !== `/s/${invite}`) await page.goto(appUrl(`/s/${invite}`));
   await page.getByLabel("Your name").fill(name);
   await page.getByRole("button", { name: "Join" }).click();
   await expect(page.locator(".cm-content")).toContainText("pass");
-  await page.getByRole("tab", { name: "Chat" }).click();
+}
+
+/** Signed in, the page joins by itself under the account name, with no prompt (spec 012 FR-1). */
+async function expectAutoJoined(page: Page): Promise<void> {
+  await expect(page.locator(".cm-content")).toContainText("pass");
+  await expect(page.getByLabel("Your name")).toHaveCount(0);
 }
 
 async function participants(browser: Browser, invite: string, names: string[]): Promise<Page[]> {
@@ -35,7 +40,7 @@ async function participants(browser: Browser, invite: string, names: string[]): 
   return pages;
 }
 
-const chat = (page: Page) => page.getByRole("tabpanel", { name: "Chat" });
+const chat = (page: Page) => page.getByRole("region", { name: "Chat" });
 const messageInput = (page: Page) => chat(page).getByLabel("Message", { exact: true });
 const messages = (page: Page) => chat(page).getByRole("list", { name: "Messages" });
 
@@ -142,7 +147,7 @@ test("FR19: an admin removes a message; within 1 second it is gone for everyone,
   if (!adminContext) throw new Error("no browser context");
   const adminPage = await adminContext.newPage();
   await signIn(adminPage, admin.username, admin.password, `/s/${invite}`);
-  await joinChat(adminPage, invite, "Moderator");
+  await expectAutoJoined(adminPage);
   // Participants without the admin role have no Remove.
   await expect(chat(ana).getByRole("button", { name: /^Remove message/ })).toHaveCount(0);
 

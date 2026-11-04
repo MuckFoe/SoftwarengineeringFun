@@ -48,7 +48,7 @@ const steps = (n: number) => `${n} ${n === 1 ? "step" : "steps"}`;
 export function LearnWindow() {
   const navigate = useNavigate();
   const me = useMe();
-  const isAdmin = me.status === "ready" && me.me.roles.includes("admin");
+  const isAdmin = me.status === "ready" && me.me.signed_in && me.me.roles.includes("admin");
 
   const [topics, setTopics] = useState<Topic[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);

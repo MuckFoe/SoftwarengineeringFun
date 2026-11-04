@@ -25,8 +25,8 @@ const PROBLEMS: ProblemSummary[] = TITLES.map((title, i) => ({
   is_starter: i < 3,
 }));
 
-const EDITOR: Me = { signed_in: true, name: "Ed", roles: ["editor"] };
-const ADMIN: Me = { signed_in: true, name: "Ad", roles: ["admin"] };
+const EDITOR: Me = { signed_in: true, name: "Ed", roles: ["editor"], preferences: null };
+const ADMIN: Me = { signed_in: true, name: "Ad", roles: ["admin"], preferences: null };
 
 // The backend is not part of this unit; only the HTTP boundary is stubbed.
 function stubServer(me: Me) {
@@ -88,7 +88,7 @@ describe("ProblemsWindow", () => {
     const toolbar = screen.getByRole("toolbar", { name: "Problems" });
     expect(within(toolbar).getByRole("searchbox", { name: "Search problems" })).toBeTruthy();
     expect(within(toolbar).getByRole("button", { name: "Appearance" })).toBeTruthy();
-    expect(within(toolbar).getByRole("button", { name: "Ed" })).toBeTruthy();
+    expect(within(toolbar).getByRole("link", { name: "Ed" })).toBeTruthy();
     expect(rows()).toHaveLength(12);
   });
 
@@ -144,6 +144,14 @@ describe("ProblemsWindow", () => {
     await renderWindow();
     fireEvent.click(screen.getByRole("button", { name: "Start session: FizzBuzz" }));
     await waitFor(() => expect(pathname()).toBe("/s/inv1"));
+  });
+
+  it("spec 012 FR-1: signed in, starting a session goes straight to it, with no name prompt", async () => {
+    await renderWindow({ signed_in: true, name: "newuser", roles: [], preferences: null });
+    fireEvent.click(screen.getByRole("button", { name: "Start session: FizzBuzz" }));
+    await waitFor(() => expect(pathname()).toBe("/s/inv1"));
+    expect(screen.queryByLabelText("Your name")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("offers no New problem or Edit to someone who isn't an editor", async () => {

@@ -496,12 +496,14 @@ async def test_ac23_passing_the_last_step_completes_the_session_with_a_summary(
     assert [e["type"] for e in events] == ["attempt", "step_passed", "completed"]
     assert events[1]["next"] is None
     assert events[2]["summary"]["steps"] == [
-        {"position": 0, "title": "Intro", "attempts": 0, "passed_by": "A", "after_reveal": False},
+        {"position": 0, "title": "Intro", "attempts": 0, "passed_by": "A",
+         "passed_by_signed_in": False, "after_reveal": False},
         {"position": 1, "title": "Which run?", "attempts": 1, "passed_by": "A",
-         "after_reveal": False},
+         "passed_by_signed_in": False, "after_reveal": False},
         {"position": 2, "title": "Name it", "attempts": 1, "passed_by": "A",
-         "after_reveal": False},
-        {"position": 3, "title": "List", "attempts": 2, "passed_by": "B", "after_reveal": False},
+         "passed_by_signed_in": False, "after_reveal": False},
+        {"position": 3, "title": "List", "attempts": 2, "passed_by": "B",
+         "passed_by_signed_in": False, "after_reveal": False},
     ]  # fmt: skip
     row = await migrated.fetchrow(
         "select current_step, completed_at from learning_session where id = $1", session.id
@@ -656,3 +658,41 @@ async def test_record_shows_passed_steps_and_the_current_one(
     assert record["steps"][2]["answer"] is None
     assert "container" not in json.dumps(record["steps"][2])
     assert record["summary"] is None
+
+
+# --- spec 012 task 13: attributions carry `signed_in` (FR-8, NFR-2) ------------------------
+
+
+async def test_012_fr8_attributions_carry_whether_the_person_was_signed_in(
+    migrated: asyncpg.Connection,
+) -> None:
+    """A signed-in `newuser` and an anonymous "newuser" in one session: only the account's
+    pass and attempts are marked signed in; an unpassed step's mark is null."""
+    session = await service.create_session(migrated, await _lesson(migrated))
+    account = await repo.join_as_account(migrated, session.id, "sub-newuser", "newuser")
+    anon = await service.join(migrated, session.id, "newuser")
+
+    passed0 = await service.continue_(migrated, session.id, account.id, "newuser", 0)
+    wrong = await service.submit_choice(migrated, session.id, anon.id, "newuser", 1, [0])
+    right = await service.submit_choice(migrated, session.id, account.id, "newuser", 1, [1, 3])
+
+    assert passed0[0]["passed"]["by_signed_in"] is True
+    assert wrong[0]["attempt"]["by_signed_in"] is False
+    assert right[0]["attempt"]["by_signed_in"] is True
+    assert right[1]["passed"]["by_signed_in"] is True
+
+    fresh = await repo.get_session_by_invite(migrated, session.invite_id)
+    rec = await service.record(migrated, fresh)
+    assert rec["steps"][0]["passed"]["by_signed_in"] is True
+    assert [a["by_signed_in"] for a in rec["steps"][1]["attempts"]] == [False, True]
+    assert rec["steps"][2]["passed"] is None
+
+    await service.submit_text(migrated, session.id, anon.id, "newuser", 2, "container")
+    done = await service.submit_command(migrated, session.id, anon.id, "newuser", 3, "docker ps")
+    assert done[1]["passed"]["by_signed_in"] is False
+    assert [s["passed_by_signed_in"] for s in done[2]["summary"]["steps"]] == [
+        True,
+        True,
+        False,
+        False,
+    ]

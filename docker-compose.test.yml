@@ -52,7 +52,7 @@ services:
   # lets a caller behind a different hostname (the api container, via host.docker.internal)
   # still reach the token/userinfo/jwks endpoints at the host it actually used.
   keycloak:
-    image: quay.io/keycloak/keycloak:26.0.7
+    image: quay.io/keycloak/keycloak:26.4
     command: ["start-dev", "--import-realm"]
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${TEST_KEYCLOAK_ADMIN_USER:-admin}
@@ -72,3 +72,30 @@ services:
       interval: 2s
       timeout: 3s
       retries: 60
+
+  # Spec 007: the fake GIPHY (backend/tests/fakes/fake_giphy.py, stdlib only) for the E2E
+  # stack. Its fixture media URLs point at its own host port, so the browser (Playwright,
+  # on the host) loads them; the api container reaches the API through
+  # host.docker.internal (e2e/global-setup.ts sets GIPHY_BASE_URL and a dummy
+  # GIPHY_API_KEY). The control port (switch off/on, recorded requests) stays up while the
+  # API is off; e2e/fixtures.ts drives it. TEST_GIPHY_PORT (default 58280) and
+  # TEST_GIPHY_CONTROL_PORT (default 58281) are the host ports.
+  giphy:
+    image: python:3.12-slim
+    command:
+      - python
+      - /fake/fake_giphy.py
+      - --host=0.0.0.0
+      - --port=8080
+      - --control-port=8081
+      - --media-base=http://127.0.0.1:${TEST_GIPHY_PORT:-58280}
+    volumes:
+      - ./backend/tests/fakes/fake_giphy.py:/fake/fake_giphy.py:ro
+    ports:
+      - "127.0.0.1:${TEST_GIPHY_PORT:-58280}:8080"
+      - "127.0.0.1:${TEST_GIPHY_CONTROL_PORT:-58281}:8081"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health')"]
+      interval: 1s
+      timeout: 3s
+      retries: 30

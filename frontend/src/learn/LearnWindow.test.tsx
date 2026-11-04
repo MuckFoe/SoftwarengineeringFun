@@ -42,7 +42,7 @@ const TOPICS = [
   },
 ];
 
-const ADMIN: Me = { signed_in: true, name: "Ad", roles: ["admin"] };
+const ADMIN: Me = { signed_in: true, name: "Ad", roles: ["admin"], preferences: null };
 const VISITOR: Me = { signed_in: false, roles: [] };
 
 // The backend is not part of this unit; only the HTTP boundary is stubbed.
@@ -125,6 +125,14 @@ describe("LearnWindow", () => {
     );
     expect(post).toBeDefined();
     expect(JSON.parse(String(post?.[1]?.body))).toEqual({ lesson_key: "git/branches" });
+  });
+
+  it("012 FR-1: signed in, Start session goes straight to the session, never asking a name", async () => {
+    const NEWUSER: Me = { signed_in: true, name: "newuser", roles: [], preferences: null };
+    await renderWindow(NEWUSER);
+    fireEvent.click(screen.getByRole("button", { name: "Start session: Branches" }));
+    await waitFor(() => expect(pathname()).toBe("/learn/s/learn-inv1"));
+    expect(screen.queryByLabelText("Your name")).toBeNull();
   });
 
   it("shows an error when the session cannot be started", async () => {

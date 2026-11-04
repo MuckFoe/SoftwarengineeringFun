@@ -77,6 +77,9 @@ async def test_migrations_applied_twice_apply_once(db: asyncpg.Connection) -> No
         "0002_seed_key.sql",
         "0003_descriptions_and_chat.sql",
         "0004_learning_sessions.sql",
+        "0005_chat_gifs.sql",
+        "0006_presentations.sql",
+        "0007_accounts.sql",
     ]
 
 

@@ -80,3 +80,35 @@ describe("CompletionSummary (FR-24)", () => {
     expect(screen.getByText("<img src=x>")).toBeTruthy();
   });
 });
+
+describe("CompletionSummary signed-in mark (012 FR-8)", () => {
+  it("marks who passed a step exactly when passed_by_signed_in", () => {
+    render(
+      <CompletionSummary
+        summary={{
+          steps: [
+            {
+              position: 1,
+              title: "A",
+              attempts: 1,
+              passed_by: "newuser",
+              passed_by_signed_in: true,
+              after_reveal: false,
+            },
+            {
+              position: 2,
+              title: "B",
+              attempts: 1,
+              passed_by: "newuser",
+              passed_by_signed_in: false,
+              after_reveal: false,
+            },
+          ],
+        }}
+      />,
+    );
+    const [signed, anon] = rows();
+    expect(signed?.querySelector("[data-signed-in]")).not.toBeNull();
+    expect(anon?.querySelector("[data-signed-in]")).toBeNull();
+  });
+});

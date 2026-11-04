@@ -39,6 +39,8 @@ export function CodeEditor({ doc, awareness, problemId }: Props) {
         indentUnit.of("    "),
         keymap.of([indentWithTab]),
         editorTheme,
+        // A name for the textbox, so screen readers announce it (spec 008 NFR-2).
+        EditorView.contentAttributes.of({ "aria-label": "Code" }),
         yCollab(ytext, awareness, { undoManager: false }),
       ],
     });

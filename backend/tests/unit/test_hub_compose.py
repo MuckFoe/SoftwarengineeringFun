@@ -108,6 +108,30 @@ def test_every_variable_appears_in_env_hub_example():
     assert used <= documented, sorted(used - documented)
 
 
+# --- Spec 007 NFR-5: the GIPHY key comes from the environment ------------------
+
+
+def _uninterpolated_api_env(compose: Path) -> dict:
+    """The api service's environment as written: `${...}` references kept literal."""
+    out = subprocess.run(  # noqa: S603
+        ["docker", "compose", "-f", str(compose), "config", "--format", "json"]  # noqa: S607
+        + ["--no-env-resolution", "--no-interpolate"],
+        cwd=REPO,
+        env={k: v for k, v in os.environ.items() if not k.startswith("COMPOSE_")},
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    return json.loads(out)["services"]["api"]["environment"]
+
+
+@pytest.mark.parametrize("compose", [COMPOSE, REPO / "docker-compose.yml"], ids=["hub", "dev"])
+def test_nfr5_giphy_key_is_an_environment_reference_not_a_value(compose):
+    env = _uninterpolated_api_env(compose)
+    assert env["GIPHY_API_KEY"] == "${GIPHY_API_KEY:-}"
+    assert env["GIPHY_BASE_URL"] == "${GIPHY_BASE_URL:-https://api.giphy.com}"
+
+
 # --- the hub's own static check ----------------------------------------------
 
 

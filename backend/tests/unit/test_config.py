@@ -112,3 +112,39 @@ def test_cookie_secure_parses_booleans(value, expected):
 def test_cookie_secure_rejects_other_values(value):
     with pytest.raises(ConfigError, match="COOKIE_SECURE"):
         load_settings({**REQUIRED, "COOKIE_SECURE": value})
+
+
+def test_nfr5_giphy_key_read_from_env_and_kept_out_of_repr():
+    s = load_settings({**REQUIRED, "GIPHY_API_KEY": "k123"})
+    assert s.giphy_api_key == "k123"
+    assert "k123" not in repr(s)
+
+
+def test_nfr5_giphy_settings_default_when_unset():
+    s = load_settings(REQUIRED)
+    assert s.giphy_api_key is None
+    assert s.giphy_base_url == "https://api.giphy.com"
+
+
+def test_nfr5_empty_giphy_key_counts_as_unset():
+    assert load_settings({**REQUIRED, "GIPHY_API_KEY": ""}).giphy_api_key is None
+
+
+def test_nfr5_giphy_base_url_overridable():
+    s = load_settings({**REQUIRED, "GIPHY_BASE_URL": "http://fake-giphy:8080"})
+    assert s.giphy_base_url == "http://fake-giphy:8080"
+
+
+def test_fr16_present_host_grace_defaults_to_60_seconds():
+    assert load_settings(REQUIRED).present_host_grace_seconds == 60.0
+
+
+def test_fr16_present_host_grace_read_from_env():
+    s = load_settings({**REQUIRED, "PRESENT_HOST_GRACE_SECONDS": "0.5"})
+    assert s.present_host_grace_seconds == 0.5
+
+
+@pytest.mark.parametrize("value", ["soon", "0", "-1", "nan", "inf"])
+def test_fr16_present_host_grace_rejects_non_positive_or_non_number(value):
+    with pytest.raises(ConfigError, match="PRESENT_HOST_GRACE_SECONDS"):
+        load_settings({**REQUIRED, "PRESENT_HOST_GRACE_SECONDS": value})

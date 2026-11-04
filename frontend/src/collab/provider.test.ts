@@ -164,3 +164,38 @@ test.each([
   expect(closed).toEqual([{ code, error }]);
   p.destroy();
 });
+
+test("spec 012 FR-1: a signed-in provider opens the socket without a name", () => {
+  let opened = "";
+  const p = new CollabProvider({
+    inviteId: "abc",
+    createSocket: (url) => {
+      opened = url;
+      return new MemorySocket(url);
+    },
+  });
+  expect(opened).toMatch(/\/api\/sessions\/abc\/ws$/);
+  expect(opened).not.toContain("name=");
+  p.destroy();
+});
+
+test("spec 012 FR-5: close code 4409 is 'replaced' and opens no new socket", async () => {
+  const sockets: MemorySocket[] = [];
+  const p = new CollabProvider({
+    inviteId: "abc",
+    createSocket: (url) => {
+      const s = new MemorySocket(url);
+      sockets.push(s);
+      return s;
+    },
+  });
+  const seen: ClosedEvent[] = [];
+  p.on("closed", (ev) => seen.push(ev));
+  sockets[0]?.open();
+  await flush();
+  sockets[0]?.serverClose(4409, "replaced");
+  await flush();
+  expect(seen).toEqual([{ code: 4409, error: "replaced" }]);
+  expect(sockets).toHaveLength(1);
+  p.destroy();
+});

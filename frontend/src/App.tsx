@@ -5,7 +5,10 @@ import { LearningSessionWindow } from "./learn/LearningSessionWindow";
 import { LearnWindow } from "./learn/LearnWindow";
 import { NotFound } from "./pages/NotFound";
 import { ProblemsWindow } from "./pages/ProblemsWindow";
+import { ProfileWindow } from "./pages/ProfileWindow";
 import { SessionWindow } from "./pages/SessionWindow";
+import { PresentSessionWindow } from "./present/PresentSessionWindow";
+import { PresentWindow } from "./present/PresentWindow";
 import { ShortcutList } from "./shortcuts/ShortcutList";
 import { ShortcutsProvider, useShortcut } from "./shortcuts/useShortcut";
 import { useAppearance } from "./theme/useAppearance";
@@ -63,6 +66,9 @@ function AppShell() {
         <Route path="/s/:invite" element={<SessionWindow />} />
         <Route path="/learn" element={<LearnWindow />} />
         <Route path="/learn/s/:invite" element={<LearningSessionWindow />} />
+        <Route path="/present" element={<PresentWindow />} />
+        <Route path="/present/s/:invite" element={<PresentSessionWindow />} />
+        <Route path="/profile" element={<ProfileWindow />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <ShortcutList open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />

@@ -52,10 +52,46 @@
 }
 
 .compose {
+  position: relative;
   flex: none;
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+}
+
+/* A GIF message: the image and its credit, in the text's place (spec 007 FR-11). */
+.gif {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.credit {
+  font: var(--type-caption) var(--font-text);
+  color: var(--label-secondary);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+/* The GIF picker, opened above the compose form beside its button. */
+.picker {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  z-index: 10;
+  max-width: 100%;
+  margin-bottom: var(--space-1);
+  padding: var(--space-3);
+  box-sizing: border-box;
+  border-radius: var(--radius-sheet);
+  background: var(--content-bg);
+  box-shadow: var(--shadow-popover);
 }
 
 .label {
@@ -98,4 +134,9 @@
 
 .over {
   color: var(--status-error);
+}
+
+/* Your own messages (spec 012 FR-3): the sender ("You") in the accent colour. */
+.own .sender {
+  color: var(--accent);
 }

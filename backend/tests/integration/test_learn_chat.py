@@ -5,6 +5,7 @@ empty refused `chat_empty`; an admin's removal reaches both as `chat_removed`, n
 may remove; a stale session's chat is read-only (REST `read_only`, WebSocket closed 4410).
 Messages survive a restart (`welcome.chat`). Completed sessions keep chat open. The rules and
 wire shapes are spec 002's. A real database, Keycloak and the real app; nothing mocked.
+Spec 012 task 12 (FR-3, FR-8, NFR-2): messages carry `participant_id` and `signed_in`.
 """
 
 import dataclasses
@@ -27,8 +28,10 @@ from app.learn.lesson_file import ChoiceCheck, Lesson, Step
 from app.main import create_app
 from tests.integration.keycloak_fixtures import (  # noqa: F401  (pytest fixtures)
     Keycloak,
+    cookie_header,
     keycloak,
     login_as,
+    signed_in_jar,
 )
 
 COOKIE_KEY = "test-session-cookie-key"  # noqa: S105  (placeholder, not a real secret)
@@ -50,7 +53,7 @@ LESSON = Lesson(
     ),
 )
 
-MESSAGE_KEYS = {"id", "sender_name", "text", "sent_at"}
+MESSAGE_KEYS = {"id", "sender_name", "text", "sent_at", "participant_id", "signed_in"}
 
 
 def _settings(kc: Keycloak, database_url: str) -> Settings:
@@ -182,7 +185,8 @@ async def test_ac32_admin_removal_reaches_both_and_later_joiners(
     login_as,  # noqa: F811
 ) -> None:
     session = await _session(migrated)
-    login_as(client, "admin1")
+    # Ana and Ben join signed out: two sockets signed in as one account would be one
+    # participant, the second replacing the first (spec 012 FR-5). The admin signs in after.
     with (
         client.websocket_connect(_ws_url(session.invite_id, "Ana")) as ana,
         client.websocket_connect(_ws_url(session.invite_id, "Ben")) as ben,
@@ -195,6 +199,7 @@ async def test_ac32_admin_removal_reaches_both_and_later_joiners(
             ids[text] = _next(ana)["message"]["id"]
             assert _next(ben)["message"]["id"] == ids[text]
 
+        login_as(client, "admin1")
         response = client.delete(f"/api/learn/sessions/{session.invite_id}/chat/{ids['abuse']}")
         assert response.status_code == 204
         assert _next(ana) == _next(ben) == {"type": "chat_removed", "id": ids["abuse"]}
@@ -379,3 +384,76 @@ async def test_coding_session_chat_does_not_see_learning_chat(
     await _message(migrated, session, "learning only")
 
     assert client.get(f"/api/sessions/{session.invite_id}/chat").status_code == 404
+
+
+# --- spec 012 task 12: participant_id and signed_in on every message ------------------------
+
+
+def _signed_in_ws(client: TestClient, invite: str, jar):
+    return client.websocket_connect(f"/api/learn/sessions/{invite}/ws", headers=cookie_header(jar))
+
+
+async def test_012_fr8_only_the_signed_in_newuser_has_the_mark_nfr2_client_cannot_set_it(
+    client: TestClient,
+    migrated: asyncpg.Connection,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    session = await _session(migrated)
+    jar = signed_in_jar(client, "newuser")
+    with (
+        _signed_in_ws(client, session.invite_id, jar) as account,
+        client.websocket_connect(_ws_url(session.invite_id, "newuser")) as visitor,
+    ):
+        account_id = _next(account)["you"]["participant_id"]
+        visitor_id = _next(visitor)["you"]["participant_id"]
+
+        _send(account, "from the account")
+        frames = [_next(account)["message"], _next(visitor)["message"]]
+        # NFR-2: a client-supplied signed_in is never read.
+        visitor.send_text(
+            json.dumps(
+                {
+                    "type": "chat_send",
+                    "client_id": "x",
+                    "text": "from the visitor",
+                    "signed_in": True,
+                }
+            )
+        )
+        frames += [_next(account)["message"], _next(visitor)["message"]]
+
+    assert [(m["participant_id"], m["signed_in"]) for m in frames] == [
+        (account_id, True),
+        (account_id, True),
+        (visitor_id, False),
+        (visitor_id, False),
+    ]
+    assert [m["sender_name"] for m in frames] == ["newuser"] * 4
+
+    history = _chat(client, session.invite_id)["messages"]
+    assert [(m["text"], m["participant_id"], m["signed_in"]) for m in history] == [
+        ("from the account", account_id, True),
+        ("from the visitor", visitor_id, False),
+    ]
+
+
+async def test_012_fr3_after_reconnect_the_earlier_message_is_their_own(
+    client: TestClient,
+    migrated: asyncpg.Connection,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    session = await _session(migrated)
+    jar = signed_in_jar(client, "newuser")
+    with _signed_in_ws(client, session.invite_id, jar) as first:
+        _next(first)
+        _send(first, "before reconnect")
+        _next(first)
+
+    with _signed_in_ws(client, session.invite_id, jar) as again:
+        welcome = _next(again)
+
+    you = welcome["you"]["participant_id"]
+    (earlier,) = welcome["chat"]
+    assert (earlier["participant_id"], earlier["signed_in"]) == (you, True)
+    (rest,) = _chat(client, session.invite_id)["messages"]
+    assert rest["participant_id"] == you

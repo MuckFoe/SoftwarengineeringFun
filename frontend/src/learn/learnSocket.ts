@@ -17,8 +17,20 @@ export interface SocketLike {
 
 export type SocketFactory = (url: string) => SocketLike;
 
-/** Why the connection ended (FR-7, FR-8, FR-29). Anything else is `disconnected`. */
-export type LearnCloseError = "not_found" | "full" | "stale" | "invalid_name" | "disconnected";
+/**
+ * Why the connection ended (FR-7, FR-8, FR-29; `replaced`: spec 012 FR-5, a newer connection
+ * of the same participant took over). Anything else is `disconnected`.
+ */
+export type LearnCloseError =
+  | "not_found"
+  | "full"
+  | "stale"
+  | "invalid_name"
+  | "replaced"
+  | "disconnected";
+
+/** Close code for a connection replaced by a newer one of the same participant (spec 012). */
+export const WS_CLOSE_REPLACED = WS_CLOSE.replaced;
 
 export interface LearnClosedEvent {
   code: number;
@@ -30,6 +42,7 @@ const CLOSE_ERRORS: Record<number, LearnCloseError> = {
   [WS_CLOSE.full]: "full",
   [WS_CLOSE.stale]: "stale",
   [WS_CLOSE.invalidName]: "invalid_name",
+  [WS_CLOSE_REPLACED]: "replaced",
 };
 
 export function learnCloseError(code: number): LearnCloseError {
@@ -43,16 +56,21 @@ export type LearnEvents = {
     : Extract<LearnServerMessage, { type: K }>;
 } & { closed: LearnClosedEvent };
 
-/** URL for the learning-session WebSocket, under the app's base path. */
-export function learnWsUrl(invite: string, name: string, loc: Location = window.location) {
+/**
+ * URL for the learning-session WebSocket, under the app's base path. `name` is `null` when
+ * signed in: the server takes the account's username (spec 012 FR-1).
+ */
+export function learnWsUrl(invite: string, name: string | null, loc: Location = window.location) {
   const proto = loc.protocol === "https:" ? "wss:" : "ws:";
   const path = apiPath(`/learn/sessions/${encodeURIComponent(invite)}/ws`);
-  return `${proto}//${loc.host}${path}?name=${encodeURIComponent(name)}`;
+  const query = name === null ? "" : `?name=${encodeURIComponent(name)}`;
+  return `${proto}//${loc.host}${path}${query}`;
 }
 
 export interface LearnSocketOptions {
   invite: string;
-  name: string;
+  /** The display name; `null` when signed in. */
+  name: string | null;
   createSocket?: SocketFactory;
 }
 

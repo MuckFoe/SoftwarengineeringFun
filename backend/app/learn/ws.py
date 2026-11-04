@@ -1,11 +1,15 @@
 """The learning-session WebSocket (spec 006 plan.md "Contracts — WebSocket"): join, presence,
 the cap of 5, step actions, chat. FR-7–FR-14a, FR-18–FR-21, FR-24, FR-26, FR-29, NFR-2, NFR-4.
 
-Join mirrors the coding-session socket (`app.sessions.ws`): the same name rule, seat
-reservation in `app.sessions.hub` (keyed by the learning session's UUID, so it never shares
-a hub with a coding session) and close codes. Each step action goes to `service`, which
-returns the committed events; they go to everyone, in order. A refusal goes to the sender
-only, as `error {code}`. A malformed frame is ignored, as on the coding-session socket.
+Join mirrors the coding-session socket (`app.sessions.ws`): the same identity rule
+(`app.accounts.identity`), seat reservation in `app.sessions.hub` (keyed by the learning
+session's UUID, so it never shares a hub with a coding session) and close codes. Spec 012:
+a signed-in join is the account's one participant in the session; a second device replaces
+the first, which is closed `4409` (FR-1, FR-3, FR-5, FR-7, FR-14, NFR-2).
+
+Each step action goes to `service`, which returns the committed events; they go to
+everyone, in order. A refusal goes to the sender only, as `error {code}`. A malformed frame
+is ignored, as on the coding-session socket.
 Chat (`chat_send`, `welcome.chat`) is the coding-session socket's: a chat refusal carries the
 sender's `client_id` (and `limit` for `chat_too_long`) so the client can settle that send.
 """
@@ -19,6 +23,7 @@ import anyio
 import asyncpg
 from fastapi import APIRouter, WebSocket
 
+from app.accounts.identity import identity_for
 from app.chat.rules import MAX_CHAT_CHARS, ChatError
 from app.learn import chat, repo, service
 from app.learn.service import LearnError
@@ -32,14 +37,9 @@ CLOSE_NOT_FOUND = 4404
 CLOSE_FULL = 4403
 CLOSE_STALE = 4410
 CLOSE_INVALID_NAME = 4422
+CLOSE_REPLACED = 4409
 
 Action = Callable[[], Awaitable[list[dict]]]
-
-
-def _valid_name(raw: str) -> str | None:
-    """The coding-session name rule (FR-7): stripped, 1–30 characters."""
-    name = raw.strip()
-    return name if 1 <= len(name) <= 30 else None
 
 
 def _is_int(value: Any) -> bool:
@@ -148,35 +148,65 @@ async def learn_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
         if session.stale_at is not None:
             await websocket.close(code=CLOSE_STALE)
             return
-        valid_name = _valid_name(name)
-        if valid_name is None:
+        identity = identity_for(websocket.session, name)
+        if identity is None:
             await websocket.close(code=CLOSE_INVALID_NAME)
             return
         session_hub = hub_module.get_hub(session.id)
-        # Reserved before the awaits below, so concurrent joins can't all pass the cap (FR-8).
-        if not session_hub.try_reserve():
-            await websocket.close(code=CLOSE_FULL)
-            return
-
-        try:
-            participant = await service.join(conn, session.id, valid_name)
-        except LearnError:
-            # Marked stale between the check above and the join.
-            session_hub.release_reservation()
-            await websocket.close(code=CLOSE_STALE)
-            return
-        except BaseException:
-            session_hub.release_reservation()
-            raise
-        session_hub.add(hub_module.Connection(websocket, participant.id, valid_name))
+        signed_in = identity.account_sub is not None
+        replaced: hub_module.Connection | None = None
+        if identity.account_sub is not None:
+            async with conn.transaction():
+                participant = await repo.join_as_account(
+                    conn, session.id, identity.account_sub, identity.name
+                )
+                await repo.touch_activity(conn, session.id)
+            # No await between the check and the add/replace, so the seat count holds (FR-7):
+            # an account already connected takes no seat and its older socket is replaced.
+            if participant.id in session_hub.connections:
+                replaced = session_hub.replace(participant.id, websocket)
+            elif session_hub.try_reserve():
+                session_hub.add(
+                    hub_module.Connection(websocket, participant.id, participant.display_name, True)
+                )
+            else:
+                await repo.leave_participant(conn, participant.id)
+                await websocket.close(code=CLOSE_FULL)
+                return
+        else:
+            # Reserved before the awaits below, so concurrent joins can't all pass the cap (FR-8).
+            if not session_hub.try_reserve():
+                await websocket.close(code=CLOSE_FULL)
+                return
+            try:
+                participant = await service.join(conn, session.id, identity.name)
+            except LearnError:
+                # Marked stale between the check above and the join.
+                session_hub.release_reservation()
+                await websocket.close(code=CLOSE_STALE)
+                return
+            except BaseException:
+                session_hub.release_reservation()
+                raise
+            session_hub.add(hub_module.Connection(websocket, participant.id, identity.name))
+    you_name = participant.display_name
 
     try:
+        if replaced is not None:
+            try:
+                await replaced.websocket.close(code=CLOSE_REPLACED)  # type: ignore[attr-defined]
+            except Exception:  # noqa: S110  (already gone)
+                pass
         async with pool.acquire() as conn:
             # Re-read: the session may have moved on since the lookup above (FR-9).
             current = await repo.get_session_by_invite(conn, invite) or session
             welcome = {
                 "type": "welcome",
-                "you": {"participant_id": str(participant.id)},
+                "you": {
+                    "participant_id": str(participant.id),
+                    "name": you_name,
+                    "signed_in": signed_in,
+                },
                 "record": await service.record(conn, current, base_path),
                 "chat": [chat.message_dict(m) for m in await chat.history(conn, session.id)],
             }
@@ -197,7 +227,7 @@ async def learn_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
                     session.id,
                     session_hub,
                     participant.id,
-                    valid_name,
+                    you_name,
                     base_path,
                     text,
                 )
@@ -205,9 +235,10 @@ async def learn_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
         # Shielded, as on the coding-session socket: a cancelled scope must not cut this
         # off before the leave is recorded and presence is updated.
         with anyio.CancelScope(shield=True):
-            session_hub.remove(participant.id)
-            async with pool.acquire() as conn:
-                await repo.leave_participant(conn, participant.id)
-            await hub_module.broadcast(
-                session_hub, {"type": "presence", "participants": session_hub.presence()}
-            )
+            # Only the participant's current socket leaves: a replaced one changes nothing.
+            if session_hub.remove(participant.id, websocket):
+                async with pool.acquire() as conn:
+                    await repo.leave_participant(conn, participant.id)
+                await hub_module.broadcast(
+                    session_hub, {"type": "presence", "participants": session_hub.presence()}
+                )

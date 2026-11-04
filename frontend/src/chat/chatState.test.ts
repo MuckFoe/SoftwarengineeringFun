@@ -1,12 +1,39 @@
 import { describe, expect, it } from "vitest";
-import type { ChatMessage } from "../api/types";
+import type { ChatMessage, GifChatMessage } from "../api/types";
 import { charCount, chatError, MAX_CHAT_CHARS } from "./chatRules";
 import { addMessage, type ChatState, removeMessage, replaceHistory } from "./chatState";
 
 function msg(id: number, text = `m${id}`): ChatMessage {
-  return { id, sender_name: "Ana", text, sent_at: "2026-10-25T09:00:00Z" };
+  return {
+    id,
+    sender_name: "Ana",
+    participant_id: "p",
+    signed_in: false,
+    text,
+    sent_at: "2026-10-25T09:00:00Z",
+  };
 }
 
+function gif(id: number): GifChatMessage {
+  return {
+    id,
+    sender_name: "Ada",
+    participant_id: "p",
+    signed_in: false,
+    sent_at: "2026-10-25T09:00:00Z",
+    kind: "gif",
+    gif: {
+      id: `g${id}`,
+      title: "Happy dance",
+      url: "https://media.example/g.gif",
+      still_url: "https://media.example/g_s.gif",
+      width: 200,
+      height: 150,
+    },
+  };
+}
+
+const texts = (s: ChatState) => s.messages.map((m) => (m.kind === "gif" ? null : m.text));
 const ids = (s: ChatState) => s.messages.map((m) => m.id);
 const empty: ChatState = { messages: [] };
 
@@ -50,7 +77,20 @@ describe("chatState", () => {
 
   it('FR19: removing "two" leaves "one" and "three"', () => {
     const s = replaceHistory(empty, [msg(1, "one"), msg(2, "two"), msg(3, "three")]);
-    expect(removeMessage(s, 2).messages.map((m) => m.text)).toEqual(["one", "three"]);
+    expect(texts(removeMessage(s, 2))).toEqual(["one", "three"]);
+  });
+
+  it("007 FR-4: a GIF message of id 3 sorts third among text messages 1, 2, 4", () => {
+    const s = addMessage(replaceHistory(empty, [msg(1), msg(2), msg(4)]), gif(3));
+    expect(ids(s)).toEqual([1, 2, 3, 4]);
+    expect(s.messages.map((m) => m.kind ?? "text")).toEqual(["text", "text", "gif", "text"]);
+  });
+
+  it("007: a duplicate id is deduped whatever the kind", () => {
+    const s = replaceHistory(empty, [msg(1), gif(2)]);
+    expect(addMessage(s, msg(2))).toBe(s);
+    expect(addMessage(s, gif(1))).toBe(s);
+    expect(ids(replaceHistory(empty, [msg(3), gif(3), gif(1)]))).toEqual([1, 3]);
   });
 
   it("removing an unknown id is a no-op", () => {

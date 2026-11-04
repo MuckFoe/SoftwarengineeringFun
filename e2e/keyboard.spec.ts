@@ -122,6 +122,11 @@ const focused = (target: Locator) =>
 async function pressUntil(page: Page, target: Locator, key = "Tab", max = 60): Promise<void> {
   for (let i = 0; i < max; i++) {
     if ((await target.count()) > 0 && (await focused(target.first()))) return;
+    // Tab indents inside the code editor; Esc first makes the next Tab leave it.
+    const inEditor = await page.evaluate(() => !!document.activeElement?.closest(".cm-editor"));
+    if (key === "Tab" && inEditor) {
+      await page.keyboard.press("Escape");
+    }
     await page.keyboard.press(key);
   }
   throw new Error(`pressing ${key} never reached ${target}`);
@@ -266,11 +271,12 @@ test.describe("keyboard only, Windows/Linux keys", () => {
         await expect(hud(p, "Invite link copied")).toBeVisible();
       },
       "Show or hide chat": async (p) => {
-        const chat = p.getByRole("tabpanel", { name: "Chat" });
-        await p.keyboard.press(combo("Show or hide chat"));
-        await expect(chat).toBeVisible();
+        const chat = p.getByRole("region", { name: "Chat" });
+        // The chat starts shown beside the description (spec 008 FR-1).
         await p.keyboard.press(combo("Show or hide chat"));
         await expect(chat).toBeHidden();
+        await p.keyboard.press(combo("Show or hide chat"));
+        await expect(chat).toBeVisible();
       },
     };
 
@@ -284,9 +290,9 @@ test.describe("keyboard only, Windows/Linux keys", () => {
 
     const inSession = await context.newPage();
     await inSession.goto(`/s/${await createSession(request)}`);
-    await inSession.getByLabel("Your name").fill("Ada");
-    await inSession.keyboard.press("Enter");
+    // Signed in as editor1, the session is joined at once, with no name prompt (spec 012 FR-1).
     await expect(inSession.locator(".cm-content")).toContainText("pass");
+    await expect(inSession.getByLabel("Your name")).toHaveCount(0);
     for (const [action, effect] of Object.entries(sessionEffects)) {
       await test.step(action, () => effect(inSession));
     }
@@ -380,6 +386,9 @@ test.describe("keyboard only, Windows/Linux keys", () => {
         if (el.closest("nav")) return "sidebar";
         if (el.closest("[role=toolbar]")) return "toolbar";
         if (el.closest("main")) return "main";
+        // The inspector isn't in the planned order; its Description and Chat regions (spec
+        // 008) are not the bottom panels.
+        if (el.closest('[aria-label="Inspector"]')) return "other";
         if (el.closest("section, [role=region]")) return "panel";
         return "other";
       });
@@ -438,8 +447,10 @@ test.describe("keyboard only, Windows/Linux keys", () => {
     await page.keyboard.press("Enter");
     const appearance = page.getByRole("radiogroup", { name: "Appearance" });
     await expect(appearance).toBeVisible();
-    // A native popover's controls follow its button in Tab order.
-    await pressUntil(page, appearance);
+    // Opening it moves focus to the current choice (ui/Popover). Waiting for that, rather
+    // than pressing Tab meanwhile, keeps a Tab from racing it out of the popover, which
+    // closes it.
+    await expect.poll(() => focused(appearance)).toBe(true);
     await pressUntil(page, appearance.getByRole("radio", { name: "Dark" }), "ArrowLeft", 4);
     await expect.poll(() => page.evaluate(() => document.documentElement.dataset.appearance)).toBe(
       "dark",
@@ -447,12 +458,19 @@ test.describe("keyboard only, Windows/Linux keys", () => {
     await page.keyboard.press("Escape");
     await expect(appearance).toBeHidden();
 
-    // Sign in, back to this session.
-    await toolbarItem(page, "Session", toolbar.getByRole("link", { name: "Sign in" }));
+    // Sign in from the profile (spec 012), which the toolbar's Profile entry opens.
+    await toolbarItem(page, "Session", toolbar.getByRole("link", { name: "Profile" }));
+    await page.keyboard.press("Enter");
+    await page.waitForURL((url) => url.pathname === "/profile");
+    // The URL changes before the profile renders; Tab only once it is there.
+    const signInLink = page.getByRole("main").getByRole("link", { name: "Sign in" });
+    await expect(signInLink).toBeVisible();
+    await pressUntil(page, signInLink);
     await page.keyboard.press("Enter");
     await signInByKeyboard(page, keycloak.users);
-    await page.waitForURL((url) => url.pathname === `/s/${invite}`);
-    await expect(toolbar.getByRole("link", { name: "Sign in" })).toHaveCount(0);
+    await page.waitForURL((url) => url.pathname === "/profile");
+    expect(new URL(page.url()).searchParams.get("from")).toBe(`/s/${invite}`);
+    await expect(page.getByRole("main").getByRole("link", { name: "Sign in" })).toHaveCount(0);
   });
 
   test("AC-18c: the empty state's link back, by keyboard alone", async ({ page }) => {

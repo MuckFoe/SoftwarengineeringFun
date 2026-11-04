@@ -39,8 +39,8 @@ function record(current: number, total = 6): LearningRecord {
 }
 
 const PEOPLE = [
-  { id: "p1", name: "Ada" },
-  { id: "p2", name: "Linus" },
+  { id: "p1", name: "Ada", signed_in: false },
+  { id: "p2", name: "Linus", signed_in: false },
 ];
 
 function joined(current = 3): LearnState {

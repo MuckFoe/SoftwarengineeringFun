@@ -198,6 +198,7 @@ def test_ac13a_passed_after_reveal():
 
     assert view(TEXT, revealed)["passed"] == {
         "by": "Ana",
+        "by_signed_in": False,
         "at": "2026-10-29T12:01:00+00:00",
         "after_reveal": True,
     }
@@ -219,6 +220,7 @@ def test_ac14_passed_step_includes_answer_and_all_attempts():
     assert v["attempts"][2] == {
         "id": 3,
         "by": "Bo",
+        "by_signed_in": False,
         "kind": "choice",
         "submitted": [2, 4],
         "correct": True,
@@ -271,6 +273,22 @@ def test_body_html_escapes_raw_html():
     assert "<b>" not in view(step)["body_html"]
 
 
+# Spec 012 FR-8: attributions carry whether the person was signed in
+
+
+def test_012_fr8_signed_in_marks_on_attempts_passes_and_summary():
+    signed = StepProgress(passed_at=T0, passed_by_name="newuser", passed_by_signed_in=True)
+    anon = AttemptRow(1, "newuser", "text", "nope", False, None, T0, by_signed_in=False)
+    account = AttemptRow(2, "newuser", "text", "zqboxzq", True, None, T0, by_signed_in=True)
+
+    v = view(TEXT, signed, [anon, account])
+
+    assert v["passed"]["by_signed_in"] is True
+    assert [a["by_signed_in"] for a in v["attempts"]] == [False, True]
+    steps = summary(LESSON, {0: signed, 1: passed("Ana")}, {})["steps"]
+    assert [s["passed_by_signed_in"] for s in steps] == [True, False, None, None]
+
+
 # Outline, summary and record (FR-9, FR-24)
 
 
@@ -305,6 +323,7 @@ def test_summary_lists_attempts_and_passer_per_step():
                 "title": "Images and containers",
                 "attempts": 0,
                 "passed_by": "Ana",
+                "passed_by_signed_in": False,
                 "after_reveal": False,
             },
             {
@@ -312,6 +331,7 @@ def test_summary_lists_attempts_and_passer_per_step():
                 "title": "Which runs?",
                 "attempts": 2,
                 "passed_by": "Bo",
+                "passed_by_signed_in": False,
                 "after_reveal": False,
             },
             {
@@ -319,6 +339,7 @@ def test_summary_lists_attempts_and_passer_per_step():
                 "title": "Name it",
                 "attempts": 3,
                 "passed_by": "Ana",
+                "passed_by_signed_in": False,
                 "after_reveal": True,
             },
             {
@@ -326,6 +347,7 @@ def test_summary_lists_attempts_and_passer_per_step():
                 "title": "List containers",
                 "attempts": 0,
                 "passed_by": "Bo",
+                "passed_by_signed_in": False,
                 "after_reveal": False,
             },
         ]

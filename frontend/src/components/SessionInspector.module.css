@@ -1,0 +1,17 @@
+/* Description above chat in the inspector (spec 008 FR-1, FR-8). */
+
+/* The description scrolls itself, independently of the chat. */
+.description {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+
+/* ChatPane fills this column: its messages scroll above a pinned input. */
+.chat {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}

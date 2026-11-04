@@ -5,6 +5,8 @@ characters (`app.chat.rules`), `{id, sender_name, text, sent_at}`, order by id, 
 row and never erases it. Every query is scoped by the learning session's id. A message is
 broadcast only after its insert commits; a stale session refuses chat (`session_stale`).
 Sending touches the session's activity. Completed sessions keep chat open (FR-26).
+Spec 012 (FR-3, FR-8, NFR-2): every message read carries its `participant_id` and
+`signed_in`, read by joining `learning_participant` (`account_sub is not null`).
 """
 
 import uuid
@@ -26,21 +28,35 @@ class ChatMessage:
     sender_name: str
     text: str
     sent_at: datetime
+    participant_id: uuid.UUID
+    signed_in: bool  # the sender's participant belongs to an account; never client-supplied
+
+
+_COLUMNS = """m.id, m.sender_name, m.body, m.sent_at, m.participant_id,
+              p.account_sub is not null as signed_in"""
 
 
 def _message(row: asyncpg.Record) -> ChatMessage:
     return ChatMessage(
-        id=row["id"], sender_name=row["sender_name"], text=row["body"], sent_at=row["sent_at"]
+        id=row["id"],
+        sender_name=row["sender_name"],
+        text=row["body"],
+        sent_at=row["sent_at"],
+        participant_id=row["participant_id"],
+        signed_in=row["signed_in"],
     )
 
 
 def message_dict(message: ChatMessage) -> dict:
-    """The spec 002 wire shape: `{id, sender_name, text, sent_at}`, `sent_at` ISO-8601 UTC."""
+    """The spec 002 wire shape: `{id, sender_name, text, sent_at}`, `sent_at` ISO-8601 UTC;
+    spec 012 adds the sender's `participant_id` and `signed_in` (read server-side)."""
     return {
         "id": message.id,
         "sender_name": message.sender_name,
         "text": message.text,
         "sent_at": message.sent_at.astimezone(UTC).isoformat(),
+        "participant_id": str(message.participant_id),
+        "signed_in": message.signed_in,
     }
 
 
@@ -56,10 +72,13 @@ async def insert(
     sent_at: datetime,
 ) -> ChatMessage:
     row = await conn.fetchrow(
-        """insert into learning_chat_message
-               (session_id, participant_id, sender_name, body, sent_at)
-           values ($1, $2, $3, $4, $5)
-           returning id, sender_name, body, sent_at""",
+        f"""with inserted as (
+               insert into learning_chat_message
+                   (session_id, participant_id, sender_name, body, sent_at)
+               values ($1, $2, $3, $4, $5)
+               returning *)
+           select {_COLUMNS}
+           from inserted m join learning_participant p on p.id = m.participant_id""",  # noqa: S608
         session_id,
         participant_id,
         sender_name,
@@ -72,9 +91,10 @@ async def insert(
 async def history(conn: asyncpg.Connection, session_id: uuid.UUID) -> list[ChatMessage]:
     """The session's messages that haven't been removed, in id order."""
     rows = await conn.fetch(
-        """select id, sender_name, body, sent_at from learning_chat_message
-           where session_id = $1 and removed_at is null
-           order by id""",
+        f"""select {_COLUMNS}
+            from learning_chat_message m join learning_participant p on p.id = m.participant_id
+            where m.session_id = $1 and m.removed_at is null
+            order by m.id""",  # noqa: S608  (constant column list)
         session_id,
     )
     return [_message(r) for r in rows]

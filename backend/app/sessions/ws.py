@@ -2,6 +2,8 @@
 awareness relay (plan.md "Presence and the cap of 5", "Live editing").
 FR-12, FR-12a, FR-13, FR-14, FR-15, FR-16, FR-18, FR-19, FR-20, FR-30.
 Spec 002: `chat_send`, `welcome.chat` (FR10–FR18), `description_html` (FR6).
+Spec 007: `gif_search` (FR-1, FR-2, FR-9, NFR-1, NFR-3, NFR-4) and `chat_send_gif`
+(FR-3, FR-4, FR-8, FR-12, NFR-2, NFR-3).
 
 Server-level WebSocket ping/pong (uvicorn `--ws-ping-interval 2 --ws-ping-timeout 3`,
 task 37's compose) detects a silently dropped connection within ~5 s for FR-15; a clean
@@ -9,8 +11,11 @@ disconnect is detected immediately below.
 """
 
 import asyncio
+import contextlib
+import dataclasses
 import json
 import uuid
+from collections.abc import Coroutine
 from datetime import timedelta
 
 import anyio
@@ -19,8 +24,10 @@ import pycrdt
 from fastapi import APIRouter, WebSocket
 
 from app import clock
+from app.accounts.identity import identity_for
 from app.chat import service as chat_service
 from app.chat.rules import MAX_CHAT_CHARS, ChatError
+from app.gifs import service as gif_service
 from app.problems import repo as problems_repo
 from app.problems.markdown import render_description
 from app.runs import repo as runs_repo
@@ -39,6 +46,7 @@ CLOSE_NOT_FOUND = 4404
 CLOSE_FULL = 4403
 CLOSE_STALE = 4410
 CLOSE_INVALID_NAME = 4422
+CLOSE_REPLACED = 4409
 
 ACTIVITY_TOUCH_INTERVAL = timedelta(minutes=1)
 
@@ -49,6 +57,8 @@ ACTIVITY_TOUCH_INTERVAL = timedelta(minutes=1)
 _RUNNING: set[uuid.UUID] = set()
 # Runs execute as tasks so the participant who started one keeps editing meanwhile (FR-18).
 _RUN_TASKS: set[asyncio.Task] = set()
+# Spec 007: each GIF call to GIPHY is its own task, so a slow one never blocks edits (NFR-4).
+_GIF_TASKS: set[asyncio.Task] = set()
 
 
 async def drain_runs() -> None:
@@ -56,9 +66,76 @@ async def drain_runs() -> None:
     await asyncio.gather(*_RUN_TASKS, return_exceptions=True)
 
 
-def _valid_name(raw: str) -> str | None:
-    name = raw.strip()
-    return name if 1 <= len(name) <= 30 else None
+async def drain_gif_tasks() -> None:
+    """Waits for in-flight GIF calls; called on shutdown before the GIPHY client closes."""
+    await asyncio.gather(*_GIF_TASKS, return_exceptions=True)
+
+
+def _spawn_gif_task(coro: Coroutine[None, None, None]) -> None:
+    task = asyncio.create_task(coro)
+    _GIF_TASKS.add(task)
+    task.add_done_callback(_GIF_TASKS.discard)
+
+
+async def _handle_gif_search(
+    websocket: WebSocket, session_id: uuid.UUID, actor: str, request_id: str, q: str
+) -> None:
+    """FR-1, FR-2, FR-9, NFR-3: answers the sender only. Keyed by (session, name), so a
+    reconnect under the same name keeps its count (plan "Limiter key")."""
+    state = websocket.app.state
+    outcome = await gif_service.search(
+        state.giphy, state.gif_search_limiter, (session_id, actor), q
+    )
+    first, second = outcome
+    if isinstance(first, gif_service.GifError):
+        reply: dict = {"type": "error", "code": first.value, "request_id": request_id}
+        if second is not None:
+            reply["retry_after"] = second
+    else:
+        reply = {
+            "type": "gif_results",
+            "request_id": request_id,
+            "trending": first,
+            "results": [dataclasses.asdict(gif) for gif in second],
+        }
+    # The sender may have left while GIPHY answered; there is no one to tell then.
+    with contextlib.suppress(Exception):
+        await websocket.send_json(reply)
+
+
+async def _handle_gif_post(
+    websocket: WebSocket,
+    hub: SessionHub,
+    session_id: uuid.UUID,
+    participant_id: uuid.UUID,
+    actor: str,
+    client_id: str,
+    gif_id: str,
+) -> None:
+    """FR-3, FR-4, FR-8, NFR-2, NFR-3: every stored field comes from the server's own
+    lookup of `gif_id`. Errors go to the sender only; success is broadcast by
+    `send_gif`. Runs as its own task, so it takes its own pool connection rather than
+    sharing the socket's, which the receive loop keeps using meanwhile."""
+    state = websocket.app.state
+    resolved = await gif_service.resolve_for_post(
+        state.giphy, state.gif_post_limiter, (session_id, actor), gif_id
+    )
+    error: dict | None = None
+    if isinstance(resolved, tuple):
+        code, retry_after = resolved
+        error = {"type": "error", "code": code.value, "client_id": client_id}
+        if retry_after is not None:
+            error["retry_after"] = retry_after
+    else:
+        async with state.pool.acquire() as conn:
+            refused = await chat_service.send_gif(
+                conn, hub, session_id, participant_id, actor, resolved, client_id
+            )
+        if refused is not None:
+            error = {"type": "error", "code": refused.value, "client_id": client_id}
+    if error is not None:
+        with contextlib.suppress(Exception):
+            await websocket.send_json(error)
 
 
 async def _touch_activity_throttled(
@@ -280,6 +357,18 @@ async def _handle_text(
             if refused is ChatError.TOO_LONG:
                 error["limit"] = MAX_CHAT_CHARS
             await websocket.send_json(error)
+    elif msg_type == "gif_search":
+        request_id, q = payload.get("request_id"), payload.get("q")
+        if not isinstance(request_id, str) or not isinstance(q, str):
+            return
+        _spawn_gif_task(_handle_gif_search(websocket, session.id, actor, request_id, q))
+    elif msg_type == "chat_send_gif":
+        client_id, gif_id = payload.get("client_id"), payload.get("gif_id")
+        if not isinstance(client_id, str) or not isinstance(gif_id, str):
+            return
+        _spawn_gif_task(
+            _handle_gif_post(websocket, hub, session.id, participant_id, actor, client_id, gif_id)
+        )
     elif msg_type == "run":
         if session.id in _RUNNING:
             await websocket.send_json({"type": "error", "code": "run_in_progress"})
@@ -349,24 +438,59 @@ async def session_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
         if session.stale_at is not None:
             await websocket.close(code=CLOSE_STALE)
             return
-        valid_name = _valid_name(name)
-        if valid_name is None:
+        identity = identity_for(websocket.session, name)
+        if identity is None:
             await websocket.close(code=CLOSE_INVALID_NAME)
             return
+        actor = identity.name
+        signed_in = identity.account_sub is not None
         session_hub = hub_module.get_hub(session.id)
-        # Reserved before the awaits below, so concurrent joins can't all pass the cap.
-        if not session_hub.try_reserve():
-            await websocket.close(code=CLOSE_FULL)
-            return
+        if identity.account_sub is not None:
+            # Spec 012 FR-3, FR-5, FR-14: the account's one participant in this session.
+            participant = await sessions_repo.join_as_account(
+                conn, session.id, identity.account_sub, actor
+            )
+            # A participant still connected (another device) takes no seat (FR-7).
+            reserved = participant.id not in session_hub.connections
+            if not session_hub.try_reserve(participant.id):
+                await sessions_repo.leave_participant(conn, participant.id)
+                await websocket.close(code=CLOSE_FULL)
+                return
+        else:
+            # Reserved before the awaits below, so concurrent joins can't all pass the cap.
+            if not session_hub.try_reserve():
+                await websocket.close(code=CLOSE_FULL)
+                return
+            reserved = True
+            try:
+                participant = await sessions_repo.add_participant(conn, session.id, actor)
+            except BaseException:
+                session_hub.release_reservation()
+                raise
 
         try:
-            participant = await sessions_repo.add_participant(conn, session.id, valid_name)
-            await sessions_repo.append_event(conn, session.id, "joined", valid_name)
+            await sessions_repo.append_event(conn, session.id, "joined", actor)
             await sessions_repo.touch_activity(conn, session.id)
         except BaseException:
-            session_hub.release_reservation()
+            if reserved:
+                session_hub.release_reservation()
             raise
-        session_hub.add(hub_module.Connection(websocket, participant.id, valid_name))
+        replaced: hub_module.Connection | None = None
+        if participant.id in session_hub.connections:
+            # Newest wins (FR-5): one entry in presence, the older socket is closed 4409.
+            replaced = session_hub.replace(participant.id, websocket)
+            if reserved:
+                session_hub.release_reservation()
+        else:
+            # The other device left during the awaits above: this join needs a seat now.
+            if not reserved and not session_hub.try_reserve(participant.id):
+                await sessions_repo.leave_participant(conn, participant.id)
+                await websocket.close(code=CLOSE_FULL)
+                return
+            session_hub.add(hub_module.Connection(websocket, participant.id, actor, signed_in))
+        if replaced is not None:
+            with contextlib.suppress(Exception):  # already gone
+                await replaced.websocket.close(code=CLOSE_REPLACED)  # type: ignore[attr-defined]
 
         problem = await problems_repo.get_public(conn, session.current_problem_id)
         session_doc = await collab.get_or_load(conn, session.id)
@@ -376,6 +500,11 @@ async def session_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
             {
                 "type": "welcome",
                 "participant_id": str(participant.id),
+                "you": {
+                    "participant_id": str(participant.id),
+                    "name": actor,
+                    "signed_in": signed_in,
+                },
                 "current_problem": _problem_dict(problem, websocket.app.state.settings.base_path),
                 "problems": await _problems_progress(conn, session.id, problem.id),
                 "presence": session_hub.presence(),
@@ -414,7 +543,7 @@ async def session_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
                         session_doc,
                         session_hub,
                         runner_url,
-                        valid_name,
+                        actor,
                         participant.id,
                         text,
                     )
@@ -422,9 +551,10 @@ async def session_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
             # Shielded: a cancelled scope (e.g. the test client tearing down the connection)
             # must not cut this off before presence is updated and the leave is recorded.
             with anyio.CancelScope(shield=True):
-                session_hub.remove(participant.id)
-                await sessions_repo.leave_participant(conn, participant.id)
-                await sessions_repo.append_event(conn, session.id, "left", valid_name)
-                await hub_module.broadcast(
-                    session_hub, {"type": "presence", "participants": session_hub.presence()}
-                )
+                # Only the current socket leaves: a replaced one changes nothing (FR-5).
+                if session_hub.remove(participant.id, websocket):
+                    await sessions_repo.leave_participant(conn, participant.id)
+                    await sessions_repo.append_event(conn, session.id, "left", actor)
+                    await hub_module.broadcast(
+                        session_hub, {"type": "presence", "participants": session_hub.presence()}
+                    )

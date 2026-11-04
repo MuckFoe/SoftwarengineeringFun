@@ -49,7 +49,33 @@ function connect() {
 }
 
 function msg(id: number, text: string, sender_name = "Ana"): ChatMessage {
-  return { id, sender_name, text, sent_at: `2026-10-25T09:00:0${id % 10}Z` };
+  return {
+    id,
+    sender_name,
+    participant_id: "p",
+    signed_in: false,
+    text,
+    sent_at: `2026-10-25T09:00:0${id % 10}Z`,
+  };
+}
+
+function gifMsg(id: number, gifId: string, sender_name = "Ana"): ChatMessage {
+  return {
+    id,
+    sender_name,
+    participant_id: "p",
+    signed_in: false,
+    sent_at: `2026-10-25T09:00:0${id % 10}Z`,
+    kind: "gif",
+    gif: {
+      id: gifId,
+      title: "Happy dance",
+      url: `https://media.example/${gifId}.gif`,
+      still_url: `https://media.example/${gifId}_s.gif`,
+      width: 200,
+      height: 150,
+    },
+  };
 }
 
 function welcome(chat: ChatMessage[]) {
@@ -80,7 +106,10 @@ function json(status: number, body: unknown) {
 
 // Only the HTTP boundary is stubbed: /api/me, and the chat REST endpoints.
 function stubServer({ roles = [] as string[], history = [] as ChatMessage[] } = {}) {
-  const me: Me = { signed_in: roles.length > 0, roles };
+  const me: Me =
+    roles.length > 0
+      ? { signed_in: true, name: "Ana", roles, preferences: null }
+      : { signed_in: false, roles: [] };
   const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = String(input);
     if (path === "/api/me") return json(200, me);
@@ -93,7 +122,7 @@ function stubServer({ roles = [] as string[], history = [] as ChatMessage[] } = 
   return fn;
 }
 
-const texts = (messages: ChatMessage[]) => messages.map((m) => m.text);
+const texts = (messages: ChatMessage[]) => messages.map((m) => (m.kind === "gif" ? null : m.text));
 
 afterEach(() => {
   cleanup();
@@ -188,6 +217,71 @@ describe("useChat", () => {
     await expect(first).resolves.toBe("chat_too_long");
     await expect(second).resolves.toBe("session_stale");
     expect(result.current.messages).toEqual([]);
+  });
+
+  it("FR-3: sendGif emits chat_send_gif with a fresh client_id and resolves ok on its echo", async () => {
+    stubServer();
+    const { provider, socket } = connect();
+    const { result } = renderHook(() => useChat({ invite: "inv1", provider, stale: false }));
+    socket.serverSends(welcome([msg(1, "one")]));
+
+    let first: Promise<string> = Promise.resolve("");
+    let second: Promise<string> = Promise.resolve("");
+    act(() => {
+      first = result.current.sendGif("g1");
+      second = result.current.sendGif("g2");
+    });
+    const [a, b] = socket.sent("chat_send_gif");
+    expect(a).toEqual({ type: "chat_send_gif", client_id: a?.client_id, gif_id: "g1" });
+    expect(Object.keys(a ?? {}).sort()).toEqual(["client_id", "gif_id", "type"]);
+    expect(typeof a?.client_id).toBe("string");
+    expect(b?.client_id).not.toBe(a?.client_id);
+
+    const message = gifMsg(2, "g1", "Ada");
+    socket.serverSends({ type: "chat_message", message, client_id: a?.client_id });
+
+    await expect(first).resolves.toBe("ok");
+    expect(result.current.messages).toEqual([msg(1, "one"), message]);
+
+    socket.serverSends({ type: "chat_message", message: gifMsg(3, "g2"), client_id: "other" });
+    const settled = await Promise.race([
+      second.then(() => "settled"),
+      new Promise((r) => setTimeout(() => r("waiting"), 20)),
+    ]);
+    expect(settled).toBe("waiting");
+  });
+
+  it("NFR-3 / NFR-2 / FR-8: an error with sendGif's client_id resolves its code", async () => {
+    stubServer();
+    const { provider, socket } = connect();
+    const { result } = renderHook(() => useChat({ invite: "inv1", provider, stale: false }));
+    socket.serverSends(welcome([]));
+
+    const codes = ["gif_rate_limited", "gif_not_allowed", "session_stale", "gif_unavailable"];
+    let outcomes: Promise<string>[] = [];
+    act(() => {
+      outcomes = codes.map((_, i) => result.current.sendGif(`g${i}`));
+    });
+    const frames = socket.sent("chat_send_gif");
+    socket.serverSends({ type: "error", code: "gif_rate_limited", client_id: "someone-else" });
+    codes.forEach((code, i) => {
+      socket.serverSends({
+        type: "error",
+        code,
+        client_id: frames[i]?.client_id,
+        ...(code === "gif_rate_limited" ? { retry_after: 12 } : {}),
+      });
+    });
+
+    await expect(Promise.all(outcomes)).resolves.toEqual(codes);
+    expect(result.current.messages).toEqual([]);
+  });
+
+  it("sendGif on a stale session resolves session_stale and sends nothing", async () => {
+    stubServer();
+    const { result } = renderHook(() => useChat({ invite: "inv1", provider: null, stale: true }));
+
+    await expect(result.current.sendGif("g1")).resolves.toBe("session_stale");
   });
 
   it("a send still waiting when the connection closes is rejected", async () => {

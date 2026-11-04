@@ -11,13 +11,13 @@ afterEach(cleanup);
 describe("PresenceList", () => {
   it("FR-15: a presence update without Linus removes him from the list", () => {
     const withLinus: Participant[] = [
-      { id: "a", name: "Ada" },
-      { id: "l", name: "Linus" },
+      { id: "a", name: "Ada", signed_in: false },
+      { id: "l", name: "Linus", signed_in: false },
     ];
     const { rerender } = render(<PresenceList participants={withLinus} />);
     expect(screen.getByText("Linus")).toBeTruthy();
 
-    rerender(<PresenceList participants={[{ id: "a", name: "Ada" }]} />);
+    rerender(<PresenceList participants={[{ id: "a", name: "Ada", signed_in: false }]} />);
 
     expect(screen.queryByText("Linus")).toBeNull();
     expect(screen.getByText("Ada")).toBeTruthy();
@@ -25,6 +25,13 @@ describe("PresenceList", () => {
 });
 
 describe("CodeEditor", () => {
+  it("NFR-2 (spec 008): the editor's textbox is named Code", () => {
+    const doc = new Y.Doc();
+    const awareness = new Awareness(doc);
+    render(<CodeEditor doc={doc} awareness={awareness} problemId="p1" />);
+    expect(screen.getByRole("textbox", { name: "Code" })).toBeTruthy();
+  });
+
   it("FR-16: shows the Y.Text content", () => {
     const doc = new Y.Doc();
     const awareness = new Awareness(doc);

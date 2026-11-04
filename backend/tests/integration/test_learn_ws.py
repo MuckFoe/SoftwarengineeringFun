@@ -279,8 +279,10 @@ async def test_ac9_a_late_joiner_gets_the_record_and_presence_lists_everyone(
         assert message["type"] == "presence"
         assert sorted(p["name"] for p in message["participants"]) == ["Ada", "Linus"]
         assert all(isinstance(p["id"], str) for p in message["participants"])
+        # Spec 012: anonymous joiners carry the server-side mark, false (FR-8).
+        assert all(p["signed_in"] is False for p in message["participants"])
     linus_id = next(p["id"] for p in presence["participants"] if p["name"] == "Linus")
-    assert welcome["you"] == {"participant_id": linus_id}
+    assert welcome["you"] == {"participant_id": linus_id, "name": "Linus", "signed_in": False}
 
 
 async def test_leaving_marks_the_participant_left_and_updates_presence(

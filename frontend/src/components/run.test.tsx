@@ -158,8 +158,8 @@ describe("PresenceList (spec 003)", () => {
     render(
       <PresenceList
         participants={[
-          { id: "a", name: "Ada" },
-          { id: "l", name: "Linus" },
+          { id: "a", name: "Ada", signed_in: false },
+          { id: "l", name: "Linus", signed_in: false },
         ]}
       />,
     );
@@ -173,14 +173,16 @@ describe("PresenceList (spec 003)", () => {
   });
 
   it("gives a participant the same colour on every render", () => {
-    const { rerender } = render(<PresenceList participants={[{ id: "a", name: "Ada" }]} />);
+    const { rerender } = render(
+      <PresenceList participants={[{ id: "a", name: "Ada", signed_in: false }]} />,
+    );
     const colour = () => (document.querySelector("[data-dot]") as HTMLElement).style.background;
     const first = colour();
     rerender(
       <PresenceList
         participants={[
-          { id: "z", name: "Zed" },
-          { id: "a", name: "Ada" },
+          { id: "z", name: "Zed", signed_in: false },
+          { id: "a", name: "Ada", signed_in: false },
         ]}
       />,
     );
@@ -194,12 +196,12 @@ describe("PresenceList (spec 003)", () => {
       const { rerender } = render(
         <PresenceList
           participants={[
-            { id: "a", name: "Ada" },
-            { id: "l", name: "Linus" },
+            { id: "a", name: "Ada", signed_in: false },
+            { id: "l", name: "Linus", signed_in: false },
           ]}
         />,
       );
-      rerender(<PresenceList participants={[{ id: "a", name: "Ada" }]} />);
+      rerender(<PresenceList participants={[{ id: "a", name: "Ada", signed_in: false }]} />);
       expect(screen.queryByText("Linus")).toBeNull();
       const ghost = document.querySelector("[data-leaving]");
       expect(ghost?.className).toMatch(/anim-row-out/);

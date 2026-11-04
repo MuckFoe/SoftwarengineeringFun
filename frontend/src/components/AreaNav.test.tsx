@@ -21,10 +21,26 @@ afterEach(() => {
 
 describe("AreaNav (FR-1)", () => {
   // AC-1 (component part)
-  it("links to Problems and Learn", () => {
+  it("links to Problems, Learn and Present", () => {
     const nav = renderAt("/");
     expect(within(nav).getByRole("link", { name: "Problems" }).getAttribute("href")).toBe("/");
     expect(within(nav).getByRole("link", { name: "Learn" }).getAttribute("href")).toBe("/learn");
+    expect(within(nav).getByRole("link", { name: "Present" }).getAttribute("href")).toBe(
+      "/present",
+    );
+  });
+
+  // Spec 013: the Present area is current anywhere under /present.
+  it.each(["/present", "/present/s/x"])("marks Present current at %s", (path) => {
+    renderAt(path);
+    expect(screen.getByRole("link", { name: "Present" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("link", { name: "Problems" }).getAttribute("aria-current")).toBeNull();
+    expect(screen.getByRole("link", { name: "Learn" }).getAttribute("aria-current")).toBeNull();
+  });
+
+  it("does not mark Present current on a path that only starts with the word", () => {
+    renderAt("/presentation");
+    expect(screen.getByRole("link", { name: "Present" }).getAttribute("aria-current")).toBeNull();
   });
 
   it("marks Problems current on the problems window", () => {

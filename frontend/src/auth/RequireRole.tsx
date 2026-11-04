@@ -35,6 +35,7 @@ export function RequireRole({ role, children, redirect = assignLocation }: Props
   if (state.status === "error") {
     return <p role="alert">Could not check your sign-in. Try reloading the page.</p>;
   }
-  if (!state.me.roles.includes(role)) return <Forbidden missingRole={role} />;
+  if (!(state.me.signed_in && state.me.roles.includes(role)))
+    return <Forbidden missingRole={role} />;
   return <>{children}</>;
 }

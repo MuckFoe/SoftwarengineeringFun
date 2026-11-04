@@ -148,6 +148,25 @@ async def add_participant(
     return _participant(row)
 
 
+async def join_as_account(
+    conn: asyncpg.Connection, session_id: uuid.UUID, account_sub: str, display_name: str
+) -> Participant:
+    """Spec 012 FR-3, FR-5, FR-14: an account's one participant in this session, inserted
+    at its first join and reused after; rejoining clears `left_at` and `hidden_at`."""
+    row = await conn.fetchrow(
+        """insert into participant (session_id, display_name, joined_at, account_sub)
+           values ($1, $2, $3, $4)
+           on conflict (account_sub, session_id) where account_sub is not null
+           do update set left_at = null, hidden_at = null
+           returning id, session_id, display_name, joined_at, left_at""",
+        session_id,
+        display_name,
+        clock.now(),
+        account_sub,
+    )
+    return _participant(row)
+
+
 async def leave_participant(conn: asyncpg.Connection, participant_id: uuid.UUID) -> None:
     await conn.execute(
         "update participant set left_at = $2 where id = $1", participant_id, clock.now()

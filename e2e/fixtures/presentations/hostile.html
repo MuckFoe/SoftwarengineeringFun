@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hostile presentation</title>
+<style>
+  body { font: 16px/1.4 sans-serif; margin: 16px; }
+  canvas { border: 1px solid #888; }
+</style>
+</head>
+<body>
+<!--
+  Spec 013 AC-16 (e2e/present-isolation.spec.ts): a presentation whose script tries to
+  break out of its frame. Every attempt writes its outcome into this document's own
+  #results list, where only the test (frame.evaluate) reads it: an attempt that worked
+  would have nowhere else to report to. "blocked" means the attempt failed; anything else
+  is a leak. #results gets data-done once every attempt has settled.
+-->
+<h1>Nothing to see here</h1>
+<canvas id="spinner" width="160" height="160"></canvas>
+<ul id="results"></ul>
+<script>
+(() => {
+  const results = document.getElementById("results");
+  const record = (attempt, outcome, detail) => {
+    const li = document.createElement("li");
+    li.dataset.attempt = attempt;
+    li.dataset.outcome = outcome;
+    li.textContent = `${attempt}: ${outcome}${detail ? ` (${detail})` : ""}`;
+    results.append(li);
+  };
+  const why = (err) => (err && (err.name || err.message)) || String(err);
+  const syncAttempt = (attempt, fn) => {
+    try {
+      const leaked = fn();
+      record(attempt, leaked ? "leaked" : "blocked", leaked ? String(leaked) : "no value");
+    } catch (err) {
+      record(attempt, "blocked", why(err));
+    }
+  };
+  const OUTSIDE = "https://example.com/";
+
+  // The page's cookies and local storage.
+  syncAttempt("cookie-read", () => document.cookie);
+  syncAttempt("cookie-write", () => {
+    document.cookie = "hostile=1; path=/";
+    return document.cookie.includes("hostile") && document.cookie;
+  });
+  syncAttempt("localStorage", () => {
+    window.localStorage.setItem("hostile", "1");
+    return `${window.localStorage.length} keys`;
+  });
+  syncAttempt("sessionStorage", () => {
+    window.sessionStorage.setItem("hostile", "1");
+    return "sessionStorage writable";
+  });
+
+  // The session window around the frame.
+  syncAttempt("parent-document-read", () => parent.document.title || "read parent title");
+  syncAttempt("parent-document-write", () => {
+    const p = parent.document.createElement("p");
+    p.textContent = "PWNED by the presentation";
+    parent.document.body.append(p);
+    return "wrote into parent";
+  });
+  syncAttempt("parent-localStorage", () => `${parent.localStorage.length} keys`);
+  syncAttempt("top-cookie", () => top.document.cookie || "read top cookie");
+  syncAttempt("top-navigation", () => {
+    top.location = `${OUTSIDE}?from=top`;
+    return "top.location assigned without error";
+  });
+  syncAttempt("open-popup", () => {
+    const w = window.open(`${OUTSIDE}?from=popup`);
+    return w && "popup opened";
+  });
+
+  // WebRTC: not governed by CSP; bridge.js removes it.
+  syncAttempt("RTCPeerConnection", () => {
+    const pc = new RTCPeerConnection();
+    pc.createDataChannel("x");
+    return "RTCPeerConnection created";
+  });
+
+  // The network.
+  const pending = [];
+  const asyncAttempt = (attempt, start) => {
+    pending.push(
+      new Promise((resolve) => {
+        let done = false;
+        const finish = (outcome, detail) => {
+          if (done) return;
+          done = true;
+          record(attempt, outcome, detail);
+          resolve();
+        };
+        try {
+          start(finish);
+        } catch (err) {
+          finish("blocked", why(err));
+        }
+        setTimeout(() => finish("blocked", "no answer in 3 s"), 3000);
+      }),
+    );
+  };
+  asyncAttempt("fetch-outside", (finish) => {
+    fetch(`${OUTSIDE}?from=fetch`, { mode: "no-cors" }).then(
+      () => finish("leaked", "fetch resolved"),
+      (err) => finish("blocked", why(err)),
+    );
+  });
+  asyncAttempt("fetch-app", (finish) => {
+    fetch("/api/me").then(
+      (r) => finish("leaked", `fetch /api/me answered ${r.status}`),
+      (err) => finish("blocked", why(err)),
+    );
+  });
+  asyncAttempt("xhr-outside", (finish) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", `${OUTSIDE}?from=xhr`);
+    xhr.onload = () => finish("leaked", "xhr loaded");
+    xhr.onerror = () => finish("blocked", "xhr error");
+    xhr.send();
+  });
+  asyncAttempt("img-outside", (finish) => {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.onload = () => finish("leaked", "image loaded");
+    img.onerror = () => finish("blocked", "image error");
+    img.src = `${OUTSIDE}pixel.png?from=img`;
+    document.body.append(img);
+  });
+  asyncAttempt("websocket", (finish) => {
+    const ws = new WebSocket("wss://example.com/socket");
+    ws.onopen = () => finish("leaked", "websocket opened");
+    ws.onerror = () => finish("blocked", "websocket error");
+  });
+  asyncAttempt("beacon", (finish) => {
+    // sendBeacon only queues: true says nothing about whether anything left. The CSP block
+    // happens after it returns; the test's network watch is what proves nothing went out.
+    finish(navigator.sendBeacon(`${OUTSIDE}?from=beacon`, "x") ? "queued" : "blocked", "sendBeacon");
+  });
+
+  Promise.all(pending).then(() => {
+    results.dataset.done = "true";
+  });
+
+  // Navigating this frame itself elsewhere. Run only when the test asks, after it has read
+  // #results: if it were allowed, it would replace this document and the record with it.
+  window.hostileLeave = () => {
+    location = OUTSIDE;
+  };
+
+  // An animation on its own slide: this must keep running.
+  const canvas = document.getElementById("spinner");
+  const ctx = canvas.getContext("2d");
+  let angle = 0;
+  const frame = () => {
+    angle += 0.08;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, 160, 160);
+    ctx.fillStyle = "#c33";
+    ctx.beginPath();
+    ctx.arc(80 + 55 * Math.cos(angle), 80 + 55 * Math.sin(angle), 18, 0, Math.PI * 2);
+    ctx.fill();
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -6,6 +6,7 @@ import asyncio
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -14,30 +15,44 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.staticfiles import StaticFiles
 from starlette.types import Receive, Scope, Send
 
-from app import db
+from app import clock, db
+from app.accounts import repo as accounts_repo
+from app.accounts.api import router as accounts_router
 from app.auth.deps import current_user
 from app.auth.oidc import build_oauth, session_claims, verified_access_token_claims
 from app.chat.api import router as chat_router
 from app.config import Settings
+from app.gifs.giphy import GiphyClient
+from app.gifs.ratelimit import POSTS_PER_MINUTE, SEARCHES_PER_MINUTE, SlidingWindowLimiter
 from app.learn import stale as learn_stale
 from app.learn.api import router as learn_router
 from app.learn.ws import router as learn_ws_router
+from app.present import stale as present_stale
+from app.present.api import router as present_router
+from app.present.ws import drain_gif_tasks as drain_present_gif_tasks
+from app.present.ws import router as present_ws_router
 from app.problems.api import router as problems_router
 from app.problems.images_api import router as images_router
 from app.problems.service import register_on_problem_deleted, unregister_on_problem_deleted
 from app.sessions.api import router as sessions_router
 from app.sessions.service import on_problem_deleted
 from app.sessions.stale import run_periodically
-from app.sessions.ws import drain_runs
+from app.sessions.ws import drain_gif_tasks, drain_runs
 from app.sessions.ws import router as sessions_ws_router
 
 # backend/app/main.py -> backend/app -> backend -> repo root -> frontend/dist
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
 
+def _limiter_now() -> float:
+    return clock.now().timestamp()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Opens the DB pool and starts the hourly stale-session job (task 26).
+    """Opens the DB pool and starts the hourly stale-session jobs (task 26; specs 006,
+    013). Spec 007: also the GIPHY client and the app-wide search and post limiters, on
+    `app.state`.
 
     Migrating and seeding the database is a one-time startup step (app/asgi.py), not
     part of this lifespan: it would otherwise re-run for every `create_app()` call,
@@ -45,6 +60,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     pool = await db.create_pool(app.state.settings.database_url)
     app.state.pool = pool
+    settings = app.state.settings
+    app.state.giphy = GiphyClient(settings.giphy_base_url, settings.giphy_api_key)
+    app.state.gif_search_limiter = SlidingWindowLimiter(SEARCHES_PER_MINUTE, 60, _limiter_now)
+    app.state.gif_post_limiter = SlidingWindowLimiter(POSTS_PER_MINUTE, 60, _limiter_now)
 
     async def _on_problem_deleted(problem_id: uuid.UUID) -> None:
         async with pool.acquire() as conn:
@@ -53,13 +72,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     register_on_problem_deleted(_on_problem_deleted)
     stale_task = asyncio.create_task(run_periodically(pool))
     learn_stale_task = asyncio.create_task(learn_stale.run_periodically(pool))
+    present_stale_task = asyncio.create_task(present_stale.run_periodically(pool))
     try:
         yield
     finally:
         unregister_on_problem_deleted(_on_problem_deleted)
         stale_task.cancel()
         learn_stale_task.cancel()
+        present_stale_task.cancel()
         await drain_runs()
+        await drain_gif_tasks()
+        await drain_present_gif_tasks()
+        await app.state.giphy.aclose()
         await pool.close()
 
 
@@ -99,6 +123,9 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(sessions_ws_router)
     app.include_router(learn_router)
     app.include_router(learn_ws_router)
+    app.include_router(present_router)
+    app.include_router(present_ws_router)
+    app.include_router(accounts_router)
 
     @app.exception_handler(HTTPException)
     async def _http_exception(request: Request, exc: HTTPException) -> JSONResponse:
@@ -107,16 +134,29 @@ def create_app(settings: Settings) -> FastAPI:
         body = exc.detail if isinstance(exc.detail, dict) else {"detail": exc.detail}
         return JSONResponse(body, status_code=exc.status_code, headers=exc.headers)
 
-    @app.get("/api/auth/login")
-    async def login(request: Request, next: str = "/", appearance: str | None = None) -> Response:
+    async def _authorize(
+        request: Request, next: str, appearance: str | None, **params: str
+    ) -> Response:
         request.session["next"] = safe_next(next)
         if settings.public_base_url:
             redirect_uri = f"{settings.public_base_url}/api/auth/callback"
         else:
             redirect_uri = str(request.url_for("auth_callback"))
         # Spec 003 FR-18: the login theme reads this hint from its URL; anything else is dropped.
-        extra = {"appearance": appearance} if appearance in ("light", "dark") else {}
-        return await oauth.keycloak.authorize_redirect(request, redirect_uri, **extra)
+        if appearance in ("light", "dark"):
+            params["appearance"] = appearance
+        return await oauth.keycloak.authorize_redirect(request, redirect_uri, **params)
+
+    @app.get("/api/auth/login")
+    async def login(request: Request, next: str = "/", appearance: str | None = None) -> Response:
+        return await _authorize(request, next, appearance)
+
+    @app.get("/api/auth/register")
+    async def register(
+        request: Request, next: str = "/", appearance: str | None = None
+    ) -> Response:
+        # Spec 012 FR-10: `prompt=create` opens the realm's sign-up page instead of sign-in.
+        return await _authorize(request, next, appearance, prompt="create")
 
     @app.get("/api/auth/callback", name="auth_callback")
     async def auth_callback(request: Request) -> Response:
@@ -141,7 +181,17 @@ def create_app(settings: Settings) -> FastAPI:
         user = current_user(request)
         if user is None:
             return JSONResponse({"signed_in": False, "roles": []})
-        return JSONResponse({"signed_in": True, "name": user.name, "roles": user.roles})
+        # Spec 012: the account's preferences (or null before the first write); never the sub.
+        async with request.app.state.pool.acquire() as conn:
+            preferences = await accounts_repo.get_preferences(conn, user.sub)
+        return JSONResponse(
+            {
+                "signed_in": True,
+                "name": user.name,
+                "roles": user.roles,
+                "preferences": None if preferences is None else asdict(preferences),
+            }
+        )
 
     if (FRONTEND_DIST / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
@@ -154,7 +204,12 @@ def create_app(settings: Settings) -> FastAPI:
         if app_path(request).startswith("/api/"):
             response: Response = JSONResponse({"error": "not_found"}, status_code=404)
         else:
-            response = FileResponse(FRONTEND_DIST / "index.html")
+            # Spec 013 Isolation 3: a presentation frame navigating itself elsewhere is
+            # checked against the embedder's frame-src and blocked (AC-16).
+            response = FileResponse(
+                FRONTEND_DIST / "index.html",
+                headers={"Content-Security-Policy": "frame-src 'self'"},
+            )
         await response(scope, receive, send)
 
     app.router.default = _spa_fallback

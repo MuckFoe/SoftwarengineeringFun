@@ -162,26 +162,36 @@ function completedRecord(): LearningRecord {
 }
 
 const PEOPLE: Participant[] = [
-  { id: "p1", name: "Ada" },
-  { id: "p2", name: "Bob" },
+  { id: "p1", name: "Ada", signed_in: false },
+  { id: "p2", name: "Bob", signed_in: false },
 ];
 
 const CHAT: ChatMessage[] = [
-  { id: 7, sender_name: "Ada", text: "see you", sent_at: "2026-09-01T10:00:00Z" },
+  {
+    id: 7,
+    sender_name: "Ada",
+    participant_id: "p",
+    signed_in: false,
+    text: "see you",
+    sent_at: "2026-09-01T10:00:00Z",
+  },
 ];
 
 const VISITOR: Me = { signed_in: false, roles: [] };
+const NEWUSER: Me = { signed_in: true, name: "newuser", roles: [], preferences: null };
 
 interface ServerOptions {
   state?: { status: number; body: unknown };
   record?: LearningRecord;
   reactivate?: { status: number; body: unknown };
+  me?: Me;
 }
 
 function stubServer({
   state = { status: 200, body: { state: "active" } },
   record = activeRecord(),
   reactivate = { status: 200, body: {} },
+  me = VISITOR,
 }: ServerOptions = {}) {
   const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), "http://localhost");
@@ -192,7 +202,7 @@ function stubServer({
         headers: { "Content-Type": "application/json" },
       });
     const path = url.pathname;
-    if (path === "/api/me") return json(VISITOR);
+    if (path === "/api/me") return json(me);
     if (method === "GET" && path === "/api/learn/sessions/abc") {
       return json(state.body, state.status);
     }
@@ -314,6 +324,87 @@ describe("LearningSessionWindow: joining (FR-7, FR-8)", () => {
     const socket = await joinAs("Ada", sockets);
     socket.closeWith(4404);
     expect(await screen.findByText(/session not found/i)).toBeTruthy();
+  });
+});
+
+describe("LearningSessionWindow: signed in (012 FR-1, FR-3, FR-5, FR-6, FR-14)", () => {
+  const REPLACED = "This session was opened in another tab or window.";
+
+  async function openSignedIn() {
+    stubServer({ me: NEWUSER });
+    const { factory, sockets } = fakeSockets();
+    renderPage(factory);
+    await waitFor(() => expect(sockets).toHaveLength(1));
+    const socket = sockets[0] as FakeSocket;
+    return { socket, sockets };
+  }
+
+  it("FR-1: signed in, opening the invite link joins without a name sheet or a name", async () => {
+    const { socket } = await openSignedIn();
+    expect(socket.url).toMatch(/\/api\/learn\/sessions\/abc\/ws$/);
+    expect(socket.url).not.toContain("name=");
+    expect(screen.queryByLabelText("Your name")).toBeNull();
+    socket.open();
+    socket.receive({
+      type: "welcome",
+      you: { participant_id: "p1" },
+      record: activeRecord(),
+      chat: CHAT,
+    });
+    expect(screen.getByRole("heading", { name: "Docker basics" })).toBeTruthy();
+    expect(screen.queryByLabelText("Your name")).toBeNull();
+  });
+
+  it("FR-6: signed out, the name sheet is shown and nothing connects until Join", async () => {
+    stubServer({ me: VISITOR });
+    const { factory, sockets } = fakeSockets();
+    renderPage(factory);
+    expect(await screen.findByLabelText("Your name")).toBeTruthy();
+    expect(sockets).toHaveLength(0);
+  });
+
+  it("FR-5: a 4409 close shows the message, does not reconnect, and Use here reconnects", async () => {
+    const { socket, sockets } = await openSignedIn();
+    socket.open();
+    socket.receive({
+      type: "welcome",
+      you: { participant_id: "p1" },
+      record: activeRecord(),
+      chat: CHAT,
+    });
+    socket.closeWith(4409);
+    expect(await screen.findByText(REPLACED)).toBeTruthy();
+    expect(screen.queryByLabelText("Your name")).toBeNull();
+    // No automatic reconnect: give effects a chance to run, still one socket.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    expect(sockets).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Use here" }));
+    expect(sockets).toHaveLength(2);
+    expect((sockets[1] as FakeSocket).url).not.toContain("name=");
+    expect(screen.queryByText(REPLACED)).toBeNull();
+  });
+
+  it("FR-5: signed out, a 4409 close also offers Use here, which rejoins with the same name", async () => {
+    stubServer({ me: VISITOR });
+    const { factory, sockets } = fakeSockets();
+    renderPage(factory);
+    const socket = await joinAs("Ada", sockets);
+    socket.closeWith(4409);
+    expect(await screen.findByText(REPLACED)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Use here" }));
+    expect(sockets).toHaveLength(2);
+    expect((sockets[1] as FakeSocket).url).toContain("name=Ada");
+  });
+
+  it("signed in, another close (4403 full) says so without a name sheet and does not reconnect", async () => {
+    const { socket, sockets } = await openSignedIn();
+    socket.closeWith(4403);
+    expect(await screen.findByText(/session is full/i)).toBeTruthy();
+    expect(screen.queryByLabelText("Your name")).toBeNull();
+    expect(sockets).toHaveLength(1);
   });
 });
 
@@ -481,6 +572,29 @@ describe("LearningSessionWindow: completed and stale (FR-24, FR-26, FR-27)", () 
     expect(post && new URL(String(post[0]), "http://localhost").pathname).toBe(
       "/api/learn/sessions/abc/reactivate",
     );
+  });
+
+  it("AC-26 + spec 012 FR-1: a signed-in admin who reactivates joins at once and still sees the Hud", async () => {
+    stubServer({
+      state: { status: 423, body: { error: "stale", can_reactivate: true } },
+      me: { signed_in: true, name: "admin1", roles: ["admin"], preferences: null },
+    });
+    const { factory, sockets } = fakeSockets();
+    renderPage(factory);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Reactivate" }));
+
+    await waitFor(() => expect(sockets).toHaveLength(1));
+    const socket = sockets[0] as FakeSocket;
+    socket.open();
+    socket.receive({
+      type: "welcome",
+      you: { participant_id: "p1" },
+      record: activeRecord(),
+      chat: [],
+    });
+    expect(screen.getByRole("heading", { name: "Docker basics" })).toBeTruthy();
+    expect(screen.getByText("Session reactivated").getAttribute("role")).toBe("status");
   });
 
   it("AC-26: a 409 not_stale on reactivate means it is already active", async () => {

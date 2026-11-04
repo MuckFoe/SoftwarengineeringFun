@@ -46,6 +46,12 @@ describe("Window", () => {
     expect(screen.getByRole("region", { name: "Run results" })).toBeTruthy();
   });
 
+  it("NFR-2 (spec 008): puts the toolbar and banner inside the banner landmark", () => {
+    render(<Layout />);
+    const header = screen.getByRole("banner");
+    expect(header.contains(screen.getByRole("toolbar", { name: "Session" }))).toBe(true);
+  });
+
   it("hides the sidebar from the accessibility tree when closed", () => {
     const { rerender } = render(<Layout />);
     expect(screen.getByRole("navigation", { name: "Session sidebar" })).toBeTruthy();

@@ -115,7 +115,11 @@ async def test_fr30_a_stale_session_gives_423_can_reactivate_false_for_an_anonym
     response = client.get(f"/api/sessions/{session.invite_id}")
 
     assert response.status_code == 423
-    assert response.json() == {"error": "stale", "can_reactivate": False}
+    assert response.json() == {
+        "error": "stale",
+        "can_reactivate": False,
+        "problem_id": str(problem_id),
+    }
 
 
 async def test_fr31_an_admin_sees_can_reactivate_true(
@@ -131,7 +135,11 @@ async def test_fr31_an_admin_sees_can_reactivate_true(
     response = client.get(f"/api/sessions/{session.invite_id}")
 
     assert response.status_code == 423
-    assert response.json() == {"error": "stale", "can_reactivate": True}
+    assert response.json() == {
+        "error": "stale",
+        "can_reactivate": True,
+        "problem_id": str(problem_id),
+    }
 
 
 async def test_fr32_an_admin_reactivates_then_get_gives_200(

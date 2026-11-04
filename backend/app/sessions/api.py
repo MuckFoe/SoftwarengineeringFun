@@ -75,7 +75,11 @@ async def get_session(
     if session.stale_at is not None:
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
-            detail={"error": "stale", "can_reactivate": can_reactivate},
+            detail={
+                "error": "stale",
+                "can_reactivate": can_reactivate,
+                "problem_id": str(session.current_problem_id),
+            },
         )
     return {"state": "active"}
 

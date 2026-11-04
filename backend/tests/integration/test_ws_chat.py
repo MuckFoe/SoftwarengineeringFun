@@ -1,7 +1,8 @@
 """Spec 002 task 15: chat over the session WebSocket (`chat/service.py`, `sessions/ws.py`).
 
 FR10, FR11, FR12, FR13, FR14, FR15, FR16, FR17, FR18. Two TestClient WebSocket clients,
-real Postgres.
+real Postgres. Spec 012 task 12 (FR-3, FR-8, NFR-2): messages carry `participant_id` and
+`signed_in`; those tests sign in through the test Keycloak.
 """
 
 import json
@@ -21,6 +22,13 @@ from app.main import create_app
 from app.problems import repo as problems_repo
 from app.problems.signature import TestInput, parse_signature
 from app.sessions import repo as sessions_repo
+from tests.integration.keycloak_fixtures import (  # noqa: F401  (pytest fixtures)
+    Keycloak,
+    cookie_header,
+    keycloak,
+    login_as,
+    signed_in_jar,
+)
 
 ADD = parse_signature("def add(a: int, b: int) -> int")
 
@@ -314,3 +322,94 @@ async def test_malformed_chat_send_is_ignored(
 
     assert first["message"]["text"] == "marker"
     assert await _rows(migrated, session.id) == ["marker"]
+
+
+# --- spec 012 task 12: participant_id and signed_in on every message ------------------------
+
+
+@pytest.fixture
+async def kc_client(
+    keycloak: Keycloak,  # noqa: F811
+    database_url: str,
+    migrated: asyncpg.Connection,
+) -> AsyncIterator[TestClient]:
+    settings = Settings(
+        oidc_issuer=keycloak.issuer,
+        oidc_client_id=keycloak.client_id,
+        oidc_client_secret=keycloak.client_secret,
+        session_cookie_key="test-session-cookie-key",
+        database_url=database_url,
+        runner_url="http://unused",
+    )
+    with TestClient(create_app(settings)) as test_client:
+        yield test_client
+
+
+def _signed_in_ws(client: TestClient, invite: str, jar):
+    return client.websocket_connect(f"/api/sessions/{invite}/ws", headers=cookie_header(jar))
+
+
+async def test_012_fr8_only_the_signed_in_newuser_has_the_mark_nfr2_client_cannot_set_it(
+    kc_client: TestClient,
+    migrated: asyncpg.Connection,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    session = await _session(migrated)
+    jar = signed_in_jar(kc_client, "newuser")
+    with (
+        _signed_in_ws(kc_client, session.invite_id, jar) as account,
+        kc_client.websocket_connect(_ws_url(session.invite_id, "newuser")) as visitor,
+    ):
+        account_id = _next(account)["you"]["participant_id"]
+        visitor_id = _next(visitor)["you"]["participant_id"]
+
+        _send(account, "from the account")
+        frames = [_next(account)["message"], _next(visitor)["message"]]
+        # NFR-2: a client-supplied signed_in is never read.
+        visitor.send_text(
+            json.dumps(
+                {
+                    "type": "chat_send",
+                    "client_id": "x",
+                    "text": "from the visitor",
+                    "signed_in": True,
+                }
+            )
+        )
+        frames += [_next(account)["message"], _next(visitor)["message"]]
+
+    assert [(m["participant_id"], m["signed_in"]) for m in frames] == [
+        (account_id, True),
+        (account_id, True),
+        (visitor_id, False),
+        (visitor_id, False),
+    ]
+    assert [m["sender_name"] for m in frames] == ["newuser"] * 4
+
+    history = kc_client.get(f"/api/sessions/{session.invite_id}/chat").json()["messages"]
+    assert [(m["text"], m["participant_id"], m["signed_in"]) for m in history] == [
+        ("from the account", account_id, True),
+        ("from the visitor", visitor_id, False),
+    ]
+
+
+async def test_012_fr3_after_reconnect_the_earlier_message_is_their_own(
+    kc_client: TestClient,
+    migrated: asyncpg.Connection,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    session = await _session(migrated)
+    jar = signed_in_jar(kc_client, "newuser")
+    with _signed_in_ws(kc_client, session.invite_id, jar) as first:
+        _next(first)
+        _send(first, "before reconnect")
+        _next(first)
+
+    with _signed_in_ws(kc_client, session.invite_id, jar) as again:
+        welcome = _next(again)
+
+    you = welcome["you"]["participant_id"]
+    (earlier,) = welcome["chat"]
+    assert (earlier["participant_id"], earlier["signed_in"]) == (you, True)
+    (rest,) = kc_client.get(f"/api/sessions/{session.invite_id}/chat").json()["messages"]
+    assert rest["participant_id"] == you

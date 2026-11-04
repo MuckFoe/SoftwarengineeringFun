@@ -55,11 +55,10 @@ async function join(page: Page, invite: string, name: string): Promise<void> {
   await page.getByLabel("Your name").fill(name);
   await page.getByRole("button", { name: "Join" }).click();
   await expect(page.locator(".cm-content")).toContainText("pass");
-  await page.getByRole("tab", { name: "Chat" }).click();
 }
 
 const messages = (page: Page) =>
-  page.getByRole("tabpanel", { name: "Chat" }).getByRole("list", { name: "Messages" });
+  page.getByRole("region", { name: "Chat" }).getByRole("list", { name: "Messages" });
 
 /** A new participant joins and sees the session's code and chat as they were left. */
 async function expectKept(browser: Browser, invite: string, code: string, said: string) {
@@ -119,7 +118,7 @@ test("FR7: a session's code and chat survive a redeploy and a down/up", async ({
   await ada.locator(".cm-content > .cm-line").first().click();
   await ada.keyboard.press("End");
   await ada.keyboard.type(`  ${code}`);
-  const input = ada.getByRole("tabpanel", { name: "Chat" }).getByLabel("Message", { exact: true });
+  const input = ada.getByRole("region", { name: "Chat" }).getByLabel("Message", { exact: true });
   await input.fill(said);
   await input.press("Enter");
   // Ben sees both, so the server has applied (and stored) them.

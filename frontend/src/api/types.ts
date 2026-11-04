@@ -3,10 +3,25 @@
 
 // ---- HTTP ----
 
-export interface Me {
-  signed_in: boolean;
-  name?: string;
-  roles: string[];
+/** An account's stored preferences (spec 012 FR-15). */
+export interface Preferences {
+  appearance: "light" | "dark" | "system";
+  chat_visible: boolean;
+}
+
+/** GET /api/me. `preferences` is `null` until the account first stores any (spec 012 FR-16). */
+export type Me =
+  | { signed_in: false; roles: [] }
+  | { signed_in: true; name: string; roles: string[]; preferences: Preferences | null };
+
+/** One row of GET /api/me/sessions (spec 012 FR-2), newest activity first. */
+export interface RecentSession {
+  kind: "coding" | "learning" | "presentation";
+  invite_id: string;
+  title: string;
+  last_activity_at: string;
+  stale: boolean;
+  hosted_by_me: boolean;
 }
 
 export interface ProblemSummary {
@@ -72,13 +87,44 @@ export interface DescriptionPreview {
   html: string;
 }
 
-/** One chat message (spec 002). `sent_at` is ISO-8601 UTC. */
-export interface ChatMessage {
+/** One GIF from GIF search (spec 007). Media URLs are GIPHY's; no GIF file is stored. */
+export interface GifResult {
+  id: string;
+  title: string;
+  url: string;
+  still_url: string;
+  width: number;
+  height: number;
+}
+
+/** A text chat message (spec 002). `sent_at` is ISO-8601 UTC. `kind` absent = text (006). */
+export interface TextChatMessage {
   id: number;
   sender_name: string;
-  text: string;
+  /** The sender's participant (spec 012 FR-3). */
+  participant_id: string;
+  /** Whether the sender was signed in (spec 012 FR-8). */
+  signed_in: boolean;
   sent_at: string;
+  kind?: "text";
+  text: string;
 }
+
+/** A GIF chat message (spec 007). */
+export interface GifChatMessage {
+  id: number;
+  sender_name: string;
+  /** The sender's participant (spec 012 FR-3). */
+  participant_id: string;
+  /** Whether the sender was signed in (spec 012 FR-8). */
+  signed_in: boolean;
+  sent_at: string;
+  kind: "gif";
+  gif: GifResult;
+}
+
+/** One chat message: text (spec 002) or GIF (spec 007). */
+export type ChatMessage = TextChatMessage | GifChatMessage;
 
 /** GET /api/sessions/{invite}/chat (spec 002). */
 export interface ChatHistory {
@@ -100,6 +146,8 @@ export interface NotFoundBody {
 export interface StaleBody {
   error: "stale";
   can_reactivate: boolean;
+  /** The session's current problem (spec 008), so a stale session can still show its description. */
+  problem_id: string;
 }
 export interface ImageTooLargeBody {
   error: "image_too_large";
@@ -128,6 +176,8 @@ export const WS_CLOSE = {
   stale: 4410,
   full: 4403,
   invalidName: 4422,
+  /** Spec 012 FR-5: this participant connected again elsewhere; the older socket is closed. */
+  replaced: 4409,
 } as const;
 
 export type Outcome =
@@ -155,6 +205,15 @@ export interface RunResult {
 export interface Participant {
   id: string;
   name: string;
+  /** Joined with an account (spec 012 FR-8). */
+  signed_in: boolean;
+}
+
+/** `welcome.you` (spec 012): who this socket joined as. */
+export interface You {
+  participant_id: string;
+  name: string;
+  signed_in: boolean;
 }
 
 export interface ProblemProgress {
@@ -169,14 +228,19 @@ export type WsErrorCode =
   | "session_full"
   | "stale"
   | "invalid_name"
-  | ChatErrorCode;
+  | ChatErrorCode
+  | GifErrorCode;
 
 /** Refusals of a `chat_send`, answered to the sender only (spec 002). */
 export type ChatErrorCode = "chat_empty" | "chat_too_long" | "session_stale";
 
+/** Refusals of a `gif_search` or `chat_send_gif`, answered to the sender only (spec 007). */
+export type GifErrorCode = "gif_unavailable" | "gif_rate_limited" | "gif_not_allowed";
+
 export interface WelcomeMessage {
   type: "welcome";
   participant_id: string;
+  you: You;
   current_problem: Problem;
   problems: Record<string, ProblemProgress>;
   presence: Participant[];
@@ -228,6 +292,10 @@ export interface ErrorMessage {
   client_id?: string;
   /** On `chat_too_long`: the limit in characters. */
   limit?: number;
+  /** On GIF search refusals: the `request_id` of the refused `gif_search` (spec 007). */
+  request_id?: string;
+  /** On `gif_rate_limited`: whole seconds to wait, at least 1 (spec 007). */
+  retry_after?: number;
 }
 
 /** A chat message to everyone in the session, the sender included (spec 002). */
@@ -243,6 +311,14 @@ export interface ChatRemovedMessage {
   id: number;
 }
 
+/** GIF search results, to the searcher only (spec 007). Up to 24; `[]` when nothing matches. */
+export interface GifResultsMessage {
+  type: "gif_results";
+  request_id: string;
+  trending: boolean;
+  results: GifResult[];
+}
+
 export type ServerMessage =
   | WelcomeMessage
   | PresenceMessage
@@ -253,7 +329,8 @@ export type ServerMessage =
   | RunFailedMessage
   | ErrorMessage
   | ChatMessageFrame
-  | ChatRemovedMessage;
+  | ChatRemovedMessage
+  | GifResultsMessage;
 
 export interface RunMessage {
   type: "run";
@@ -270,7 +347,26 @@ export interface ChatSendMessage {
   text: string;
 }
 
-export type ClientMessage = RunMessage | SwitchProblemMessage | ChatSendMessage;
+/** Search GIFs (spec 007). `q` may be `""` for trending. */
+export interface GifSearchMessage {
+  type: "gif_search";
+  request_id: string;
+  q: string;
+}
+
+/** Post a GIF by id (spec 007); the server looks up everything else. */
+export interface ChatSendGifMessage {
+  type: "chat_send_gif";
+  client_id: string;
+  gif_id: string;
+}
+
+export type ClientMessage =
+  | RunMessage
+  | SwitchProblemMessage
+  | ChatSendMessage
+  | GifSearchMessage
+  | ChatSendGifMessage;
 
 /**
  * GET /api/sessions/stale (spec 003, admin only): one stale session. The learning-session

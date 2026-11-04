@@ -53,7 +53,8 @@ async def test_nfr5_0004_applies_on_a_db_already_at_0003_and_leaves_old_tables_a
         before = await _columns(conn)
         assert not LEARN_TABLES & {t for t, _, _ in before}
 
-        applied = await app_db.migrate(conn)
+        shutil.copy(app_db.MIGRATIONS_DIR / "0004_learning_sessions.sql", tmp_path)
+        applied = await app_db.migrate(conn, tmp_path)
 
         assert applied == ["0004_learning_sessions.sql"]
         after = await _columns(conn)
@@ -65,7 +66,12 @@ async def test_nfr5_0004_applies_on_a_db_already_at_0003_and_leaves_old_tables_a
 
 async def test_0004_applies_on_a_fresh_db_after_0001_to_0003(migrated: asyncpg.Connection) -> None:
     recorded = await migrated.fetch("select name from schema_migration order by name")
-    assert [r["name"] for r in recorded][-1] == "0004_learning_sessions.sql"
+    names = [r["name"] for r in recorded]
+    assert names[: names.index("0004_learning_sessions.sql")] == [
+        "0001_init.sql",
+        "0002_seed_key.sql",
+        "0003_descriptions_and_chat.sql",
+    ]
     rows = await migrated.fetch(
         "select table_name from information_schema.tables where table_schema = 'public'"
     )

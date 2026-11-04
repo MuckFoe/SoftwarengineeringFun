@@ -41,10 +41,11 @@ export function Window({
           {sidebar}
         </div>
       )}
-      <div className={styles.top}>
+      {/* The banner landmark, so the toolbar is inside a landmark (spec 008 NFR-2). */}
+      <header className={styles.top}>
         {toolbar}
         {banner}
-      </div>
+      </header>
       <div className={styles.center}>
         <main className={styles.main}>{children}</main>
         {bottomPanel}

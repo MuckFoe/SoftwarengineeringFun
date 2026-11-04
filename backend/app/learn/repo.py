@@ -72,6 +72,7 @@ class Step:
     passed_at: datetime | None
     passed_by_name: str | None
     passed_by: uuid.UUID | None
+    passed_by_signed_in: bool  # the passer's participant has an account (spec 012 FR-8)
 
 
 @dataclass(frozen=True)
@@ -86,6 +87,15 @@ class Attempt:
     correct: bool
     output: str | None
     created_at: datetime
+    by_signed_in: bool  # the actor's participant has an account (spec 012 FR-8)
+
+
+# Spec 012 FR-8: whether the attributed participant is signed in, read from its `account_sub`
+# (attempts read it the same way, by a subquery on `participant_id`).
+_STEP_SELECT = """select s.session_id, s.position, s.hint_revealed_at, s.answer_revealed_at,
+                  s.passed_at, s.passed_by_name, s.passed_by,
+                  coalesce(p.account_sub is not null, false) as passed_by_signed_in
+           from learning_step s left join learning_participant p on p.id = s.passed_by"""
 
 
 def _session(row: asyncpg.Record) -> LearningSession:
@@ -246,6 +256,26 @@ async def add_participant(
     return _participant(row)
 
 
+async def join_as_account(
+    conn: asyncpg.Connection, session_id: uuid.UUID, account_sub: str, name: str
+) -> Participant:
+    """The account's one participant in the session (spec 012 FR-3, FR-5, FR-14): inserted
+    on first join, otherwise returned with `left_at` and `hidden_at` cleared. The name is
+    copied at first join only."""
+    row = await conn.fetchrow(
+        """insert into learning_participant (session_id, display_name, joined_at, account_sub)
+            values ($1, $2, $3, $4)
+            on conflict (account_sub, session_id) where account_sub is not null
+            do update set left_at = null, hidden_at = null
+            returning id, session_id, display_name, joined_at, left_at""",
+        session_id,
+        name,
+        clock.now(),
+        account_sub,
+    )
+    return _participant(row)
+
+
 async def leave_participant(conn: asyncpg.Connection, participant_id: uuid.UUID) -> None:
     await conn.execute(
         "update learning_participant set left_at = $2 where id = $1",
@@ -275,9 +305,7 @@ async def ensure_step(conn: asyncpg.Connection, session_id: uuid.UUID, position:
         position,
     )
     row = await conn.fetchrow(
-        """select session_id, position, hint_revealed_at, answer_revealed_at, passed_at,
-                  passed_by_name, passed_by
-           from learning_step where session_id = $1 and position = $2""",
+        _STEP_SELECT + """ where s.session_id = $1 and s.position = $2""",
         session_id,
         position,
     )
@@ -286,9 +314,7 @@ async def ensure_step(conn: asyncpg.Connection, session_id: uuid.UUID, position:
 
 async def get_step(conn: asyncpg.Connection, session_id: uuid.UUID, position: int) -> Step | None:
     row = await conn.fetchrow(
-        """select session_id, position, hint_revealed_at, answer_revealed_at, passed_at,
-                  passed_by_name, passed_by
-           from learning_step where session_id = $1 and position = $2""",
+        _STEP_SELECT + """ where s.session_id = $1 and s.position = $2""",
         session_id,
         position,
     )
@@ -297,9 +323,7 @@ async def get_step(conn: asyncpg.Connection, session_id: uuid.UUID, position: in
 
 async def list_steps(conn: asyncpg.Connection, session_id: uuid.UUID) -> list[Step]:
     rows = await conn.fetch(
-        """select session_id, position, hint_revealed_at, answer_revealed_at, passed_at,
-                  passed_by_name, passed_by
-           from learning_step where session_id = $1 order by position""",
+        _STEP_SELECT + """ where s.session_id = $1 order by s.position""",
         session_id,
     )
     return [_step(r) for r in rows]
@@ -349,7 +373,9 @@ async def add_attempt(
                  output, created_at)
             values ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9)
             returning id, session_id, position, participant_id, actor_name, kind, submitted,
-                      correct, output, created_at""",
+                      correct, output, created_at,
+                      (select p.account_sub is not null from learning_participant p
+                       where p.id = learning_attempt.participant_id) as by_signed_in""",
         session_id,
         position,
         participant_id,
@@ -369,7 +395,9 @@ async def list_attempts(
     """A step's attempts in order, or the whole session's (by step, then order) for FR-24."""
     rows = await conn.fetch(
         """select id, session_id, position, participant_id, actor_name, kind, submitted,
-                  correct, output, created_at
+                  correct, output, created_at,
+                  (select p.account_sub is not null from learning_participant p
+                       where p.id = learning_attempt.participant_id) as by_signed_in
            from learning_attempt
             where session_id = $1 and ($2::int is null or position = $2)
             order by position, id""",

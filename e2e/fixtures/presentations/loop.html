@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Runaway presentation</title>
+<style>body { font: 20px/1.4 sans-serif; margin: 24px; }</style>
+</head>
+<body>
+<!--
+  Spec 013 AC-17 (e2e/present-isolation.spec.ts): slide 2's script loops forever as soon
+  as slide 2 is shown, so the frame stops answering for good from then on.
+-->
+<div data-slide><h1>Slide 1</h1><p>All fine so far.</p></div>
+<div data-slide id="runaway">
+  <h1>Slide 2</h1>
+  <p>This slide's script never finishes.</p>
+  <script>
+    (() => {
+      const slide = document.getElementById("runaway");
+      const spin = () => {
+        while (true) {}
+      };
+      if (slide.hasAttribute("data-sdd-current")) spin();
+      new MutationObserver(() => {
+        if (slide.hasAttribute("data-sdd-current")) spin();
+      }).observe(slide, { attributes: true, attributeFilter: ["data-sdd-current"] });
+    })();
+  </script>
+</div>
+<div data-slide><h1>Slide 3</h1><p>The session carries on.</p></div>
+<div data-slide><h1>Slide 4</h1><p>The end.</p></div>
+</body>
+</html>

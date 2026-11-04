@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useParams } from "react-router";
 import type { ChatMessage } from "../api/types";
+import { useMe } from "../auth/useMe";
 import { apiPath } from "../base";
 import { type SendResult, useChat } from "../chat/useChat";
 import { AccountControl } from "../components/AccountControl";
@@ -52,6 +53,7 @@ const CLOSE_MESSAGES: Record<LearnCloseError, string> = {
   invalid_name: "That name was refused by the server.",
   not_found: "Session not found.",
   stale: "This session has gone stale.",
+  replaced: "This session was opened in another tab or window.",
   disconnected: "Disconnected from the session.",
 };
 
@@ -102,7 +104,9 @@ interface Props {
  * A learning session (spec 006 FR-7–FR-10, FR-15, FR-24, FR-26, FR-27, FR-29): the name
  * prompt, then the step list, the step being looked at, who is connected and the chat. A
  * stale session shows its record and chat read-only, with Reactivate for admins, as a
- * coding session does.
+ * coding session does. Signed in, there is no name prompt: it joins as the account
+ * (spec 012 FR-1, FR-3, FR-14); signed out it asks for a name as before (FR-6). A
+ * connection replaced by a newer one (`4409`) stops and offers *Use here* (FR-5).
  */
 export function LearningSessionWindow({ createSocket }: Props) {
   const { invite = "" } = useParams();
@@ -119,6 +123,46 @@ export function LearningSessionWindow({ createSocket }: Props) {
   const [staleChat, setStaleChat] = useState<ChatMessage[]>([]);
   // A stale session has no socket, so useChat (whose REST is the coding session's) stays live.
   const chat = useChat({ invite, provider: socket, stale: false });
+  const me = useMe();
+  const signedIn = me.status === "ready" && me.me.signed_in;
+  // Why the last connection ended, when it isn't the name prompt's to say (signed in, or
+  // replaced). While set, nothing reconnects by itself.
+  const [closed, setClosed] = useState<LearnCloseError | null>(null);
+  // The name the last anonymous join used, so *Use here* rejoins as the same person.
+  const lastName = useRef<string | null>(null);
+
+  /** Opens the socket: `name` null joins as the signed-in account. */
+  const connect = useCallback(
+    (asName: string | null) => {
+      const next = new LearnSocket({ invite, name: asName, createSocket });
+      socketRef.current = next;
+      setSocket(next);
+      for (const type of LESSON_MESSAGES) {
+        next.on(type, (msg: LearnEvents[typeof type]) => dispatch(msg as LearnAction));
+      }
+      next.on("closed", (ev) => {
+        socketRef.current = null;
+        setSocket(null);
+        dispatch({ type: "reset" });
+        if (asName === null || ev.error === "replaced") setClosed(ev.error);
+        else setNameError(CLOSE_MESSAGES[ev.error]);
+      });
+    },
+    [invite, createSocket],
+  );
+
+  // Signed in: join as soon as the session is known to be live, without a prompt.
+  useEffect(() => {
+    if (!invite || !signedIn || page.kind !== "ready" || closed !== null) return;
+    if (socketRef.current) return;
+    connect(null);
+  }, [invite, signedIn, page.kind, closed, connect]);
+
+  function takeOver() {
+    setClosed(null);
+    setNameError(null);
+    if (!socketRef.current) connect(signedIn ? null : lastName.current);
+  }
 
   useEffect(() => {
     if (!invite) return;
@@ -195,6 +239,7 @@ export function LearningSessionWindow({ createSocket }: Props) {
     }
     dispatch({ type: "reset" });
     setStaleChat([]);
+    setClosed(null);
     setPage({ kind: "ready" });
     setHud({ key: Date.now(), message: "Session reactivated" });
   }
@@ -208,18 +253,8 @@ export function LearningSessionWindow({ createSocket }: Props) {
       return;
     }
     setNameError(null);
-    const next = new LearnSocket({ invite, name: name.trim(), createSocket });
-    socketRef.current = next;
-    setSocket(next);
-    for (const type of LESSON_MESSAGES) {
-      next.on(type, (msg: LearnEvents[typeof type]) => dispatch(msg as LearnAction));
-    }
-    next.on("closed", (ev) => {
-      socketRef.current = null;
-      setSocket(null);
-      dispatch({ type: "reset" });
-      setNameError(CLOSE_MESSAGES[ev.error]);
-    });
+    lastName.current = name.trim();
+    connect(lastName.current);
   }
 
   if (page.kind === "not_found") return <NotFound message="Session not found" />;
@@ -234,22 +269,26 @@ export function LearningSessionWindow({ createSocket }: Props) {
 
   if (socket && state.lesson) {
     return (
-      <SessionView
-        state={state}
-        dispatch={dispatch}
-        readOnly={false}
-        onSend={(message) => socket.send(message)}
-        chat={
-          <ChatPane
-            messages={chat.messages}
-            readOnly={false}
-            send={chat.send}
-            canRemove={chat.canRemove}
-            remove={removeMessage}
-          />
-        }
-        toolbarEnd={toolbarEnd}
-      />
+      <>
+        <SessionView
+          state={state}
+          dispatch={dispatch}
+          readOnly={false}
+          onSend={(message) => socket.send(message)}
+          chat={
+            <ChatPane
+              messages={chat.messages}
+              readOnly={false}
+              send={chat.send}
+              canRemove={chat.canRemove}
+              remove={removeMessage}
+            />
+          }
+          toolbarEnd={toolbarEnd}
+        />
+        {/* Signed in, reactivating joins at once (spec 012 FR-1): its Hud outlives the join. */}
+        {hud && <Hud key={hud.key} message={hud.message} />}
+      </>
     );
   }
 
@@ -292,7 +331,7 @@ export function LearningSessionWindow({ createSocket }: Props) {
   }
 
   let body: ReactNode;
-  if (page.kind === "loading") {
+  if (page.kind === "loading" || (page.kind === "ready" && me.status === "loading")) {
     body = <p className={styles.loading}>Loading…</p>;
   } else if (page.kind === "error") {
     body = (
@@ -300,6 +339,20 @@ export function LearningSessionWindow({ createSocket }: Props) {
         <span role="alert">Could not load this session.</span>
       </EmptyState>
     );
+  } else if (closed !== null) {
+    body = (
+      <div className={styles.joinCard}>
+        <h1 className={styles.joinTitle}>Learning session</h1>
+        <InlineMessage id="join-closed">{CLOSE_MESSAGES[closed]}</InlineMessage>
+        <div className={styles.joinActions}>
+          <Button variant="primary" onClick={takeOver}>
+            {closed === "replaced" ? "Use here" : "Try again"}
+          </Button>
+        </div>
+      </div>
+    );
+  } else if (signedIn) {
+    body = <p className={styles.loading}>Joining…</p>;
   } else {
     body = (
       <div className={styles.joinCard}>

@@ -1,0 +1,54 @@
+/* A vertical split: top part, divider, bottom part (FR-5, FR-8). */
+
+.split {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Both parts clip; their content scrolls itself, so each part scrolls independently. */
+.top,
+.bottom {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.top {
+  flex: 0 0 50%;
+}
+
+.split[data-bottom-open="false"] .top {
+  flex: 1 1 auto;
+}
+
+.bottom {
+  flex: 1 1 0;
+}
+
+/* While open, the bottom part lets popovers anchored in it (spec 007's GIF picker) rise over
+   the top part. Its content still scrolls itself, so independent scrolling is kept. */
+.bottom[data-open="true"] {
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
+.bottom[data-open="false"] {
+  flex: 0 0 0;
+  height: 0;
+}
+
+.divider {
+  flex: none;
+  height: 7px;
+  cursor: row-resize;
+  /* A touch drag moves the divider, not the page. */
+  touch-action: none;
+  background: linear-gradient(var(--separator), var(--separator)) center / 100% 1px no-repeat;
+}
+
+.divider:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}

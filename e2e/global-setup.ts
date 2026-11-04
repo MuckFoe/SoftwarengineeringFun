@@ -23,6 +23,9 @@ const TEST_USERS: Record<string, string[]> = {
   editor2: ["editor"],
   plain1: [],
   admin1: ["admin"],
+  // Spec 012: accounts with no app role (task 4's test realm users).
+  newuser: [],
+  other: [],
 };
 
 function randomToken(bytes = 24): string {
@@ -166,6 +169,9 @@ export default async function globalSetup(): Promise<void> {
     `RUNNER_URL=http://runner:8080`,
     `SANDBOX_IMAGE=collab-sandbox:e2e`,
     `SANDBOX_RUNTIME=`,
+    // Spec 007: docker-compose.test.yml's fake GIPHY, on the host. The key is a dummy.
+    `GIPHY_API_KEY=test-key-not-secret`,
+    `GIPHY_BASE_URL=http://host.docker.internal:${process.env.TEST_GIPHY_PORT ?? "58280"}`,
     "",
   ].join("\n");
   writeFileSync(path.join(REPO_ROOT, ".env"), env);

@@ -29,6 +29,7 @@ class StepProgress:
     answer_revealed_at: datetime | None = None
     passed_at: datetime | None = None
     passed_by_name: str | None = None
+    passed_by_signed_in: bool = False  # the passer's participant has an account (012 FR-8)
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ class AttemptRow:
     correct: bool
     output: str | None
     created_at: datetime
+    by_signed_in: bool = False  # the actor's participant has an account (012 FR-8)
 
 
 def _at(moment: datetime) -> str:
@@ -96,6 +98,7 @@ def attempt(row: AttemptRow) -> Json:
     return {
         "id": row.id,
         "by": row.actor_name,
+        "by_signed_in": row.by_signed_in,
         "kind": row.kind,
         "submitted": submitted,
         "correct": row.correct,
@@ -109,6 +112,7 @@ def _passed(progress: StepProgress) -> Json | None:
         return None
     return {
         "by": progress.passed_by_name,
+        "by_signed_in": progress.passed_by_signed_in,
         "at": _at(progress.passed_at),
         "after_reveal": progress.answer_revealed_at is not None,
     }
@@ -160,6 +164,7 @@ def summary(
                 "title": step.title,
                 "attempts": len(attempts.get(n, ())),
                 "passed_by": p.passed_by_name,
+                "passed_by_signed_in": None if p.passed_at is None else p.passed_by_signed_in,
                 "after_reveal": p.answer_revealed_at is not None,
             }
         )

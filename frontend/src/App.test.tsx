@@ -70,6 +70,19 @@ function stubOsScheme(dark: boolean) {
 const appearance = () => document.documentElement.getAttribute("data-appearance");
 
 describe("App routing", () => {
+  it("/present renders the presentation library (spec 013)", async () => {
+    stubServer();
+    renderRoute("/present");
+    expect(await screen.findByRole("toolbar", { name: "Present" })).toBeTruthy();
+  });
+
+  it("/present/s/:invite renders the presentation session window (spec 013)", async () => {
+    stubServer();
+    renderRoute("/present/s/abc");
+    // The stub has no such session, so the session window says so.
+    expect(await screen.findByText("Session not found")).toBeTruthy();
+  });
+
   it("/ renders ProblemsWindow with no sheet open", async () => {
     stubServer();
     renderRoute("/");

@@ -1,62 +1,24 @@
-import { useState } from "react";
-import { useLocation } from "react-router";
-import { loginUrl, logout } from "../api/client";
+import { Link, useLocation } from "react-router";
 import { useMe } from "../auth/useMe";
-import { Button } from "../ui/Button";
-import { Popover } from "../ui/Popover";
+import { Icon } from "../ui/Icon";
 import styles from "./AccountControl.module.css";
 
-interface Props {
-  /** After signing out; reloads the page by default so every screen sees it. */
-  onSignedOut?: () => void;
-}
-
-/** The appearance the page shows now, set on <html> by the pre-paint script. */
-function currentAppearance(): "light" | "dark" {
-  return document.documentElement.getAttribute("data-appearance") === "dark" ? "dark" : "light";
-}
-
 /**
- * The toolbar's account entry (FR-9): "Sign in" for visitors, which returns them to this
- * screen and styles the sign-in page in the app's appearance (FR-18); the user's name with
- * a Sign out popover once signed in.
+ * The toolbar's profile entry on every screen (spec 012 FR-9): *Profile* for visitors (and
+ * while /api/me loads), the username once signed in. It opens `/profile`, which returns here
+ * through `from`; signing in, registering and signing out live on the profile.
  */
-export function AccountControl({ onSignedOut = () => window.location.reload() }: Props) {
+export function AccountControl() {
   const me = useMe();
   const location = useLocation();
-  const [signingOut, setSigningOut] = useState(false);
-
-  if (me.status === "loading") return null;
-
-  if (me.status === "error" || !me.me.signed_in) {
-    // The router's location is already relative to the base path, so `next` never carries it.
-    const next = `${location.pathname}${location.search}`;
-    const appearance = new URLSearchParams({ appearance: currentAppearance() });
-    return (
-      <a className={styles.signIn} href={`${loginUrl(next)}&${appearance}`}>
-        Sign in
-      </a>
-    );
-  }
-
-  async function signOut() {
-    setSigningOut(true);
-    try {
-      await logout();
-      onSignedOut();
-    } finally {
-      setSigningOut(false);
-    }
-  }
+  // The router's location is already relative to the base path, so `from` never carries it.
+  const from = new URLSearchParams({ from: `${location.pathname}${location.search}` });
+  const text = me.status === "ready" && me.me.signed_in ? me.me.name : "Profile";
 
   return (
-    <Popover label="Account" icon="person" text={me.me.name ?? "Account"}>
-      <div className={styles.menu}>
-        <p className={styles.name}>{me.me.name}</p>
-        <Button variant="bordered" busy={signingOut} onClick={signOut}>
-          Sign out
-        </Button>
-      </div>
-    </Popover>
+    <Link className={styles.entry} to={`/profile?${from}`}>
+      <Icon name="person" />
+      {text}
+    </Link>
   );
 }

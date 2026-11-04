@@ -5,15 +5,22 @@ import styles from "./AreaNav.module.css";
 const AREAS = [
   { to: "/", title: "Problems" },
   { to: "/learn", title: "Learn" },
+  { to: "/present", title: "Present" },
 ] as const;
 
-/** Under /learn is Learn; everything else (problems, coding sessions) is Problems. */
+const under = (pathname: string, area: string) =>
+  pathname === area || pathname.startsWith(`${area}/`);
+
+/**
+ * Under /learn is Learn, under /present is Present (spec 013); everything else (problems,
+ * coding sessions) is Problems.
+ */
 function currentArea(pathname: string): string {
-  return pathname === "/learn" || pathname.startsWith("/learn/") ? "/learn" : "/";
+  return AREAS.find((a) => a.to !== "/" && under(pathname, a.to))?.to ?? "/";
 }
 
 /**
- * The sidebar's area switch (FR-1): Problems and Learn, the current one marked with
+ * The sidebar's area switch (FR-1): Problems, Learn and Present, the current one marked with
  * `aria-current` and the accent, like a selected source-list row.
  */
 export function AreaNav() {

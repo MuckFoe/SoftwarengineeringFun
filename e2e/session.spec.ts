@@ -120,8 +120,8 @@ test("AC-13: an admin sees Reactivate in the banner, and reactivating re-enables
 
   await expect(page.getByRole("status").filter({ hasText: "Session reactivated" })).toBeVisible();
   await expect(banner).toHaveCount(0);
-  await page.getByLabel("Your name").fill("Admin");
-  await page.getByRole("button", { name: "Join" }).click();
+  // Signed in, the admin is in at once, with no name prompt (spec 012 FR-1).
+  await expect(page.getByLabel("Your name")).toHaveCount(0);
   await expect(page.locator(".cm-content")).toHaveAttribute("contenteditable", "true");
   await expect(toolbar(page).getByRole("button", { name: "Run", exact: true })).toBeEnabled();
 });

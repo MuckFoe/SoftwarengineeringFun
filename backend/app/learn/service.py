@@ -205,6 +205,7 @@ def _progress(row: repo.Step) -> views.StepProgress:
         answer_revealed_at=row.answer_revealed_at,
         passed_at=row.passed_at,
         passed_by_name=row.passed_by_name,
+        passed_by_signed_in=row.passed_by_signed_in,
     )
 
 
@@ -217,6 +218,7 @@ def _attempt_row(row: repo.Attempt) -> views.AttemptRow:
         correct=row.correct,
         output=row.output,
         created_at=row.created_at,
+        by_signed_in=row.by_signed_in,
     )
 
 

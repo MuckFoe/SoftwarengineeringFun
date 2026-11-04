@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 /**
  * Hand-drawn inline icons on a 16 px grid (FR-1, NFR-1). Strokes and fills use
@@ -37,6 +37,14 @@ const PATHS = {
     <>
       <circle cx="8" cy="5.25" r="2.75" />
       <path d="M2.75 14c.4-2.9 2.6-4.5 5.25-4.5s4.85 1.6 5.25 4.5" />
+    </>
+  ),
+  /** A person with a checkmark at their shoulder: the *signed in* mark (012 FR-8). */
+  personCheck: (
+    <>
+      <circle cx="6" cy="5.25" r="2.5" />
+      <path d="M1.75 13.5c.35-2.6 2.1-4 4.25-4 1.1 0 2.1.37 2.85 1.08" />
+      <path d="m10 11.5 1.75 1.75 3-3.5" />
     </>
   ),
   people: (
@@ -140,5 +148,28 @@ export function Icon({ name, label, size = 16 }: Props) {
       <title>{label ?? ""}</title>
       {PATHS[name]}
     </svg>
+  );
+}
+
+const VISUALLY_HIDDEN: CSSProperties = {
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  overflow: "hidden",
+  clipPath: "inset(50%)",
+  whiteSpace: "nowrap",
+};
+
+/**
+ * The *signed in* mark shown beside a signed-in participant's name (012 FR-8): the
+ * person-with-checkmark glyph, decorative, plus visually hidden "signed in" text. It sets no
+ * colour of its own, so it takes the colour of the name it sits next to.
+ */
+export function SignedInMark({ size = 14 }: { size?: number }) {
+  return (
+    <span data-signed-in style={{ display: "inline-flex", flex: "none" }}>
+      <Icon name="personCheck" size={size} />
+      <span style={VISUALLY_HIDDEN}>signed in</span>
+    </span>
   );
 }

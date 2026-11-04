@@ -1,3 +1,4 @@
+import { SignedInMark } from "../ui/Icon";
 import styles from "./CompletionSummary.module.css";
 import type { Summary } from "./learnTypes";
 
@@ -30,6 +31,7 @@ export function CompletionSummary({ summary }: Props) {
             <td className={styles.number}>{step.attempts}</td>
             <td>
               {step.passed_by}
+              {step.passed_by_signed_in && <SignedInMark />}
               {step.after_reveal && <span className={styles.revealed}>after answer shown</span>}
             </td>
           </tr>

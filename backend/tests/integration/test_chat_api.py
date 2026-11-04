@@ -3,6 +3,9 @@
 FR16 (stale history read-only, writable after reactivation), FR17 (no access without the
 invite, no cross-session removal), FR19 (admin removal, live and for later joiners; nobody
 else can remove). Real Postgres, the real Keycloak test realm, TestClient WebSockets.
+
+Spec 007 task 17: GIF rows travel 002's paths unchanged (FR-6 history after reload, FR-7
+admin removal, FR-8 stale read). GIF rows are seeded through `chat.service.send_gif`.
 """
 
 import json
@@ -19,11 +22,14 @@ from starlette.websockets import WebSocketDisconnect
 from app import clock
 from app import db as app_db
 from app.chat import repo as chat_repo
+from app.chat import service as chat_service
 from app.config import Settings
+from app.gifs.models import GifRef
 from app.main import create_app
 from app.problems import repo as problems_repo
 from app.problems.signature import TestInput, parse_signature
 from app.sessions import repo as sessions_repo
+from app.sessions.hub import SessionHub
 from tests.integration.keycloak_fixtures import (  # noqa: F401  (pytest fixtures)
     Keycloak,
     keycloak,
@@ -32,6 +38,22 @@ from tests.integration.keycloak_fixtures import (  # noqa: F401  (pytest fixture
 
 COOKIE_KEY = "test-session-cookie-key"  # noqa: S105  (placeholder, not a real secret)
 ADD = parse_signature("def add(a: int, b: int) -> int")
+GIF = GifRef(
+    id="gif123",
+    title="Cat typing",
+    url="https://media.giphy.com/media/gif123/giphy.gif",
+    still_url="https://media.giphy.com/media/gif123/giphy_s.gif",
+    width=480,
+    height=270,
+)
+GIF_WIRE = {
+    "id": "gif123",
+    "title": "Cat typing",
+    "url": "https://media.giphy.com/media/gif123/giphy.gif",
+    "still_url": "https://media.giphy.com/media/gif123/giphy_s.gif",
+    "width": 480,
+    "height": 270,
+}
 
 
 def _settings(kc: Keycloak, database_url: str) -> Settings:
@@ -80,6 +102,17 @@ async def _message(conn: asyncpg.Connection, session: sessions_repo.Session, tex
     return message.id
 
 
+async def _gif(conn: asyncpg.Connection, session: sessions_repo.Session) -> int:
+    """Seeds a GIF row the way a post does. The hub is a fresh, empty one: nobody is
+    connected while seeding, so the broadcast reaches no one."""
+    participant = await sessions_repo.add_participant(conn, session.id, "Ben")
+    refused = await chat_service.send_gif(
+        conn, SessionHub(), session.id, participant.id, "Ben", GIF, uuid.uuid4().hex
+    )
+    assert refused is None
+    return (await chat_repo.history(conn, session.id))[-1].id
+
+
 def _ws_url(invite: str, name: str) -> str:
     return f"/api/sessions/{invite}/ws?name={quote(name)}"
 
@@ -116,7 +149,15 @@ async def test_fr16_stale_history_is_read_only_until_an_admin_reactivates(
     body = stale.json()
     assert body["read_only"] is True
     assert [m["text"] for m in body["messages"]] == ["before stale"]
-    assert set(body["messages"][0]) == {"id", "sender_name", "text", "sent_at"}
+    assert set(body["messages"][0]) == {
+        "id",
+        "sender_name",
+        "kind",
+        "text",
+        "sent_at",
+        "participant_id",
+        "signed_in",
+    }
     assert body["messages"][0]["sender_name"] == "Ben"
     with client.websocket_connect(_ws_url(session.invite_id, "Ana")) as ws:
         with pytest.raises(WebSocketDisconnect) as exc_info:
@@ -166,13 +207,14 @@ async def test_fr19_admin_removal_reaches_everyone_within_1s_and_later_joiners(
     login_as,  # noqa: F811
 ) -> None:
     session = await _session(migrated)
-    login_as(client, "admin1")
     with (
         client.websocket_connect(_ws_url(session.invite_id, "Ana")) as ana,
         client.websocket_connect(_ws_url(session.invite_id, "Ben")) as ben,
     ):
         assert _next(ana)["type"] == "welcome"
         assert _next(ben)["type"] == "welcome"
+        # Signed in only now: two signed-in sockets would be one account, newest wins (012).
+        login_as(client, "admin1")
         ids = {}
         for text in ("one", "abuse", "three"):
             _send(ben, text)
@@ -256,3 +298,89 @@ async def test_fr19_a_websocket_remove_frame_is_ignored(
     assert reply["type"] == "chat_message"
     assert reply["message"]["text"] == "next"
     assert _texts(client, session.invite_id) == ["stays", "next"]
+
+
+async def test_007_fr6_gif_messages_keep_their_place_after_a_reload(
+    keycloak: Keycloak,  # noqa: F811
+    database_url: str,
+    client: TestClient,
+    migrated: asyncpg.Connection,
+) -> None:
+    session = await _session(migrated)
+    first = await _message(migrated, session, "before")
+    gif = await _gif(migrated, session)
+    last = await _message(migrated, session, "after")
+    assert first < gif < last
+
+    # A new app instance on the same database: nothing is carried in memory.
+    with TestClient(create_app(_settings(keycloak, database_url))) as reloaded:
+        with reloaded.websocket_connect(_ws_url(session.invite_id, "Ana")) as ana:
+            welcome = _next(ana)
+        rest = reloaded.get(f"/api/sessions/{session.invite_id}/chat").json()["messages"]
+
+    assert welcome["type"] == "welcome"
+    for messages in (welcome["chat"], rest):
+        assert [m["id"] for m in messages] == [first, gif, last]
+        assert [m["kind"] for m in messages] == ["text", "gif", "text"]
+        assert messages[1]["gif"] == GIF_WIRE
+        assert messages[1]["sender_name"] == "Ben"
+        assert "text" not in messages[1]
+        assert [messages[0]["text"], messages[2]["text"]] == ["before", "after"]
+
+
+async def test_007_fr7_admin_removal_of_a_gif_reaches_everyone_and_survives_reload(
+    client: TestClient,
+    migrated: asyncpg.Connection,
+    login_as,  # noqa: F811
+) -> None:
+    session = await _session(migrated)
+    keep = await _message(migrated, session, "keep")
+    gif = await _gif(migrated, session)
+    with (
+        client.websocket_connect(_ws_url(session.invite_id, "Ana")) as ana,
+        client.websocket_connect(_ws_url(session.invite_id, "Ben")) as ben,
+    ):
+        welcome = _next(ana)
+        assert [m["kind"] for m in welcome["chat"]] == ["text", "gif"]
+        assert _next(ben)["type"] == "welcome"
+        # Signed in only now: two signed-in sockets would be one account, newest wins (012).
+        login_as(client, "admin1")
+
+        response = client.delete(f"/api/sessions/{session.invite_id}/chat/{gif}")
+        # Checked before reading the sockets, which would otherwise wait forever.
+        assert response.status_code == 204
+        to_ana, to_ben = _next(ana), _next(ben)
+
+    assert to_ana == to_ben == {"type": "chat_removed", "id": gif}
+
+    with client.websocket_connect(_ws_url(session.invite_id, "Cy")) as cy:
+        later = _next(cy)
+    assert [m["id"] for m in later["chat"]] == [keep]
+    rest = client.get(f"/api/sessions/{session.invite_id}/chat").json()["messages"]
+    assert [m["id"] for m in rest] == [keep]
+
+
+async def test_007_fr8_a_stale_sessions_history_shows_its_gifs_read_only(
+    client: TestClient, migrated: asyncpg.Connection
+) -> None:
+    session = await _session(migrated)
+    gif = await _gif(migrated, session)
+    await sessions_repo.set_stale(migrated, session.id)
+
+    response = client.get(f"/api/sessions/{session.invite_id}/chat")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["read_only"] is True
+    assert [m["id"] for m in body["messages"]] == [gif]
+    assert body["messages"][0]["kind"] == "gif"
+    assert body["messages"][0]["gif"] == GIF_WIRE
+    assert set(body["messages"][0]) == {
+        "id",
+        "sender_name",
+        "kind",
+        "gif",
+        "sent_at",
+        "participant_id",
+        "signed_in",
+    }

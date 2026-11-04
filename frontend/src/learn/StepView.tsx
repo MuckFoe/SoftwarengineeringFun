@@ -1,7 +1,7 @@
 import { type FormEvent, useId, useState } from "react";
 import { DescriptionView } from "../description/DescriptionView";
 import { Button } from "../ui/Button";
-import { Icon } from "../ui/Icon";
+import { Icon, SignedInMark } from "../ui/Icon";
 import { TextField } from "../ui/TextField";
 import type { Answer, Attempt, LearnClientMessage, StepView as StepViewData } from "./learnTypes";
 import styles from "./StepView.module.css";
@@ -109,6 +109,7 @@ export function StepView({ step, readOnly = false, onSend }: Props) {
         <p className={styles.passed}>
           <Icon name="checkmark" />
           {`Passed by ${step.passed.by}`}
+          {step.passed.by_signed_in && <SignedInMark />}
           {step.passed.after_reveal && <span className={styles.revealed}>after answer shown</span>}
         </p>
       )}
@@ -237,7 +238,10 @@ function Attempts({ attempts, options }: { attempts: Attempt[]; options: string[
         {attempts.map((a) => (
           <li key={a.id} className={styles.attempt} data-correct={a.correct}>
             <Icon name={a.correct ? "checkmark" : "xmark"} />
-            <span className={styles.by}>{a.by}</span>
+            <span className={styles.by}>
+              {a.by}
+              {a.by_signed_in && <SignedInMark />}
+            </span>
             <span className={styles.submitted}>{submission(a, options)}</span>
             <span className={styles.result}>{a.correct ? "correct" : "not correct"}</span>
           </li>

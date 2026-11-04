@@ -10,6 +10,10 @@ Keycloak, posts Keycloak's login form, and follows the redirect back to the app'
 which leaves the app's cookie on `client`. Keycloak pages are fetched with a separate httpx
 client because a `TestClient` routes every URL into the app.
 
+`signed_in_jar(client, user)` signs `user` in on a fresh cookie jar and returns that jar,
+leaving `client`'s own cookies as they were; each call is a new Keycloak and app session,
+so two calls for one user give two independently signed-in devices (spec 012 FR-5, FR-15).
+
 Use them by importing `keycloak` and `login_as` into a test module (or list this module
 in a root conftest's `pytest_plugins`).
 
@@ -20,11 +24,13 @@ Environment (same names as docker-compose.test.yml):
 """
 
 import html
+import json
 import os
 import re
 import secrets
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
+from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
 import httpx
@@ -36,6 +42,7 @@ CLIENT_ID = "collab-coding"
 OTHER_CLIENT_ID = "other-app"
 
 # username -> (realm roles, {client id: client roles}) (FR-2, FR-2a, FR-31; spec 005 FR3).
+# newuser and other hold no role at all (spec 012's account-level tests); editor1 is its editor.
 # The realm roles of editor1/editor2/admin1 stay until the app reads only its client roles.
 # decoy1 holds the app's role names everywhere except on the app's own client.
 TEST_USERS: dict[str, tuple[tuple[str, ...], dict[str, tuple[str, ...]]]] = {
@@ -45,7 +52,14 @@ TEST_USERS: dict[str, tuple[tuple[str, ...], dict[str, tuple[str, ...]]]] = {
     "admin1": (("admin",), {CLIENT_ID: ("admin",)}),
     "decoy1": (("editor",), {OTHER_CLIENT_ID: ("editor", "admin")}),
     "appadmin1": ((), {CLIENT_ID: ("admin",)}),
+    "newuser": ((), {}),
+    "other": ((), {}),
 }
+
+REALM_FILE = Path(__file__).parents[1] / "keycloak" / "realm.json"
+# Realm settings applied to the running realm on every run, from realm.json, so a change
+# there takes effect without re-importing the realm (spec 012 FR-10: sign-up).
+LIVE_REALM_SETTINGS = ("registrationAllowed",)
 
 _LOGIN_FORM = re.compile(r'<form[^>]*id="kc-form-login"[^>]*action="([^"]+)"', re.S)
 
@@ -138,6 +152,11 @@ def keycloak() -> Iterator[Keycloak]:
     """The test realm with a fresh client secret and the test users; users removed after."""
     with _admin_client() as admin:
         (client,) = admin.get("/clients", params={"clientId": CLIENT_ID}).json()
+        realm_file = json.loads(REALM_FILE.read_text())
+        realm_url = str(admin.base_url).rstrip("/")
+        admin.put(
+            realm_url, json={k: realm_file[k] for k in LIVE_REALM_SETTINGS}
+        ).raise_for_status()
         rotated = admin.post(f"/clients/{client['id']}/client-secret")
         rotated.raise_for_status()
         users = {
@@ -223,3 +242,33 @@ def login_as(keycloak: Keycloak) -> LoginAs:
         return response
 
     return _login_as
+
+
+SignedInJar = Callable[..., httpx.Cookies]
+
+
+@pytest.fixture
+def signed_in_jar(login_as: LoginAs) -> SignedInJar:
+    """`signed_in_jar(client, "newuser", start="/api/auth/login")` -> a signed-in jar.
+
+    Use the jar as `client.cookies = jar` before a request or socket, or pass
+    `headers=cookie_header(jar)`; two jars for one user are two devices signed in at once.
+    """
+
+    def _signed_in_jar(
+        client: httpx.Client, user: str, *, start: str = "/api/auth/login"
+    ) -> httpx.Cookies:
+        own = client.cookies
+        client.cookies = httpx.Cookies()
+        try:
+            login_as(client, user, start=start)
+            return httpx.Cookies(client.cookies)
+        finally:
+            client.cookies = own
+
+    return _signed_in_jar
+
+
+def cookie_header(jar: httpx.Cookies) -> dict[str, str]:
+    """The jar as a `Cookie` request header, for one request or socket at a time."""
+    return {"cookie": "; ".join(f"{name}={value}" for name, value in jar.items())}

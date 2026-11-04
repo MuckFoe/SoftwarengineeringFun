@@ -35,7 +35,7 @@ class FakeSocket implements SocketLike {
   }
 }
 
-function connect(name = "Ada") {
+function connect(name: string | null = "Ada") {
   let socket: FakeSocket | undefined;
   const learn = new LearnSocket({
     invite: "inv1",
@@ -67,6 +67,15 @@ describe("learnWsUrl", () => {
     const { socket } = connect("Bob");
     expect(socket.url).toMatch(/\/api\/learn\/sessions\/inv1\/ws\?name=Bob$/);
   });
+
+  it("012 FR-1: signed in, the socket is opened without a name", () => {
+    expect(learnWsUrl("inv1", null, loc("http:"))).toBe(
+      "ws://hub.example/api/learn/sessions/inv1/ws",
+    );
+    const { socket } = connect(null);
+    expect(socket.url).toMatch(/\/api\/learn\/sessions\/inv1\/ws$/);
+    expect(socket.url).not.toContain("name=");
+  });
 });
 
 describe("close codes", () => {
@@ -75,6 +84,7 @@ describe("close codes", () => {
     [4403, "full"],
     [4404, "not_found"],
     [4410, "stale"],
+    [4409, "replaced"],
     [1006, "disconnected"],
   ];
   for (const [code, error] of cases) {

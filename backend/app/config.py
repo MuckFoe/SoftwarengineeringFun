@@ -1,5 +1,6 @@
 """Settings, read only from the environment (constitution rule 7)."""
 
+import math
 import os
 import re
 from collections.abc import Mapping
@@ -48,6 +49,11 @@ class Settings:
     oidc_metadata_url: str | None = None
     session_cookie_name: str = "collab_session"
     cookie_secure: bool = False
+    # GIF search in session chat (spec 007). Unset key means GIFs are unavailable.
+    giphy_api_key: str | None = field(default=None, repr=False)
+    giphy_base_url: str = "https://api.giphy.com"
+    # HTML presentations (spec 013): how long an away host keeps the role (FR-16, FR-26).
+    present_host_grace_seconds: float = 60.0
 
 
 def load_settings(env: Mapping[str, str] | None = None) -> Settings:
@@ -73,6 +79,9 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         oidc_metadata_url=env.get("OIDC_METADATA_URL") or None,
         session_cookie_name=env.get("SESSION_COOKIE_NAME") or "collab_session",
         cookie_secure=_bool(env, "COOKIE_SECURE", default=False),
+        giphy_api_key=env.get("GIPHY_API_KEY") or None,
+        giphy_base_url=env.get("GIPHY_BASE_URL") or "https://api.giphy.com",
+        present_host_grace_seconds=_positive_float(env, "PRESENT_HOST_GRACE_SECONDS", default=60.0),
     )
 
 
@@ -83,3 +92,16 @@ def _bool(env: Mapping[str, str], name: str, *, default: bool) -> bool:
     if value not in ("true", "false"):
         raise ConfigError(f"{name} must be true or false, got {value!r}")
     return value == "true"
+
+
+def _positive_float(env: Mapping[str, str], name: str, *, default: float) -> float:
+    value = env.get(name)
+    if not value:
+        return default
+    try:
+        number = float(value)
+    except ValueError:
+        number = math.nan
+    if not (math.isfinite(number) and number > 0):
+        raise ConfigError(f"{name} must be a positive number of seconds, got {value!r}")
+    return number
