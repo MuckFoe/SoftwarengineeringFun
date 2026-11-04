@@ -58,13 +58,14 @@ import {
   type PresentState,
   presentReducer,
 } from "./presentState";
-import type {
-  Anchor,
-  Place,
-  PresentHost,
-  PresentParticipant,
-  PresentServerMessage,
-  PresentSessionState,
+import {
+  type Anchor,
+  type Place,
+  type PresentHost,
+  type PresentParticipant,
+  type PresentServerMessage,
+  type PresentSessionState,
+  strokeColor,
 } from "./presentTypes";
 
 type PageState =
@@ -682,7 +683,7 @@ function SessionView(props: SessionViewProps) {
                     <span
                       data-swatch
                       className={styles.swatch}
-                      style={{ background: p.color }}
+                      style={{ background: strokeColor(p.color) }}
                       aria-hidden="true"
                     />
                     {p.name}

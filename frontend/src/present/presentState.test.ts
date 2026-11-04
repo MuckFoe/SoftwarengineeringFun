@@ -10,9 +10,9 @@ import {
 } from "./presentState";
 import type { Anchor, PresentWelcomeMessage, Stroke } from "./presentTypes";
 
-const ANA = { id: "p-ana", name: "Ana", color: "#e6194b" };
-const BEN = { id: "p-ben", name: "Ben", color: "#3cb44b" };
-const CLEO = { id: "p-cleo", name: "Cleo", color: "#4363d8" };
+const ANA = { id: "p-ana", name: "Ana", color: 0 };
+const BEN = { id: "p-ben", name: "Ben", color: 1 };
+const CLEO = { id: "p-cleo", name: "Cleo", color: 2 };
 
 const HEADING: Anchor = { path: [0, 2], fx: 0.5, fy: 0.5 };
 const PARAGRAPH: Anchor = { path: [0, 3], fx: 0.25, fy: 0.1 };

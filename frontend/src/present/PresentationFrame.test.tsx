@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AnchorHit, FrameEvent, FrameEventType, FrameLink } from "./frameLink";
 import { PresentationFrame, type PresentationFrameProps } from "./PresentationFrame";
-import type { Anchor, Place, Rect, Stroke } from "./presentTypes";
+import { type Anchor, type Place, type Rect, STROKE_COLORS, type Stroke } from "./presentTypes";
 
 // The frame side (bridge.js) runs in a real browser only; here the component talks to a fake
 // frame link with the same interface as createFrameLink (plan.md "Bridge protocol").
@@ -192,7 +192,7 @@ describe("PresentationFrame", () => {
     const stroke: Stroke = {
       id: "b1",
       participant_id: "p1",
-      color: "#e5484d",
+      color: 0,
       anchor: BODY,
       points: [
         [0.1, 0.1],
@@ -209,14 +209,14 @@ describe("PresentationFrame", () => {
       {
         id: "s1",
         participant_id: "p1",
-        color: "#e5484d",
+        color: 0,
         anchor: HEADING,
         points: [
           [0, 0],
           [1, 1],
         ],
       },
-      { id: "s2", participant_id: "p2", color: "#0090ff", anchor: PARA, points: [[0.5, 0.5]] },
+      { id: "s2", participant_id: "p2", color: 1, anchor: PARA, points: [[0.5, 0.5]] },
     ];
     const link = fakeLink(
       new Map([
@@ -227,7 +227,13 @@ describe("PresentationFrame", () => {
     const { container } = setup({ strokes }, link);
     await waitFor(() => {
       const lines = [...container.querySelectorAll("polyline")];
-      expect(lines.map((l) => l.getAttribute("stroke"))).toEqual(["#e5484d", "#0090ff"]);
+      // The server sends a palette index (plan.md "Drawing"); each must become a real, distinct colour.
+      expect(lines.map((l) => l.getAttribute("stroke"))).toEqual([
+        STROKE_COLORS[0],
+        STROKE_COLORS[1],
+      ]);
+      expect(STROKE_COLORS[0]).toMatch(/^#[0-9a-f]{6}$/);
+      expect(STROKE_COLORS[1]).not.toBe(STROKE_COLORS[0]);
       expect(lines.map((l) => l.getAttribute("points"))).toEqual(["100,50 140,70", "150,250"]);
     });
   });
@@ -236,7 +242,7 @@ describe("PresentationFrame", () => {
     const rects = new Map([[key(HEADING), { x: 100, y: 50, w: 40, h: 20 }]]);
     const link = fakeLink(rects);
     const strokes: Stroke[] = [
-      { id: "s1", participant_id: "p1", color: "#e5484d", anchor: HEADING, points: [[0, 0]] },
+      { id: "s1", participant_id: "p1", color: 0, anchor: HEADING, points: [[0, 0]] },
     ];
     const { container } = setup({ strokes }, link);
     await waitFor(() =>
@@ -258,7 +264,7 @@ describe("PresentationFrame", () => {
     const rects = new Map([[key(HEADING), { x: 100, y: 50, w: 40, h: 20 }]]);
     const link = fakeLink(rects);
     const strokes: Stroke[] = [
-      { id: "s1", participant_id: "p1", color: "#e5484d", anchor: HEADING, points: [[0, 0]] },
+      { id: "s1", participant_id: "p1", color: 0, anchor: HEADING, points: [[0, 0]] },
     ];
     const { container } = setup({ strokes }, link);
     await waitFor(() =>

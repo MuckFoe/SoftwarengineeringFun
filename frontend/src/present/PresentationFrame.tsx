@@ -11,7 +11,7 @@ import {
 } from "react";
 import { createFrameLink, type FrameLink } from "./frameLink";
 import styles from "./PresentationFrame.module.css";
-import type { Anchor, Place, Rect, Stroke } from "./presentTypes";
+import { type Anchor, type Place, type Rect, type Stroke, strokeColor } from "./presentTypes";
 
 /** Points of a drawing are sent in batches this often (plan.md "Drawing"). */
 export const STROKE_BATCH_MS = 30;
@@ -297,7 +297,7 @@ export function PresentationFrame(props: PresentationFrameProps) {
               <polyline
                 key={s.id}
                 points={s.points.map((p) => at(rect, p).join(",")).join(" ")}
-                stroke={s.color}
+                stroke={strokeColor(s.color)}
               />
             );
           })}

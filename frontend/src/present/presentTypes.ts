@@ -31,11 +31,25 @@ export interface Place {
   anchor: Anchor | null;
 }
 
+/**
+ * Drawing colours (FR-20). The server gives each participant an index into a 5-colour palette
+ * (plan.md "Drawing"); these are what the indices mean. Fixed mid-tones rather than theme tokens:
+ * strokes sit on the presentation's own colours, so they must read on white and on dark slides.
+ */
+export const STROKE_COLORS = ["#e5383b", "#2f6feb", "#1a9e4b", "#e07b00", "#9b4dca"] as const;
+
+/** The CSS colour for a palette index; out-of-range indices wrap. */
+export function strokeColor(index: number): string {
+  const n = STROKE_COLORS.length;
+  return STROKE_COLORS[((index % n) + n) % n] ?? STROKE_COLORS[0];
+}
+
 /** A drawn stroke; `points` are `[fx, fy]` fractions of the anchor's box (or the viewport's). */
 export interface Stroke {
   id: string;
   participant_id: string;
-  color: string;
+  /** Palette index, see STROKE_COLORS. */
+  color: number;
   anchor: Anchor | null;
   points: [number, number][];
 }
@@ -43,7 +57,8 @@ export interface Stroke {
 export interface PresentParticipant {
   id: string;
   name: string;
-  color: string;
+  /** Palette index, see STROKE_COLORS. */
+  color: number;
   /** Spec 012 FR-8: set by the server from the participant's account. */
   signed_in?: boolean;
 }

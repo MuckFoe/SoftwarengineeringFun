@@ -130,7 +130,7 @@ export function presentReducer(state: PresentState, action: PresentAction): Pres
     case "local_stroke_start": {
       const you = state.you;
       if (you === null) return state;
-      const color = state.participants.find((p) => p.id === you.participant_id)?.color ?? "";
+      const color = state.participants.find((p) => p.id === you.participant_id)?.color ?? 0;
       const stroke: Stroke = {
         id: action.id,
         participant_id: you.participant_id,

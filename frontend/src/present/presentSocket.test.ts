@@ -68,7 +68,7 @@ function welcome(token: string, name = "Ada"): PresentWelcomeMessage {
     slide_count: 3,
     host: { id: "p1", name, away: false },
     place: { slide: 0, anchor: null },
-    participants: [{ id: "p1", name, color: "#e6194b" }],
+    participants: [{ id: "p1", name, color: 0 }],
     strokes: [],
     chat: [],
   };

@@ -70,9 +70,9 @@ function fakeLink(): FrameLink {
   };
 }
 
-const ANA: PresentParticipant = { id: "p-ana", name: "Ana", color: "#e5484d" };
-const BEN: PresentParticipant = { id: "p-ben", name: "Ben", color: "#3e63dd" };
-const CLEO: PresentParticipant = { id: "p-cleo", name: "Cleo", color: "#30a46c" };
+const ANA: PresentParticipant = { id: "p-ana", name: "Ana", color: 0 };
+const BEN: PresentParticipant = { id: "p-ben", name: "Ben", color: 1 };
+const CLEO: PresentParticipant = { id: "p-cleo", name: "Cleo", color: 2 };
 
 const CHAT: ChatMessage[] = [
   {
@@ -252,7 +252,7 @@ describe("PresentSessionWindow: joining (FR-9)", () => {
 
 describe("PresentSessionWindow: signed in (spec 012)", () => {
   const NEWUSER: Me = { signed_in: true, name: "newuser", roles: [], preferences: null };
-  const YOU: PresentParticipant = { id: "p-new", name: "newuser", color: "#e5484d" };
+  const YOU: PresentParticipant = { id: "p-new", name: "newuser", color: 0 };
 
   it("FR-1: joins as the account without a name sheet; the socket has no name", async () => {
     stubServer({ me: NEWUSER });
@@ -408,7 +408,7 @@ describe("PresentSessionWindow: following and hosting", () => {
     const rows = within(list).getAllByRole("listitem");
     expect(rows.map((r) => r.textContent)).toEqual(["Ana (host)", "Ben (you)", "Cleo"]);
     const swatch = rows[0]?.querySelector("[data-swatch]") as HTMLElement;
-    expect(swatch.style.background).toBe("rgb(229, 72, 77)");
+    expect(swatch.style.background).toBe("rgb(229, 56, 59)"); // STROKE_COLORS[0] for index 0
   });
 
   it("012 FR-8: the host's name carries the signed-in mark exactly when host.signed_in", async () => {
