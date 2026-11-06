@@ -134,6 +134,38 @@ test.describe("with a dark OS", () => {
   });
 });
 
+test.describe("with a dark OS, games", () => {
+  test.use({ colorScheme: "dark" });
+
+  test("spec 014 NFR-5: in dark, the games list, chess board, seats and move list have no light background", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/games");
+    await expect.poll(() => appearance(page)).toBe("dark");
+    expect(await backgroundLuminance(page.getByRole("main"))).toBeLessThan(DARK);
+
+    const created = await request.post("/api/games/chess/sessions");
+    expect(created.status()).toBe(201);
+    const { invite_id } = (await created.json()) as { invite_id: string };
+    await page.goto(`/games/chess/s/${invite_id}`);
+    await page.getByLabel("Your name").fill("Ada");
+    await page.getByRole("button", { name: "Join" }).click();
+    await expect(page.getByRole("grid", { name: "Chess board" })).toBeVisible();
+    await expect.poll(() => appearance(page)).toBe("dark");
+    expect(await backgroundLuminance(page.getByRole("main"))).toBeLessThan(DARK);
+    expect(await backgroundLuminance(page.getByRole("region", { name: "Seats" }))).toBeLessThan(
+      DARK,
+    );
+    expect(await backgroundLuminance(page.getByRole("list", { name: "Moves" }))).toBeLessThan(
+      DARK,
+    );
+    expect(await backgroundLuminance(page.getByRole("region", { name: "Chat" }))).toBeLessThan(
+      DARK,
+    );
+  });
+});
+
 test.describe("with reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
 

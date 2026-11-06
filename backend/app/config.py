@@ -54,6 +54,8 @@ class Settings:
     giphy_base_url: str = "https://api.giphy.com"
     # HTML presentations (spec 013): how long an away host keeps the role (FR-16, FR-26).
     present_host_grace_seconds: float = 60.0
+    # Chess (spec 014): how long an opponent must be away before a claim is possible (FR-33).
+    chess_abandon_seconds: float = 120.0
 
 
 def load_settings(env: Mapping[str, str] | None = None) -> Settings:
@@ -82,6 +84,7 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         giphy_api_key=env.get("GIPHY_API_KEY") or None,
         giphy_base_url=env.get("GIPHY_BASE_URL") or "https://api.giphy.com",
         present_host_grace_seconds=_positive_float(env, "PRESENT_HOST_GRACE_SECONDS", default=60.0),
+        chess_abandon_seconds=_positive_float(env, "CHESS_ABANDON_SECONDS", default=120.0),
     )
 
 

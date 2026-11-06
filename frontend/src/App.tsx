@@ -1,6 +1,8 @@
 import { type ReactNode, useState } from "react";
 import { Route, Routes, useParams } from "react-router";
 import { RequireRole } from "./auth/RequireRole";
+import { ChessSessionWindow } from "./games/chess/ChessSessionWindow";
+import { GamesWindow } from "./games/GamesWindow";
 import { LearningSessionWindow } from "./learn/LearningSessionWindow";
 import { LearnWindow } from "./learn/LearnWindow";
 import { NotFound } from "./pages/NotFound";
@@ -68,6 +70,8 @@ function AppShell() {
         <Route path="/learn/s/:invite" element={<LearningSessionWindow />} />
         <Route path="/present" element={<PresentWindow />} />
         <Route path="/present/s/:invite" element={<PresentSessionWindow />} />
+        <Route path="/games" element={<GamesWindow />} />
+        <Route path="/games/chess/s/:invite" element={<ChessSessionWindow />} />
         <Route path="/profile" element={<ProfileWindow />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

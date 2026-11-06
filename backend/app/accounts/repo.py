@@ -1,5 +1,5 @@
 """Account reads and writes (spec 012 plan.md "Python signatures"): the recent-sessions
-list across the three session kinds, hiding a session, and account preferences. FR-2, FR-4,
+list across the four session kinds, hiding a session, and account preferences. FR-2, FR-4,
 FR-12, FR-13, FR-15, FR-16, NFR-1, NFR-4.
 
 Every query is keyed by the caller's `account_sub` and driven by each participant table's
@@ -12,7 +12,7 @@ from typing import Literal
 
 import asyncpg
 
-Kind = Literal["coding", "learning", "presentation"]
+Kind = Literal["coding", "learning", "presentation", "chess"]
 Appearance = Literal["light", "dark", "system"]
 
 
@@ -51,6 +51,12 @@ select 'presentation', ps.invite_id, pres.title, ps.last_activity_at,
   join presentation_version pv on pv.id = ps.version_id
   join presentation pres on pres.id = pv.presentation_id
  where p.account_sub = $1 and p.hidden_at is null
+union all
+select 'chess', cs.invite_id, 'Chess', cs.last_activity_at,
+       cs.stale_at is not null, false
+  from chess_participant p
+  join chess_session cs on cs.id = p.session_id
+ where p.account_sub = $1 and p.hidden_at is null and cs.deleted_at is null
 order by last_activity_at desc, invite_id
 """
 
@@ -66,6 +72,7 @@ _TABLES: dict[str, tuple[str, str]] = {
     "coding": ("participant", "session"),
     "learning": ("learning_participant", "learning_session"),
     "presentation": ("presentation_participant", "presentation_session"),
+    "chess": ("chess_participant", "chess_session"),
 }
 
 

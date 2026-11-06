@@ -58,6 +58,12 @@ interface Screen {
   open(page: Page, request: APIRequestContext, users: Users): Promise<void>;
 }
 
+async function createChessSession(request: APIRequestContext): Promise<string> {
+  const created = await request.post("/api/games/chess/sessions");
+  expect(created.status()).toBe(201);
+  return ((await created.json()) as { invite_id: string }).invite_id;
+}
+
 const SCREENS: Screen[] = [
   {
     name: "problems",
@@ -121,6 +127,25 @@ const SCREENS: Screen[] = [
       await page.goto("/profile?from=%2F");
       await expect(page.getByRole("region", { name: "Preferences" })).toBeVisible();
       await expect(page.getByRole("button", { name: /^Hide / }).first()).toBeVisible();
+    },
+  },
+  {
+    // Spec 014 NFR-5: the games catalogue.
+    name: "games",
+    async open(page) {
+      await page.goto("/games");
+      await expect(page.getByRole("button", { name: "Start Chess" })).toBeVisible();
+    },
+  },
+  {
+    // Spec 014 NFR-5: a chess session with the board showing, seated and with a move made.
+    name: "chess session",
+    async open(page, request) {
+      await page.goto(`/games/chess/s/${await createChessSession(request)}`);
+      await page.getByLabel("Your name").fill("Ada");
+      await page.getByRole("button", { name: "Join" }).click();
+      await expect(page.getByRole("grid", { name: "Chess board" })).toBeVisible();
+      await expect(page.getByRole("gridcell")).toHaveCount(64);
     },
   },
   {

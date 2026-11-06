@@ -10,12 +10,14 @@ const KIND_LABEL: Record<RecentSession["kind"], string> = {
   coding: "Coding",
   learning: "Learning",
   presentation: "Presentation",
+  chess: "Chess",
 };
 
 const KIND_ROUTE: Record<RecentSession["kind"], string> = {
   coding: "/s/",
   learning: "/learn/s/",
   presentation: "/present/s/",
+  chess: "/games/chess/s/",
 };
 
 /** "just now", "5 minutes ago", "1 day ago": how long ago, in the largest whole unit. */

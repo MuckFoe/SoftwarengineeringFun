@@ -1,0 +1,42 @@
+.title {
+  margin: 0;
+  font: var(--type-headline) var(--font-text);
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.content {
+  padding: var(--space-4) var(--space-6);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.game {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--separator);
+}
+
+.text {
+  flex: 1;
+}
+
+.name {
+  margin: 0;
+  font: var(--type-body) var(--font-text);
+  font-weight: 600;
+}
+
+.description {
+  margin: 0;
+  color: var(--label-secondary);
+}

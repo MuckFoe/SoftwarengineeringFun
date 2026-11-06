@@ -16,7 +16,7 @@ export type Me =
 
 /** One row of GET /api/me/sessions (spec 012 FR-2), newest activity first. */
 export interface RecentSession {
-  kind: "coding" | "learning" | "presentation";
+  kind: "coding" | "learning" | "presentation" | "chess";
   invite_id: string;
   title: string;
   last_activity_at: string;

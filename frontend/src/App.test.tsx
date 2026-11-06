@@ -179,3 +179,17 @@ describe("App shell (spec 003)", () => {
     expect(appearance()).toBe("dark");
   });
 });
+
+describe("games routes (spec 014)", () => {
+  it("/games renders the games window", async () => {
+    stubServer();
+    renderRoute("/games");
+    expect(await screen.findByRole("heading", { name: "Games" })).toBeTruthy();
+  });
+
+  it("/games/chess/s/:invite renders the chess session window", async () => {
+    stubServer();
+    renderRoute("/games/chess/s/abc");
+    expect(await screen.findByText("This session no longer exists")).toBeTruthy();
+  });
+});

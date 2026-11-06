@@ -6,6 +6,7 @@ const AREAS = [
   { to: "/", title: "Problems" },
   { to: "/learn", title: "Learn" },
   { to: "/present", title: "Present" },
+  { to: "/games", title: "Games" },
 ] as const;
 
 const under = (pathname: string, area: string) =>
@@ -20,7 +21,7 @@ function currentArea(pathname: string): string {
 }
 
 /**
- * The sidebar's area switch (FR-1): Problems, Learn and Present, the current one marked with
+ * The sidebar's area switch (FR-1): Problems, Learn, Present and Games, the current one marked with
  * `aria-current` and the accent, like a selected source-list row.
  */
 export function AreaNav() {

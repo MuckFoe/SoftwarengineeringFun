@@ -30,6 +30,17 @@ describe("AreaNav (FR-1)", () => {
     );
   });
 
+  // Spec 014 AC-1: Games is in the main navigation.
+  it("links to Games at /games and marks it current under /games", () => {
+    const nav = renderAt("/games/chess/s/x");
+    const games = within(nav).getByRole("link", { name: "Games" });
+    expect(games.getAttribute("href")).toBe("/games");
+    expect(games.getAttribute("aria-current")).toBe("page");
+    expect(
+      within(nav).getByRole("link", { name: "Problems" }).getAttribute("aria-current"),
+    ).toBeNull();
+  });
+
   // Spec 013: the Present area is current anywhere under /present.
   it.each(["/present", "/present/s/x"])("marks Present current at %s", (path) => {
     renderAt(path);

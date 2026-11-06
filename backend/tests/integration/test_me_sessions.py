@@ -57,7 +57,8 @@ async def client(keycloak: Keycloak, database_url: str) -> AsyncIterator[TestCli
         await conn.execute(
             """update presentation_session set host_participant_id = null;
                truncate participant, session_problem, session, learning_participant,
-                        learning_session, presentation_participant, presentation_session
+                        learning_session, presentation_participant, presentation_session,
+                        chess_participant, chess_session
                         cascade"""
         )
     finally:
@@ -322,3 +323,104 @@ def test_nfr1_signed_out_is_401_and_route_takes_no_parameters(client: TestClient
     assert response.status_code == 401
     operation = client.get("/openapi.json").json()["paths"]["/api/me/sessions"]["get"]
     assert not operation.get("parameters")
+
+
+# --- spec 014 FR-31, FR-34 --------------------------------------------------------------------
+
+
+async def _chess(conn: asyncpg.Connection, sub: str, at: datetime) -> tuple[str, uuid.UUID]:
+    invite = _invite()
+    session_id = await conn.fetchval(
+        "insert into chess_session (invite_id, last_activity_at) values ($1, $2) returning id",
+        invite,
+        at,
+    )
+    await conn.execute(
+        """insert into chess_participant (session_id, display_name, rejoin_token_hash,
+                                         account_sub)
+           values ($1, 'x', $2, $3)""",
+        session_id,
+        uuid.uuid4().hex,
+        sub,
+    )
+    return invite, session_id
+
+
+async def test_014_ac28_chess_sessions_are_listed_with_kind_chess(
+    client: TestClient,
+    db_conn: asyncpg.Connection,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    me = _sub("newuser")
+    c1, _ = await _chess(db_conn, me, NOW)
+    c2, c2_id = await _chess(db_conn, me, NOW - timedelta(hours=1))
+    await db_conn.execute("update chess_session set stale_at = now() where id = $1", c2_id)
+    jar = signed_in_jar(client, "newuser")
+
+    rows = _list(client, jar)
+
+    assert rows == [
+        {
+            "kind": "chess",
+            "invite_id": c1,
+            "title": "Chess",
+            "last_activity_at": NOW.isoformat(),
+            "stale": False,
+            "hosted_by_me": False,
+        },
+        {
+            "kind": "chess",
+            "invite_id": c2,
+            "title": "Chess",
+            "last_activity_at": (NOW - timedelta(hours=1)).isoformat(),
+            "stale": True,
+            "hosted_by_me": False,
+        },
+    ]
+
+
+async def test_014_ac34_deleted_and_hidden_chess_sessions_are_gone_for_every_account(
+    client: TestClient,
+    db_conn: asyncpg.Connection,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    me, someone = _sub("newuser"), _sub("other")
+    gone, gone_id = await _chess(db_conn, me, NOW)
+    await db_conn.execute(
+        """insert into chess_participant (session_id, display_name, rejoin_token_hash,
+                                         account_sub)
+           values ($1, 'y', $2, $3)""",
+        gone_id,
+        uuid.uuid4().hex,
+        someone,
+    )
+    _, hidden_id = await _chess(db_conn, me, NOW)
+    kept, _ = await _chess(db_conn, me, NOW - timedelta(minutes=1))
+    await db_conn.execute(
+        "update chess_participant set hidden_at = now() where session_id = $1", hidden_id
+    )
+    mine, theirs = signed_in_jar(client, "newuser"), signed_in_jar(client, "other")
+    assert gone in {r["invite_id"] for r in _list(client, mine)}
+    assert gone in {r["invite_id"] for r in _list(client, theirs)}
+
+    await db_conn.execute(
+        "update chess_session set deleted_at = now(), deleted_reason = 'admin' where id = $1",
+        gone_id,
+    )
+
+    assert [r["invite_id"] for r in _list(client, mine)] == [kept]
+    assert _list(client, theirs) == []
+
+
+async def test_014_hide_accepts_the_chess_kind(
+    client: TestClient,
+    db_conn: asyncpg.Connection,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    from app.accounts import repo
+
+    me = _sub("newuser")
+    invite, _ = await _chess(db_conn, me, NOW)
+
+    assert await repo.hide(db_conn, me, "chess", invite) is True
+    assert _list(client, signed_in_jar(client, "newuser")) == []

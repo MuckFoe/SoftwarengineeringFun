@@ -42,6 +42,21 @@ const S1: RecentSession = {
   hosted_by_me: false,
 };
 
+const C1: RecentSession = {
+  kind: "chess",
+  invite_id: "c1invite",
+  title: "Chess with Sam",
+  last_activity_at: ago(HOUR),
+  stale: false,
+  hosted_by_me: true,
+};
+const C2: RecentSession = {
+  ...C1,
+  invite_id: "c2invite",
+  title: "Chess club",
+  hosted_by_me: false,
+};
+
 function stubServer(sessions: RecentSession[], me?: Me) {
   const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), "http://localhost");
@@ -77,6 +92,21 @@ afterEach(() => {
 });
 
 describe("ProfileSessions", () => {
+  it("AC-28 (FR-31): chess sessions are labelled Chess and link to their chess route", async () => {
+    renderSessions([C1, C2]);
+    const rows = await bodyRows();
+    expect(rows).toHaveLength(2);
+    for (const [row, c] of [
+      [rows[0] as HTMLElement, C1],
+      [rows[1] as HTMLElement, C2],
+    ] as const) {
+      expect(within(row).getAllByRole("cell")[0]?.textContent).toBe("Chess");
+      expect(within(row).getByRole("link", { name: c.title }).getAttribute("href")).toBe(
+        `/games/chess/s/${c.invite_id}`,
+      );
+    }
+  });
+
   it("FR-2: lists P1, L1, S1 in the given order with kind, title, last activity and status", async () => {
     renderSessions([P1, L1, S1]);
     const table = await screen.findByRole("table", { name: "Sessions" });

@@ -1,0 +1,55 @@
+.title {
+  margin: 0;
+  font: var(--type-headline) var(--font-text);
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+}
+
+.joinForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 18rem;
+}
+
+.layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.chat {
+  width: 20rem;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-inline-start: 1px solid var(--separator);
+}
+
+.frozen {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
