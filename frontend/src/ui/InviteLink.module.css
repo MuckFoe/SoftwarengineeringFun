@@ -1,4 +1,4 @@
-/* Spec 015 task 37 (FR-12): invite link field with its copy button beside it. */
+/* Spec 016 task 19 (FR-14): invite link field with its copy button beside it. */
 .invite {
   position: relative;
   display: flex;
@@ -34,10 +34,22 @@
 .input:focus-visible {
   outline: 2px solid var(--focus);
 }
-.toast {
+.status {
   position: absolute;
   top: 100%;
   left: 0;
   margin-top: var(--space-8);
-  z-index: 1;
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+  color: var(--form-text);
+}
+.hidden {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }

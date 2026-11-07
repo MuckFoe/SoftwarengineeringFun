@@ -87,6 +87,7 @@ describe("ProblemsWindow's sidebar", () => {
         </MemoryRouter>
       </ShortcutsProvider>,
     );
-    expect(await screen.findByRole("tab", { name: "Learn" })).toBeTruthy();
+    expect(await screen.findByRole("toolbar", { name: "Problems" })).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "Learn" })).toBeNull();
   });
 });

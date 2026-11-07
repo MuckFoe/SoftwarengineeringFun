@@ -31,6 +31,7 @@ import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { Hud } from "../ui/Hud";
 import { InlineMessage } from "../ui/InlineMessage";
+import { LiveBadge } from "../ui/LiveBadge";
 import { BottomPanel, Inspector } from "../ui/Panels";
 import { Sidebar, SidebarSection } from "../ui/Sidebar";
 import { TextField } from "../ui/TextField";
@@ -562,6 +563,7 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
               <ProblemSourceList provider={provider} currentProblemId={problem.id} />
             </SidebarSection>
             <SidebarSection title="Participants">
+              {joined.participants.length > 1 && <LiveBadge />}
               <PresenceList participants={joined.participants} />
             </SidebarSection>
           </Sidebar>

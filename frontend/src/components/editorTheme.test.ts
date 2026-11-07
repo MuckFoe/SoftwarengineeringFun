@@ -83,7 +83,8 @@ describe("editor theme", () => {
     for (const n of ["editor comment", "editor keyword", "editor string", "editor number"]) {
       expect(names).toContain(n);
     }
-    const number = PAIRS.find((p) => p.name === "editor number")!;
+    const number = PAIRS.find((p) => p.name === "editor number");
+    if (!number) throw new Error("no editor number pair");
     for (const a of APPEARANCES) {
       expect(
         contrastRatio(colourOf(number.fg as string, a), colourOf(number.bg, a)),

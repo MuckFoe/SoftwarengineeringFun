@@ -145,10 +145,9 @@ describe("LearnWindow", () => {
     expect(pathname()).toBe("/learn");
   });
 
-  it("FR-1: the header has the Areas tabs with Learn current", async () => {
+  it("FR-1: the header no longer carries the Areas tabs (the dock does, 016 FR-16)", async () => {
     await renderWindow();
-    expect(screen.getByRole("tab", { name: "Learn" }).getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByRole("tab", { name: "Problems" })).toBeTruthy();
+    expect(screen.queryAllByRole("tab")).toHaveLength(0);
   });
 
   it("FR-27: an admin sees the stale learning sessions, from the learn endpoint", async () => {

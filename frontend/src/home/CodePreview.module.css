@@ -1,0 +1,16 @@
+.preview {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  max-height: 6.5rem;
+  overflow: hidden;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--ui-stroke);
+  pointer-events: none;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(to bottom, var(--text) 40%, transparent);
+  mask-image: linear-gradient(to bottom, var(--text) 40%, transparent);
+}

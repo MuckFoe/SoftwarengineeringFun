@@ -32,7 +32,7 @@ from app.problems import repo as problems_repo
 from app.problems.markdown import render_description
 from app.runs import repo as runs_repo
 from app.runs.repo import Run, RunInProgress
-from app.runs.service import RunResult
+from app.runs.service import RunResult, examples_counts
 from app.scratch import manager as scratch_manager
 from app.sessions import collab, service
 from app.sessions import hub as hub_module
@@ -209,6 +209,7 @@ def _problem_dict(problem: problems_repo.ProblemPublic, base_path: str) -> dict:
 def _run_result_dict(last_run: Run | None, accepted: bool) -> dict | None:
     if last_run is None:
         return None
+    examples_passed, examples_total = examples_counts(last_run.results)
     return {
         "run_id": str(last_run.id),
         "problem_id": str(last_run.problem_id),
@@ -222,6 +223,8 @@ def _run_result_dict(last_run: Run | None, accepted: bool) -> dict | None:
             }
             for r in last_run.results
         ],
+        "examples_passed": examples_passed,
+        "examples_total": examples_total,
     }
 
 
@@ -258,6 +261,10 @@ def _run_finished_dict(problem_id: uuid.UUID, result: RunResult) -> dict:
             }
             for r in result.results
         ],
+        "duration_ms": result.duration_ms,
+        "memory_kb": result.memory_kb,
+        "examples_passed": result.examples_passed,
+        "examples_total": result.examples_total,
     }
 
 

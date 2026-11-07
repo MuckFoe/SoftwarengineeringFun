@@ -29,6 +29,7 @@ from app.games.chess.api import router as chess_router
 from app.games.chess.ws import router as chess_ws_router
 from app.gifs.giphy import GiphyClient
 from app.gifs.ratelimit import POSTS_PER_MINUTE, SEARCHES_PER_MINUTE, SlidingWindowLimiter
+from app.home.api import router as home_router
 from app.learn import stale as learn_stale
 from app.learn.api import router as learn_router
 from app.learn.ws import router as learn_ws_router
@@ -143,6 +144,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(present_router)
     app.include_router(present_ws_router)
     app.include_router(accounts_router)
+    app.include_router(home_router)
     app.include_router(games_router)
     app.include_router(chess_router)
     app.include_router(chess_ws_router)

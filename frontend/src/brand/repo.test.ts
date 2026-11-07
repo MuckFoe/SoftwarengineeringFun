@@ -27,6 +27,19 @@ describe("repository contains no Audi brand assets (FR-11, licensing)", () => {
     });
     expect(names).toEqual([]);
   });
+  it("tracks no Audi icon file (svg/ico under a brand icons dir, or named audi*)", () => {
+    const icons = tracked.filter((p) => {
+      const base = p.split("/").pop() ?? "";
+      return (
+        (/\.(svg|ico)$/i.test(base) && (/^audi/i.test(base) || /\/brand\/icons\//.test(p))) ||
+        /^frontend\/public\/brand\//.test(p)
+      );
+    });
+    expect(icons).toEqual([]);
+  });
+  it("tracks no Audi Type font by name", () => {
+    expect(tracked.filter((p) => /audi.?type/i.test(p.split("/").pop() ?? ""))).toEqual([]);
+  });
   it.each([".gitignore", ".dockerignore"])("%s lists brand-assets/", (f) => {
     const lines = readFileSync(join(ROOT, f), "utf8")
       .split("\n")

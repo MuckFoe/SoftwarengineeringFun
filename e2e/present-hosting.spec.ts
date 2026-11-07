@@ -1,12 +1,12 @@
 // Spec 013 task 28: hosting a presentation session end to end, on the production compose stack
-// with its real 60 s host grace (plan.md "Hosting"). Each participant is a separate browser
+// with its real host grace, shortened to 10 s for e2e (plan.md "Hosting"). Each participant is a separate browser
 // context; closing a tab is page.close() and reopening is a new page in the same context, so
 // the rejoin token in localStorage brings the same participant back (FR-16, FR-28).
 // Covers AC-15 (host away, returns within the grace), AC-15b (hand-over), AC-15c (host gone
-// for the grace: the longest-connected participant hosts — one test, ~61 s real time),
+// for the grace: the longest-connected participant hosts — one test, ~grace real time),
 // AC-15e (the former host returns as a follower) and AC-15f (everyone leaves, a newcomer
 // within the grace sees the last slide and the host). AC-15d stays at integration level
-// (test_present_hosting.py), which avoids a second 60 s wait.
+// (test_present_hosting.py), which avoids a second wait.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { APIRequestContext, Browser, BrowserContext, Page } from "@playwright/test";
@@ -17,8 +17,12 @@ const DECK = readFileSync(
   "utf-8",
 );
 const SLIDES = 4;
-/** The production grace (Settings.present_host_grace_seconds), unset in docker-compose.yml. */
-const GRACE_MS = 60_000;
+/**
+ * The stack's host grace (Settings.present_host_grace_seconds): global-setup.ts writes 10 s to
+ * .env so this test need not wait the production default of 60 s.
+ */
+const GRACE_MS =
+  Number(/^PRESENT_HOST_GRACE_SECONDS=(\d+(?:\.\d+)?)$/m.exec(readFileSync(path.join(REPO_ROOT, ".env"), "utf-8"))?.[1] ?? 60) * 1000;
 
 /** An editor adds the four-slide deck; anyone then starts a session on it. Returns the invite. */
 async function startSession(
@@ -115,7 +119,7 @@ async function closeAll(pages: Page[]): Promise<void> {
   for (const page of pages) await page.context().close();
 }
 
-test("AC-15: the host closes the tab, followers stay and are told; she returns within 60 s and still hosts", async ({
+test("AC-15: the host closes the tab, followers stay and are told; she returns within the grace and still hosts", async ({
   browser,
   request,
   keycloak,
@@ -190,10 +194,10 @@ test("AC-15b, AC-15f: hand-over to Cleo; Ana can no longer lead; a newcomer afte
 });
 
 test.describe("host gone for the grace", () => {
-  // The one real-time wait: the production grace is 60 s (AC-15c).
-  test.describe.configure({ timeout: 3 * 60_000 });
+  // The one real-time wait: the stack's host grace (AC-15c).
+  test.describe.configure({ timeout: GRACE_MS + 20_000 });
 
-  test("AC-15c, AC-15e: after 60 s Ben (joined first) hosts and the place is kept; Ana returns as a follower", async ({
+  test("AC-15c, AC-15e: after the grace Ben (joined first) hosts and the place is kept; Ana returns as a follower", async ({
     browser,
     request,
     keycloak,

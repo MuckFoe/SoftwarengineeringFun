@@ -59,7 +59,7 @@
   position: absolute;
   width: 28%;
   height: 28%;
-  border-radius: 50%;
+  border-radius: var(--radius-max);
   background: var(--highlight);
 }
 

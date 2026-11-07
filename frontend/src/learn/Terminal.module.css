@@ -1,9 +1,9 @@
 .terminal {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--ui-stroke);
-  border-radius: var(--radius-0);
-  background: var(--canvas);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--surface-2);
   color: var(--text);
   font-family: var(--font-mono);
 }
@@ -37,7 +37,7 @@
   align-items: center;
   gap: var(--space-8);
   padding: var(--space-4) var(--space-8);
-  border-top: 1px solid var(--ui-stroke);
+  background: var(--surface-1);
 }
 
 .prompt {

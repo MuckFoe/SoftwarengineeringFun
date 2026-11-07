@@ -11,19 +11,19 @@ function rule(selector: string): string {
   const esc = selector.replace(/[.[\]="()-]/g, "\\$&");
   const m = new RegExp(`(?:^|[}\\s,])${esc}\\s*(?:,[^{]*)?\\{([^}]*)\\}`).exec(css);
   if (!m) throw new Error(`no rule ${selector}`);
-  return m[1]!;
+  return m[1] ?? "";
 }
 
 describe("ChatBubble", () => {
   it("renders author, time and unchanged children", () => {
     render(
       <ChatBubble author="Ada" time="10:42" own={false}>
-        <a href="https://x.test">link</a>
+        <a href="https://x.test">docs</a>
       </ChatBubble>,
     );
     expect(screen.getByText("Ada")).toBeTruthy();
     expect(screen.getByText("10:42")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "link" }).getAttribute("href")).toBe("https://x.test");
+    expect(screen.getByRole("link", { name: "docs" }).getAttribute("href")).toBe("https://x.test");
   });
 
   it("marks own vs other", () => {
@@ -33,17 +33,32 @@ describe("ChatBubble", () => {
     expect(container.firstElementChild?.getAttribute("data-own")).toBe("true");
   });
 
-  it("other: neutral-700 fill, text colour, radius 0", () => {
+  const radii = (sel: string) => {
+    const m = /border-radius:\s*([^;]+);/.exec(rule(sel));
+    expect(m, sel).toBeTruthy();
+    return (m?.[1] ?? "").trim().split(/\s+/);
+  };
+
+  it("other: neutral surface, text colour, three equal radii and one pointed corner", () => {
     const r = rule(".chat-bubble");
-    expect(r).toMatch(/background:\s*var\(--neutral-700\)/);
+    expect(r).toMatch(/background:\s*var\(--surface-2\)/);
+    expect(r).not.toMatch(/--accent/);
     expect(r).toMatch(/color:\s*var\(--text\)/);
-    expect(r).toMatch(/border-radius:\s*var\(--radius-0\)|border-radius:\s*0\b/);
+    const v = radii(".chat-bubble");
+    expect(v).toHaveLength(4);
+    expect(v.filter((x) => x === "var(--radius-card)")).toHaveLength(3);
+    expect(v.filter((x) => x === "var(--radius-xs)")).toHaveLength(1);
   });
 
-  it("own: primary fill and text", () => {
+  it("own: accent fill, on-accent text, pointed corner on the other side", () => {
     const r = rule('.chat-bubble[data-own="true"]');
-    expect(r).toMatch(/background:\s*var\(--action-primary-fill\)/);
-    expect(r).toMatch(/color:\s*var\(--action-primary-text\)/);
+    expect(r).toMatch(/background:\s*var\(--accent\)/);
+    expect(r).toMatch(/color:\s*var\(--on-accent\)/);
+    const v = radii('.chat-bubble[data-own="true"]');
+    expect(v.filter((x) => x === "var(--radius-card)")).toHaveLength(3);
+    expect(v.indexOf("var(--radius-xs)")).not.toBe(
+      radii(".chat-bubble").indexOf("var(--radius-xs)"),
+    );
   });
 
   it("has no tail and time uses form caption", () => {
@@ -55,8 +70,9 @@ describe("ChatBubble", () => {
     for (const name of ["chat bubble other", "chat bubble own"]) {
       const p = PAIRS.find((x) => x.name === name);
       expect(p, name).toBeTruthy();
+      if (!p) throw new Error(name);
       for (const a of APPEARANCES) {
-        expect(evaluatePair(p!, a).ratio).toBeGreaterThanOrEqual(THRESHOLD[p!.kind]);
+        expect(evaluatePair(p, a).ratio).toBeGreaterThanOrEqual(THRESHOLD[p.kind]);
       }
     }
   });

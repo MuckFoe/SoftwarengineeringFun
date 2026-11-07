@@ -92,6 +92,7 @@ describe("SHORTCUTS", () => {
         "previousProblem",
         "copyInviteLink",
         "appearance",
+        "jump",
         "shortcutList",
       ]),
     );

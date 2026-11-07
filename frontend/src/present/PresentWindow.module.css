@@ -17,7 +17,8 @@
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0 var(--space-4);
   font-family: var(--font-copy);
   font-size: var(--fs-copy-2);
   line-height: var(--lh-copy-2);
@@ -25,7 +26,6 @@
 
 .table thead th {
   padding: var(--space-8) var(--space-12);
-  border-bottom: 1px solid var(--divider);
   text-align: left;
   font-weight: 700;
   color: var(--text-interactive);
@@ -34,11 +34,19 @@
 .table td,
 .table tbody th {
   padding: var(--space-8) var(--space-12);
-  border-bottom: 1px solid var(--divider);
+  background: var(--surface-2);
 }
 
-.table tbody tr:hover {
-  background: var(--neutral-700);
+.table tbody th {
+  border-radius: var(--radius-pill) 0 0 var(--radius-pill);
+}
+
+.table tbody td:last-child {
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+}
+
+.table tbody tr:hover > * {
+  background: var(--surface-3);
 }
 
 .titleCell {

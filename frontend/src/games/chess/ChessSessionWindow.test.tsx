@@ -146,11 +146,11 @@ describe("ChessSessionWindow", () => {
     await screen.findByLabelText("Your name");
     const link = `${window.location.origin}/games/chess/s/abc`;
     expect((screen.getByLabelText("Invite link") as HTMLInputElement).value).toBe(link);
-    expect(screen.getByRole("button", { name: "Copy invite link" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Copy link" })).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Your name"), { target: { value: "Zed" } });
     fireEvent.click(screen.getByRole("button", { name: "Join" }));
     await joined();
-    expect(screen.getByRole("button", { name: "Copy invite link" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Copy link" })).toBeTruthy();
   });
 
   // AC-3 (FR-4)

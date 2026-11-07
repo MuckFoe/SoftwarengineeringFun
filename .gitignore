@@ -1,6 +1,7 @@
 .DS_Store
 .env
 e2e/.keycloak-state.json
+e2e/.stack-fingerprint
 __pycache__/
 *.pyc
 .venv/
@@ -15,3 +16,4 @@ e2e/test-results/
 brand-assets/
 261030_Audi_Figma_UI-Kit_and_Icons/
 .DS_Store
+e2e/.session-cookies.json

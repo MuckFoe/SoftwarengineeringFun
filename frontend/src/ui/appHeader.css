@@ -9,6 +9,62 @@
   background: var(--canvas);
   color: var(--text-interactive);
   border-bottom: 1px solid var(--divider);
+  position: relative;
+}
+
+/* Static vent texture, faded out towards the bottom (016 FR-2). */
+.app-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, var(--surface-2) 0 1px, transparent 1px 8px);
+  opacity: 0.6;
+  -webkit-mask-image: linear-gradient(to bottom, var(--canvas), transparent);
+  mask-image: linear-gradient(to bottom, var(--canvas), transparent);
+}
+
+.app-header > * {
+  position: relative;
+}
+
+/* Light line under the header; the sweep moves by transform only, and only when live. */
+.app-header > .app-header-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.app-header-sweep {
+  display: block;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  transform: translateX(-100%);
+  animation-name: none;
+}
+
+.app-header.is-live .app-header-sweep {
+  animation: header-sweep calc(var(--motion-sweep) * 4) linear infinite;
+}
+
+@keyframes header-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-header.is-live .app-header-sweep {
+    animation: none;
+  }
 }
 
 .app-header-controls {
@@ -49,7 +105,7 @@
   height: var(--space-32);
   padding: 0;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text-interactive);
   cursor: pointer;

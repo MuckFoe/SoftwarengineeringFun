@@ -2,7 +2,7 @@
   display: inline-flex;
   padding: 2px;
   gap: 2px;
-  border-radius: var(--radius-0);
+  border-radius: var(--radius-pill);
   background: var(--neutral-700);
 }
 
@@ -10,12 +10,12 @@
   min-height: 20px;
   padding: 0 var(--space-12);
   border: none;
-  border-radius: var(--radius-0);
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text-interactive);
   font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
   font-family: var(--font-copy);
-  transition: background-color var(--dur-fast, 150ms) ease-out;
+  transition: background-color var(--dur-fast) ease-out;
 }
 
 .segment[aria-checked="true"] {

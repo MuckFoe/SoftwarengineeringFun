@@ -1,4 +1,4 @@
-/* Spec 015 task 13 (plan 1.7): Audi button. Radius 0, tokens only. Replaces the spec-003 push button in place. */
+/* Spec 016 task 4 (FR-7, FR-11): v2 pill button, tokens only. */
 
 .button {
   display: inline-flex;
@@ -8,7 +8,7 @@
   box-sizing: border-box;
   padding: 0 var(--space-16);
   border: var(--bw-1) solid transparent;
-  border-radius: var(--radius-0);
+  border-radius: var(--radius-pill);
   font-family: var(--font-copy);
   font-size: 16px;
   line-height: 24px;
@@ -16,9 +16,10 @@
   cursor: pointer;
   user-select: none;
   transition:
-    background-color var(--dur-fast) var(--ease-audi),
-    border-color var(--dur-fast) var(--ease-audi),
-    color var(--dur-fast) var(--ease-audi);
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease,
+    color var(--motion-fast) ease;
 }
 
 .button:focus-visible {
@@ -58,47 +59,111 @@
   min-width: 144px;
 }
 
+/* Primary: solid accent pill with a glow. */
 .primary {
-  background: var(--action-primary-fill);
-  border-color: var(--action-primary-fill);
-  color: var(--action-primary-text);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--glow);
 }
 
 .primary:hover:not(:disabled) {
-  background: var(--action-primary-fill-hover);
-  border-color: var(--action-primary-fill-hover);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.primary:focus-visible {
+  background: var(--accent);
+  box-shadow:
+    0 0 0 var(--bw-2) var(--canvas),
+    0 0 0 var(--bw-focus) var(--focus),
+    var(--glow);
 }
 
 .primary:active:not(:disabled) {
-  background: var(--action-secondary-fill-pressed);
-  border-color: var(--action-secondary-stroke);
-  color: var(--action-text);
+  background: var(--accent-press);
+  border-color: var(--accent-press);
+  box-shadow: none;
 }
 
 .primary:disabled {
-  background: var(--action-primary-fill-disabled);
-  border-color: var(--action-primary-fill-disabled);
-  color: var(--action-primary-text);
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: none;
+  opacity: 0.4;
 }
 
+.primary[data-error] {
+  background: var(--danger);
+  border-color: var(--danger);
+  border-style: dashed;
+}
+
+/* Secondary: outlined pill, no glow. */
 .secondary {
   background: transparent;
-  border-color: var(--action-secondary-stroke);
-  color: var(--action-text);
+  border-color: var(--accent);
+  /* The hover tone as text: --accent itself is 4.32:1 on --surface-2 (needs 4.5:1). */
+  color: var(--accent-hover);
 }
 
 .secondary:hover:not(:disabled) {
-  border-color: var(--action-secondary-stroke-hover);
-  color: var(--action-text-hover);
+  background: var(--surface);
+  border-color: var(--accent-hover);
+  color: var(--accent-press);
+}
+
+.secondary:focus-visible {
+  border-color: var(--focus);
+  color: var(--accent-hover);
 }
 
 .secondary:active:not(:disabled) {
-  background: var(--action-secondary-fill-pressed);
+  background: var(--accent-press);
+  border-color: var(--accent-press);
+  color: var(--on-accent);
 }
 
 .secondary:disabled {
-  border-color: var(--action-secondary-stroke-disabled);
-  color: var(--action-text-disabled);
+  border-color: var(--text-disabled);
+  color: var(--text-disabled);
+}
+
+.secondary[data-error] {
+  border-color: var(--danger);
+  border-style: dashed;
+  color: var(--danger);
+}
+
+/* Danger: outlined in the danger colour, filled when pressed. */
+.danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--surface);
+  border-width: var(--bw-2);
+}
+
+.danger:focus-visible {
+  border-color: var(--focus);
+}
+
+.danger:active:not(:disabled) {
+  background: var(--danger);
+  color: var(--on-accent);
+}
+
+.danger:disabled {
+  border-color: var(--text-disabled);
+  color: var(--text-disabled);
+}
+
+.danger[data-error] {
+  border-style: dashed;
+  background: var(--surface);
 }
 
 .tertiary {
@@ -120,14 +185,7 @@
   color: var(--action-text-disabled);
 }
 
-/* Destructive: a secondary button in the negative signal colour. */
-.destructive,
-.destructive:hover:not(:disabled) {
-  border-color: var(--negative);
-  color: var(--negative);
-}
-
-/* Spec-003 names, applied beside their Audi kind (bordered = secondary, plain = tertiary). */
+/* Spec-003 names, applied beside their kind (bordered = secondary, plain = tertiary). */
 .bordered {
   background: transparent;
 }

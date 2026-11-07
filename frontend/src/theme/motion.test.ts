@@ -40,7 +40,7 @@ describe("motion (styles/motion.css, spec 015 retarget)", () => {
     const durations = [...motion.matchAll(/(\d*\.?\d+)(ms|s)\b/g)].map((m) =>
       m[2] === "s" ? Number(m[1]) * 1000 : Number(m[1]),
     );
-    expect(durations.length).toBeGreaterThan(0);
+    expect(motion).toContain("var(--dur-base)"); // spec 016 task 27: durations are tokens, no literals
     for (const d of durations) expect(d).toBeLessThanOrEqual(300);
   });
 

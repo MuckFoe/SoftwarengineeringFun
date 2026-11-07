@@ -2,7 +2,8 @@
 
 Reads `{code, function_name, cases: [[arg, ...], ...]}` as JSON on stdin and writes one
 JSON line per case, in order, to stdout:
-`{status: "ok"|"error"|"timeout"|"memory", value?, error_message?, traceback?}`.
+`{status: "ok"|"error"|"timeout"|"memory", value?, error_message?, traceback?, memory_kb?,
+duration_ms?}`; the last two (peak RSS of the case process, wall time) are on ok and error only.
 
 Each case runs in a fresh interpreter (`harness.py --case`), given only that case's
 arguments, with output discarded and rlimits applied; the parent enforces the wall-time
@@ -121,7 +122,13 @@ def _case_main() -> None:
     _child(request["code"], request["function_name"], request["args"], out_fd)
 
 
+def _peak_kb(ru_maxrss: int) -> int:
+    """`ru_maxrss` is KB on Linux (the sandbox) and bytes on macOS (local runs)."""
+    return ru_maxrss // 1024 if sys.platform == "darwin" else ru_maxrss
+
+
 def run_case(code: str, function_name: str, args: list) -> dict:
+    started = time.monotonic()
     proc = subprocess.Popen(  # noqa: S603
         [sys.executable, "-I", os.path.abspath(__file__), "--case"],
         stdin=subprocess.PIPE,
@@ -156,16 +163,24 @@ def run_case(code: str, function_name: str, args: list) -> dict:
     proc.stdout.close()
     if timed_out or size > MAX_RESULT_B:
         proc.kill()
-    returncode = proc.wait()
+    # wait4 rather than proc.wait(): it also returns the case process's own resource usage.
+    _, status, usage = os.wait4(proc.pid, 0)
+    proc.returncode = returncode = os.waitstatus_to_exitcode(status)
+    duration_ms = max(1, round((time.monotonic() - started) * 1000))
 
     if timed_out:
         return {"status": "timeout"}
     if size > MAX_RESULT_B:
         return {"status": "error", "error_message": "return value is too large", "traceback": ""}
     try:
-        return json.loads(b"".join(chunks))
+        result = json.loads(b"".join(chunks))
     except ValueError:
         pass
+    else:
+        if isinstance(result, dict) and result.get("status") in ("ok", "error"):
+            result["memory_kb"] = _peak_kb(usage.ru_maxrss)
+            result["duration_ms"] = duration_ms
+        return result
     if returncode < 0:
         sig = -returncode
         if sig == signal.SIGXCPU:

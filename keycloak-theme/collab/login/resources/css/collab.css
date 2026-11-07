@@ -1,5 +1,5 @@
 /*
- * Spec 015 task 24 (was spec 003 FR-18): the sign-in page in the Audi look.
+ * Spec 016 task 25 (was spec 015 task 24, spec 003 FR-18): the sign-in page in the v2 look.
  * The custom properties between tokens:begin and tokens:end are copied from
  * frontend/src/styles/tokens.css (a different origin, so nothing is shared at runtime): the
  * :root block and the dark block, identical, checked by scripts/check-theme-tokens.sh.
@@ -73,13 +73,13 @@
   --fs-h4: 16px;
   --lh-h4: 24px;
   --page-margin: 16px;
-  --canvas: #ffffff;
+  --canvas: #f4f6fa;
   --canvas-inverted: #000000;
   --surface-1: #ffffff;
-  --surface-2: #ffffff;
-  --surface-3: #ffffff;
-  --surface-4: #f2f2f2;
-  --highlight: #eb0d3f;
+  --surface-2: #e9edf4;
+  --surface-3: #dde3ee;
+  --surface-4: #cbd3e2;
+  --highlight: #1f5fff;
   --on-highlight: #ffffff;
   --neutral-100: #000000;
   --neutral-200: #333333;
@@ -89,8 +89,8 @@
   --neutral-600: #e6e6e6;
   --neutral-700: #0000000d;
   --neutral-800: #ffffff;
-  --action-primary-fill: #000000;
-  --action-primary-fill-hover: #4d4d4d;
+  --action-primary-fill: #1f5fff;
+  --action-primary-fill-hover: #1a4fd6;
   --action-primary-fill-disabled: #b3b3b3;
   --action-primary-text: #ffffff;
   --action-secondary-stroke: #000000;
@@ -102,17 +102,17 @@
   --action-text-disabled: #b3b3b3;
   --form-stroke: #666666;
   --form-stroke-active: #000000;
-  --form-stroke-error: #eb0d3f;
+  --form-stroke-error: #c8102e;
   --form-stroke-disabled: #b3b3b3;
   --form-stroke-readonly: #d9d9d9;
   --form-underline: #333333;
   --form-underline-active: #000000;
-  --form-underline-error: #eb0d3f;
+  --form-underline-error: #c8102e;
   --form-underline-disabled: #b3b3b3;
   --form-text: #333333;
   --form-caption: #666666;
   --form-text-active: #000000;
-  --form-text-error: #eb0d3f;
+  --form-text-error: #c8102e;
   --form-text-disabled: #b3b3b3;
   --form-readonly-fill: #d9d9d9;
   --nav-active: #000000;
@@ -128,24 +128,45 @@
   --text-disabled: #b3b3b3;
   --scrim: #000000b2;
   --focus: #0989ff;
-  --negative: #eb0d3f;
+  --negative: #c8102e;
   --success: #0da20d;
   --notice: #ffaa00;
   --intelligent: #007579;
   --neon-blue: #2526fe;
   --board-light: #e6e6e6;
   --board-dark: #808080;
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --text-muted: #4d5566;
+  --accent: #1f5fff;
+  --accent-hover: #1a4fd6;
+  --accent-press: #1540ad;
+  --on-accent: #ffffff;
+  --danger: #c8102e;
+  --edge-light: #ffffffcc;
+  --glow: 0 0 24px 0 rgba(31, 95, 255, 0.45);
+  --radius-pill: 999px;
+  --radius-card: 24px;
+  --motion-fast: 150ms;
+  --motion-sweep: 600ms;
+  --spin-duration: 800ms;
+  --pulse-duration: 1200ms;
+  --z-header: 30;
+  --z-dock: 40;
+  --z-menu: 50;
+  --dock-height: 64px;
+  --bp-narrow: 640px;
 }
 
 :root[data-appearance="dark"] {
-  --canvas: #000000;
+  --canvas: #0a0c11;
   --canvas-inverted: #ffffff;
-  --surface-1: #1a1a1a;
-  --surface-2: #333333;
-  --surface-3: #4d4d4d;
-  --surface-4: #666666;
-  --highlight: #fd2c4e;
-  --on-highlight: #000000;
+  --surface-1: #141821;
+  --surface-2: #1d2330;
+  --surface-3: #28303f;
+  --surface-4: #343e52;
+  --highlight: #6c9bff;
+  --on-highlight: #0a0c11;
   --neutral-100: #ffffff;
   --neutral-200: #e6e6e6;
   --neutral-300: #b3b3b3;
@@ -154,10 +175,10 @@
   --neutral-600: #333333;
   --neutral-700: #ffffff26;
   --neutral-800: #000000;
-  --action-primary-fill: #ffffff;
-  --action-primary-fill-hover: #b3b3b3;
+  --action-primary-fill: #6c9bff;
+  --action-primary-fill-hover: #8ab0ff;
   --action-primary-fill-disabled: #666666;
-  --action-primary-text: #000000;
+  --action-primary-text: #0a0c11;
   --action-secondary-stroke: #ffffff;
   --action-secondary-stroke-hover: #b3b3b3;
   --action-secondary-stroke-disabled: #666666;
@@ -167,17 +188,17 @@
   --action-text-disabled: #666666;
   --form-stroke: #b3b3b3;
   --form-stroke-active: #ffffff;
-  --form-stroke-error: #fd2c4e;
+  --form-stroke-error: #ff6b7d;
   --form-stroke-disabled: #666666;
   --form-stroke-readonly: #4d4d4d;
   --form-underline: #e6e6e6;
   --form-underline-active: #ffffff;
-  --form-underline-error: #fd2c4e;
+  --form-underline-error: #ff6b7d;
   --form-underline-disabled: #666666;
   --form-text: #e6e6e6;
   --form-caption: #b3b3b3;
   --form-text-active: #ffffff;
-  --form-text-error: #fd2c4e;
+  --form-text-error: #ff6b7d;
   --form-text-disabled: #666666;
   --form-readonly-fill: #4d4d4d;
   --nav-active: #ffffff;
@@ -193,33 +214,43 @@
   --text-disabled: #666666;
   --scrim: #000000b2;
   --focus: #0989ff;
-  --negative: #fd2c4e;
+  --negative: #ff6b7d;
   --success: #15da15;
   --notice: #ffaa00;
   --intelligent: #13e0c1;
   --neon-blue: #556efe;
   --board-light: #b3b3b3;
   --board-dark: #4d4d4d;
+  --bg: #0a0c11;
+  --surface: #141821;
+  --text-muted: #a9b1c2;
+  --accent: #6c9bff;
+  --accent-hover: #8ab0ff;
+  --accent-press: #5586f0;
+  --on-accent: #0a0c11;
+  --danger: #ff6b7d;
+  --edge-light: #ffffff40;
+  --glow: 0 0 24px 0 rgba(108, 155, 255, 0.5);
 }
 /* tokens:end */
 
 :root {
   color-scheme: light;
-  accent-color: var(--action-primary-fill);
+  accent-color: var(--accent);
   --pf-v5-global--FontFamily--text: var(--font-copy);
   --pf-v5-global--FontFamily--heading: var(--font-display);
   --pf-v5-global--FontSize--md: var(--fs-copy-2);
-  --pf-v5-global--primary-color--100: var(--action-primary-fill);
-  --pf-v5-global--primary-color--200: var(--action-primary-fill-hover);
-  --pf-v5-global--link--Color: var(--action-text);
-  --pf-v5-global--link--Color--hover: var(--action-text-hover);
-  --pf-v5-global--BackgroundColor--100: var(--surface-1);
+  --pf-v5-global--primary-color--100: var(--accent);
+  --pf-v5-global--primary-color--200: var(--accent-hover);
+  --pf-v5-global--link--Color: var(--accent);
+  --pf-v5-global--link--Color--hover: var(--accent-hover);
+  --pf-v5-global--BackgroundColor--100: var(--surface);
   --pf-v5-global--Color--100: var(--text);
   --pf-v5-global--Color--200: var(--form-caption);
   --pf-v5-global--BorderColor--100: var(--divider);
-  --pf-v5-global--danger-color--100: var(--negative);
-  --pf-v5-global--BorderRadius--sm: var(--radius-0);
-  --pf-v5-global--BorderRadius--lg: var(--radius-0);
+  --pf-v5-global--danger-color--100: var(--danger);
+  --pf-v5-global--BorderRadius--sm: var(--radius-pill);
+  --pf-v5-global--BorderRadius--lg: var(--radius-card);
 }
 
 :root[data-appearance="dark"] {
@@ -229,7 +260,7 @@
 html,
 body#keycloak-bg,
 .login-pf body {
-  background: var(--canvas);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-copy);
   font-size: var(--fs-copy-2);
@@ -254,16 +285,16 @@ div.kc-logo-text {
   line-height: var(--lh-h4);
   font-weight: 700;
   font-stretch: calc(var(--wdth-display) * 1%);
-  color: var(--text-interactive) !important;
+  color: var(--text) !important;
   text-transform: none;
   letter-spacing: normal;
 }
 
 .pf-v5-c-login__main {
-  background: var(--surface-1);
-  border: var(--bw-1) solid var(--divider);
-  border-radius: var(--radius-0);
-  box-shadow: none;
+  background: var(--surface);
+  border: 0;
+  border-radius: var(--radius-card);
+  box-shadow: var(--elev-card), inset 0 1px 0 var(--edge-light);
   color: var(--text);
 }
 
@@ -282,17 +313,17 @@ h2 {
   line-height: var(--lh-h4);
   font-weight: 700;
   font-stretch: calc(var(--wdth-display) * 1%);
-  color: var(--text-interactive);
+  color: var(--text);
 }
 
-/* Fields: square, 1 px stroke, 2 px when active, errors in --form-stroke-error. */
+/* Fields: pill, 1 px stroke, 2 px when active, errors in --form-stroke-error. */
 .pf-v5-c-form-control {
-  --pf-v5-c-form-control--BackgroundColor: var(--canvas);
+  --pf-v5-c-form-control--BackgroundColor: var(--bg);
   --pf-v5-c-form-control--Color: var(--form-text);
-  --pf-v5-c-form-control--BorderRadius: var(--radius-0);
+  --pf-v5-c-form-control--BorderRadius: var(--radius-pill);
   --pf-v5-c-form-control--before--BorderColor: var(--form-stroke);
   --pf-v5-c-form-control--after--BorderColor: transparent;
-  border-radius: var(--radius-0) !important;
+  border-radius: var(--radius-pill) !important;
 }
 
 .pf-v5-c-form-control:focus-within {
@@ -308,7 +339,7 @@ input,
 select,
 textarea,
 button {
-  border-radius: var(--radius-0) !important;
+  border-radius: var(--radius-pill) !important;
   font-family: var(--font-copy);
 }
 
@@ -327,10 +358,10 @@ button {
   color: var(--form-text-error);
 }
 
-/* Buttons: primary is the black (white in dark) fill; secondary is a 1 px stroke. */
+/* Buttons: primary is the accent pill with the glow; secondary is a 1 px stroke. */
 .pf-v5-c-button {
-  --pf-v5-c-button--BorderRadius: var(--radius-0);
-  border-radius: var(--radius-0) !important;
+  --pf-v5-c-button--BorderRadius: var(--radius-pill);
+  border-radius: var(--radius-pill) !important;
   font-family: var(--font-copy);
   font-size: var(--fs-copy-1);
   line-height: var(--lh-copy-1);
@@ -338,33 +369,33 @@ button {
 }
 
 .pf-v5-c-button::after {
-  border-radius: var(--radius-0);
+  border-radius: var(--radius-pill);
 }
 
 .pf-v5-c-button.pf-m-primary {
-  --pf-v5-c-button--m-primary--BackgroundColor: var(--action-primary-fill);
-  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--action-primary-fill-hover);
-  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--action-secondary-fill-pressed);
-  --pf-v5-c-button--m-primary--Color: var(--action-primary-text);
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--accent);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--accent-hover);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--accent-press);
+  --pf-v5-c-button--m-primary--Color: var(--on-accent);
   min-height: 48px;
-  border: var(--bw-1) solid var(--action-primary-fill);
+  border: 0;
+  box-shadow: var(--glow);
 }
 
 .pf-v5-c-button.pf-m-control,
 .pf-v5-c-button.pf-m-secondary {
   --pf-v5-c-button--m-control--BackgroundColor: transparent;
-  --pf-v5-c-button--m-control--Color: var(--action-text);
-  border-color: var(--action-secondary-stroke);
-  color: var(--action-text);
+  --pf-v5-c-button--m-control--Color: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
-.pf-v5-c-button.pf-m-link,
 a {
-  color: var(--action-text);
+  color: var(--accent);
 }
 
 a:hover {
-  color: var(--action-text-hover);
+  color: var(--accent-hover);
 }
 
 .pf-v5-c-button:focus-visible,
@@ -375,9 +406,9 @@ input:focus-visible {
 }
 
 .pf-v5-c-alert {
-  border-radius: var(--radius-0);
-  background: var(--surface-4);
-  border: var(--bw-1) solid var(--negative);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+  border: var(--bw-1) solid var(--danger);
   color: var(--text);
 }
 

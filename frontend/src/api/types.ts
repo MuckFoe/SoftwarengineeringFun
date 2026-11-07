@@ -24,6 +24,8 @@ export interface RecentSession {
   last_activity_at: string;
   stale: boolean;
   hosted_by_me: boolean;
+  /** Spec 016: at least one participant is connected now. Always sent by the API. */
+  live?: boolean;
 }
 
 export interface ProblemSummary {
@@ -202,6 +204,12 @@ export interface RunResult {
   problem_id: string;
   accepted: boolean;
   results: TestResult[];
+  /** Spec 016 FR-17. Only on `run_finished`; absent or null when not measured. */
+  duration_ms?: number | null;
+  memory_kb?: number | null;
+  /** Also on `last_run` after a reload. */
+  examples_passed?: number | null;
+  examples_total?: number | null;
 }
 
 export interface Participant {
@@ -420,4 +428,50 @@ export interface StaleSession {
   lesson_title?: string;
   stale_at: string;
   last_activity_at: string;
+}
+
+/** GET /api/home (spec 017): one live or idle session tile. */
+export interface HomeParticipant {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+}
+
+export interface SessionTile {
+  id: string;
+  /** The invite the session's route takes (/s/:invite and its kin). */
+  invite_id: string;
+  kind: "coding" | "learning" | "presentation";
+  title: string;
+  host: { id: string; name: string };
+  live: boolean;
+  participant_count: number;
+  participants: HomeParticipant[];
+  last_active_at: string | null;
+  has_preview: boolean;
+}
+
+export interface GameTile {
+  id: string;
+  /** The invite the game's route takes (/games/chess/s/:invite). */
+  invite_id: string;
+  title: string;
+  opponent: { id: string; name: string } | null;
+  status: "in_progress" | "waiting";
+  turn: "you" | "opponent" | "none";
+  fen: string;
+}
+
+export interface HomePreview {
+  session_id: string;
+  language: string;
+  excerpt: string;
+}
+
+export interface HomeSnapshot {
+  user: { first_name: string | null; display_name: string | null; username: string };
+  live_participant_count: number | null;
+  sessions: SessionTile[];
+  idle_total: number;
+  games: GameTile[];
 }

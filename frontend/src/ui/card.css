@@ -1,25 +1,38 @@
 .card {
+  position: relative;
+  isolation: isolate;
   display: block;
   box-sizing: border-box;
-  background: var(--surface-1);
+  background: var(--surface);
   color: var(--text);
-  border: 1px solid transparent;
-  border-radius: 0;
+  border: 0;
+  border-radius: var(--radius-card);
   padding: var(--space-16);
-  box-shadow: var(--elev-card);
   text-decoration: none;
 }
 
-[data-appearance="dark"] .card {
-  box-shadow: none;
-  border: 1px solid var(--divider);
+/* Edge light: a 1px masked gradient ring, strongest at the top-left, under the content. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--edge-light), transparent 45%);
+  -webkit-mask:
+    linear-gradient(black 0 0) content-box,
+    linear-gradient(black 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(black 0 0) content-box exclude,
+    linear-gradient(black 0 0);
+  pointer-events: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-appearance]) .card {
-    box-shadow: none;
-    border: 1px solid var(--divider);
-  }
+.card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .card-link {

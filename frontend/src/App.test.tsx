@@ -195,3 +195,133 @@ describe("games routes (spec 014)", () => {
     expect(await screen.findByText("This session no longer exists")).toBeTruthy();
   });
 });
+
+describe("App dock (016 FR-16)", () => {
+  it.each([
+    ["/", "Sessions"],
+    ["/learn", "Learn"],
+    ["/present", "Present"],
+    ["/games", "Games"],
+    ["/nowhere", "Sessions"],
+  ])("mounts the dock once on %s", async (path, current) => {
+    stubServer();
+    renderRoute(path);
+    const nav = await screen.findByRole("navigation", { name: "Areas" });
+    expect(screen.getAllByRole("navigation", { name: "Areas" })).toHaveLength(1);
+    expect(nav.querySelectorAll("a")).toHaveLength(4);
+    const cur = nav.querySelector('[aria-current="page"]');
+    expect(cur?.getAttribute("aria-label") ?? null).toBe(current);
+  });
+
+  it("disables nothing: every area is reachable for a guest today", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) =>
+        String(input) === "/api/me" ? json(200, { signed_in: false, roles: [] }) : json(200, []),
+      ),
+    );
+    renderRoute("/games");
+    const nav = await screen.findByRole("navigation", { name: "Areas" });
+    expect(nav.querySelectorAll('[aria-disabled="true"]')).toHaveLength(0);
+  });
+});
+
+describe("Home landing (spec 017)", () => {
+  const user = { first_name: "Ada", display_name: null, username: "ada" };
+  const idle = {
+    id: "internal-1",
+    invite_id: "abc",
+    kind: "coding",
+    title: "Two sum",
+    host: { id: "h", name: "Ada" },
+    live: false,
+    participant_count: 0,
+    participants: [],
+    last_active_at: null,
+    has_preview: false,
+  };
+
+  function stubHome(snapshot: unknown, signedIn = true, homeStatus = 200) {
+    const fn = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/me") {
+        return json(
+          200,
+          signedIn
+            ? { signed_in: true, name: "ada", roles: ["editor"] }
+            : { signed_in: false, name: null, roles: [] },
+        );
+      }
+      if (url.pathname === "/api/home") return json(homeStatus, snapshot);
+      if (url.pathname === "/api/problems") return json(200, []);
+      if (url.pathname === "/api/me/sessions") return json(200, []);
+      return json(404, { error: "not_found" });
+    });
+    vi.stubGlobal("fetch", fn);
+    return fn;
+  }
+
+  const snapshot = (over: object = {}) => ({
+    user,
+    live_participant_count: 1,
+    sessions: [idle],
+    idle_total: 1,
+    games: [],
+    ...over,
+  });
+
+  it("FR-10: / shows the tiles, and an idle tile opens the session as the old list did", async () => {
+    stubHome(snapshot());
+    renderRoute("/");
+    fireEvent.click(await screen.findByRole("button", { name: /Two sum, hosted by Ada/ }));
+    expect(await screen.findByText("Session not found")).toBeTruthy();
+  });
+
+  it("FR-10: Show more reaches the full sessions list on the profile", async () => {
+    stubHome(snapshot({ idle_total: 9 }));
+    renderRoute("/");
+    fireEvent.click(await screen.findByRole("button", { name: /Show more/ }));
+    expect(await screen.findByRole("heading", { name: "Sessions" })).toBeTruthy();
+  });
+
+  it("FR-2: Start session leads to the problem library, where a session is started", async () => {
+    stubHome(snapshot());
+    renderRoute("/");
+    fireEvent.click(await screen.findByRole("button", { name: /Start session/ }));
+    expect(await screen.findByRole("searchbox", { name: "Search problems" })).toBeTruthy();
+  });
+
+  it("FR-11: a chess invitee sends the rejoin token and sees only the game tile", async () => {
+    localStorage.setItem("chess:inv1", "raw-token");
+    const fn = stubHome(
+      snapshot({
+        live_participant_count: null,
+        sessions: [],
+        idle_total: 0,
+        games: [
+          {
+            id: "g1",
+            invite_id: "inv1",
+            title: "Chess",
+            opponent: null,
+            status: "waiting",
+            turn: "none",
+            fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          },
+        ],
+      }),
+      false,
+    );
+    renderRoute("/");
+    expect(await screen.findByRole("button", { name: /Chess/ })).toBeTruthy();
+    expect(screen.queryByText("Two sum")).toBeNull();
+    const call = fn.mock.calls.find(([u]) => String(u).endsWith("/api/home"));
+    expect(new Headers(call?.[1]?.headers).get("X-Rejoin-Token")).toBe("raw-token");
+  });
+
+  it("a visitor with no token (401) keeps the problem library", async () => {
+    stubHome({ error: "unauthorized" }, false, 401);
+    renderRoute("/");
+    expect(await screen.findByRole("searchbox", { name: "Search problems" })).toBeTruthy();
+  });
+});

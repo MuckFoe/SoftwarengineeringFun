@@ -27,3 +27,7 @@ Ratified: 2026-10-15
 ## Architecture
 
 9. **No standing boundary rules.** Structure is decided per `plan.md`. A plan must still state its module layout and dependency direction so it can be reviewed.
+
+## UI
+
+10. **UI rules.** Every artifact and implementation that adds or changes anything a user sees complies with `memory/constitution-ui.md`: home screen integration for every new startable, joinable or live feature, the v2 style guide (tokens, primitives, accent, shapes), responsive, dark, reduced-motion and accessibility behaviour, and look and E2E checks. A spec that touches the UI must carry that file's spec checklist (section E).

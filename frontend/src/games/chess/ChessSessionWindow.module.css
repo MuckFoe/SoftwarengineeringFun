@@ -45,6 +45,7 @@
 
 .layout {
   display: flex;
+  gap: var(--space-16);
   height: 100%;
   min-height: 0;
 }
@@ -64,7 +65,9 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  border-inline-start: 1px solid var(--divider);
+  background: var(--surface-2);
+  border-radius: var(--radius-card);
+  overflow: hidden;
 }
 
 .frozen {
@@ -72,4 +75,16 @@
   margin: 0;
   padding: 0;
   min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .layout {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .chat {
+    width: auto;
+    min-height: 20rem;
+  }
 }

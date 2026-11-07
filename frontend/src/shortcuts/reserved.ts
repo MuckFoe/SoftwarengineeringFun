@@ -63,10 +63,12 @@ const MAC_COMMON = [
 ];
 
 // Windows: the same families with Ctrl, plus F-keys and Alt navigation.
+// Ctrl+K (focus the browser's search box) is not listed: pages may intercept it with preventDefault
+// and the jump bar (spec 016 FR-15) takes it, as command palettes elsewhere do. ⌘K is free on macOS.
 const WINDOWS_COMMON = [
   ...all(`
     Mod-t Mod-n Shift-Mod-n Mod-w Mod-F4 Shift-Mod-w Alt-F4 Shift-Mod-t
-    Mod-l Alt-d F6 Mod-e Mod-k Alt-ArrowLeft Alt-ArrowRight Alt-Home
+    Mod-l Alt-d F6 Mod-e Alt-ArrowLeft Alt-ArrowRight Alt-Home
     Mod-Tab Shift-Mod-Tab Mod-PageDown Mod-PageUp
     Mod-r F5 Mod-F5 Shift-Mod-r Shift-F5
     F12 Shift-Mod-i Shift-Mod-j Shift-Mod-c Mod-u

@@ -21,7 +21,7 @@ function walk(dir: string): string[] {
 
 const sources: Record<string, string> = Object.fromEntries(
   walk(SRC).map((f) => [
-    "/src" + f.slice(SRC.length).split(sep).join("/"),
+    `/src${f.slice(SRC.length).split(sep).join("/")}`,
     readFileSync(f, "utf8"),
   ]),
 );
@@ -50,11 +50,23 @@ const FORBIDDEN_ALLOWED = new Set(["/src/styles/guard.test.ts"]);
 // The presentation stage is white by design (FR-10); only #fff is permitted there.
 const STAGE = "/src/present/PresentationFrame.module.css";
 
+// Spec 016 task 2 (Consistency): no radius or duration literal in *.css / *.module.css / *.tsx
+// outside tokens.css; colours are already covered above. A radius is a non-zero length (or
+// percentage) in a border-radius declaration; a duration is a literal like 150ms or 0.2s.
+const RADIUS = /border(?:-[a-z]+){0,2}-radius\s*:\s*[^;}]*?(?:[1-9]\d*|0?\.\d+)(?:px|rem|em|%)/i;
+const DURATION = /(?<![\w.-])(?:\d+\.?\d*|\.\d+)m?s\b/;
+const V2_SCANNED = /\.(css|tsx)$/;
+const V2_EXEMPT = /(?:^\/src\/styles\/tokens\.css$|\.test\.tsx$)/;
+
 function scan(files: Source[]): string[] {
   const out: string[] = [];
   for (const { path, text } of files) {
     const colourText = path === STAGE ? text.replace(/#fff\b/gi, "") : text;
     if (!COLOUR_ALLOWED.has(path) && COLOUR.test(colourText)) out.push(`raw-colour ${path}`);
+    if (V2_SCANNED.test(path) && !V2_EXEMPT.test(path)) {
+      if (RADIUS.test(text)) out.push(`raw-radius ${path}`);
+      if (DURATION.test(text)) out.push(`raw-duration ${path}`);
+    }
     if (!FORBIDDEN_ALLOWED.has(path) && FORBIDDEN.test(text)) out.push(`forbidden ${path}`);
   }
   return out.sort();
@@ -95,6 +107,27 @@ describe("raw-value guard (FR-1, FR-8)", () => {
 
   it("finds no raw colour or Apple-look string anywhere in src", () => {
     expect(scan(real), "use a token from styles/tokens.css").toEqual([]);
+  });
+
+  it("flags a radius or duration literal in a new file but not in tokens.css (FR-4)", () => {
+    const css = "a { border-radius: 12px; transition: color 150ms ease; animation: x 0.6s; }";
+    expect(scan([{ path: "/src/new/Thing.module.css", text: css }])).toEqual(
+      ["raw-duration /src/new/Thing.module.css", "raw-radius /src/new/Thing.module.css"].sort(),
+    );
+    expect(scan([{ path: "/src/new/T.tsx", text: 'style={{ borderRadius: "0" }}' }])).toEqual([]);
+    expect(
+      scan([
+        {
+          path: "/src/new/T.module.css",
+          text: "a { border-radius: var(--radius-card); transition: color var(--motion-fast); border-radius: 0; }",
+        },
+      ]),
+    ).toEqual([]);
+    expect(scan([{ path: "/src/styles/tokens.css", text: css }])).toEqual([]);
+  });
+
+  it("finds no radius or duration literal anywhere in src (spec 016 task 27: no allowlist)", () => {
+    expect(scan(real).filter((x) => /^raw-(radius|duration)/.test(x))).toEqual([]);
   });
 
   it("has no legacy bridge or spec-003 theme styles left (FR-8)", () => {

@@ -28,6 +28,7 @@ export type ShortcutId =
   | "previousProblem"
   | "copyInviteLink"
   | "appearance"
+  | "jump"
   | "shortcutList";
 
 export interface Shortcut {
@@ -128,6 +129,13 @@ export const SHORTCUTS: readonly Shortcut[] = [
     label: "Appearance setting",
     mac: { key: ",", mod: true },
     other: { key: ",", mod: true },
+    scope: "global",
+  },
+  {
+    id: "jump",
+    label: "Jump to anything",
+    mac: { key: "k", mod: true },
+    other: { key: "k", mod: true },
     scope: "global",
   },
   {

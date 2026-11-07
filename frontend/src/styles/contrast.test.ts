@@ -4,6 +4,7 @@ import {
   contrastRatio,
   evaluatePair,
   PAIRS,
+  type Pair,
   resolveToken,
   THRESHOLD,
   toastText,
@@ -33,8 +34,8 @@ describe("contrastRatio", () => {
 
 describe("token resolution", () => {
   it("resolves a token per appearance from kit-values.json", () => {
-    expect(resolveToken("--canvas", "light")).toBe("#FFFFFF");
-    expect(resolveToken("--canvas", "dark")).toBe("#000000");
+    expect(resolveToken("--canvas", "light")).toBe("#F4F6FA");
+    expect(resolveToken("--canvas", "dark")).toBe("#0A0C11");
   });
   it("throws on an unknown token", () => {
     expect(() => resolveToken("--nope", "light")).toThrow();
@@ -78,6 +79,33 @@ describe("declared pair list", () => {
   it("does not include disabled states", () => {
     for (const p of PAIRS) expect(p.name.toLowerCase()).not.toContain("disabled");
   });
+});
+
+// Spec 016 task 2 (FR-4): the v2 token pairs. Text >= 4.5:1, the accent as a boundary >= 3:1.
+const V2_BACKGROUNDS = ["--bg", "--surface", "--surface-2"];
+const V2_PAIRS: Pair[] = [
+  ...V2_BACKGROUNDS.flatMap((bg): Pair[] => [
+    { name: `v2 text on ${bg}`, kind: "text", fg: "--text", bg },
+    { name: `v2 muted text on ${bg}`, kind: "text", fg: "--text-muted", bg },
+    { name: `v2 accent boundary on ${bg}`, kind: "ui", fg: "--accent", bg },
+    { name: `v2 danger text on ${bg}`, kind: "text", fg: "--danger", bg },
+  ]),
+  ...["--accent", "--accent-hover", "--accent-press"].map(
+    (bg): Pair => ({ name: `v2 on-accent text on ${bg}`, kind: "text", fg: "--on-accent", bg }),
+  ),
+];
+
+describe.each(APPEARANCES)("v2 contrast in %s appearance (FR-4)", (appearance) => {
+  it("declares the required v2 pairs with unique names", () => {
+    expect(V2_PAIRS).toHaveLength(15);
+    expect(new Set(V2_PAIRS.map((p) => p.name)).size).toBe(V2_PAIRS.length);
+  });
+  for (const pair of V2_PAIRS) {
+    const need = THRESHOLD[pair.kind];
+    it(`${pair.name} >= ${need}:1`, () => {
+      expect(evaluatePair(pair, appearance).ratio).toBeGreaterThanOrEqual(need);
+    });
+  }
 });
 
 describe.each(APPEARANCES)("contrast thresholds in %s appearance", (appearance) => {

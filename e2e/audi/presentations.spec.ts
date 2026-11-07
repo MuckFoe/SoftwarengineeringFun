@@ -54,8 +54,8 @@ for (const scheme of SCHEMES) {
       await expect
         .poll(() => page.evaluate(() => document.documentElement.dataset.appearance))
         .toBe(scheme);
-      // Area tabs live in the header only; the sidebar holds the topic filter alone.
-      await expect(page.getByRole("tablist", { name: "Areas" })).toHaveCount(1);
+      // Areas live in the dock; no tablist and no Areas sidebar.
+      await expect(page.getByRole("tablist", { name: "Areas" })).toHaveCount(0);
       await checkScreen(page, watch, scheme);
     });
 

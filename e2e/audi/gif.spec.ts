@@ -45,7 +45,7 @@ for (const scheme of SCHEMES as readonly Scheme[]) {
         await checkScreen(page, watch, scheme);
       });
 
-      test("FR-5: search results pass the FR-1 check; cells are square on a neutral tile", async ({
+      test("FR-5: search results pass the FR-1 check; cells are rounded on a neutral tile", async ({
         page,
         request,
       }) => {
@@ -57,9 +57,33 @@ for (const scheme of SCHEMES as readonly Scheme[]) {
           const s = getComputedStyle(el);
           return { radius: s.borderTopLeftRadius, bg: s.backgroundColor };
         });
-        expect(style.radius).toBe("0px");
+        expect(style.radius).toBe("8px");
         expect(style.bg).not.toBe("rgba(0, 0, 0, 0)");
         await checkScreen(page, watch, scheme);
+      });
+
+      test("spec 016 FR-8: the user's own bubble is accent-coloured, others' are not", async ({
+        page,
+        request,
+      }) => {
+        await join(page, await createSession(request));
+        await chat(page).getByLabel("Message", { exact: true }).fill("hello there");
+        await chat(page).getByRole("button", { name: "Send" }).click();
+        const own = chat(page).locator('li[data-own="true"]');
+        await expect(own).toBeVisible();
+        const bg = (l: ReturnType<typeof own.locator>) =>
+          l.evaluate((el) => getComputedStyle(el).backgroundColor);
+        const accent = await page.evaluate(() => {
+          const p = document.createElement("span");
+          p.style.color = "var(--accent)";
+          document.body.appendChild(p);
+          const c = getComputedStyle(p).color;
+          p.remove();
+          return c;
+        });
+        expect(await bg(own)).toBe(accent);
+        const others = chat(page).locator('li.chat-bubble:not([data-own="true"])');
+        for (const el of await others.all()) expect(await bg(el)).not.toBe(accent);
       });
 
       test("FR-10: a posted GIF and a missing GIF's placeholder stay legible", async ({

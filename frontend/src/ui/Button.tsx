@@ -11,7 +11,8 @@ export type ButtonVariant =
   | "tertiary"
   | "bordered"
   | "plain"
-  | "destructive";
+  | "destructive"
+  | "danger";
 export type ButtonSize = "xs" | "sm" | "md";
 
 interface Props extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
@@ -25,6 +26,8 @@ interface Props extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"
   /** Alias of `loading` (spec 003 name). */
   busy?: boolean;
   busyLabel?: string;
+  /** Error state (spec 016 FR-11): visually distinct, announced as invalid. */
+  error?: boolean;
   children?: ReactNode;
 }
 
@@ -34,7 +37,8 @@ const KIND: Record<ButtonVariant, string> = {
   tertiary: "tertiary",
   bordered: "secondary",
   plain: "tertiary",
-  destructive: "secondary",
+  destructive: "danger",
+  danger: "danger",
 };
 
 export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
@@ -46,6 +50,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
     loading = false,
     busy = false,
     busyLabel = "In progress",
+    error = false,
     type = "button",
     className,
     children,
@@ -59,7 +64,6 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
     styles.button,
     styles[kind],
     styles[variant],
-    variant === "destructive" && styles.destructive,
     styles[size],
     children != null && children !== false && styles.labelled,
     className,
@@ -74,6 +78,8 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
       className={classes}
       aria-label={label}
       aria-busy={isBusy || undefined}
+      aria-invalid={error || undefined}
+      data-error={error ? "" : undefined}
     >
       {isBusy ? (
         <Spinner label={busyLabel} size={size === "xs" ? 16 : 24} />

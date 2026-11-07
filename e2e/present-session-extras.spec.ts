@@ -193,7 +193,7 @@ async function closeAll(contexts: BrowserContext[]): Promise<void> {
 
 /** A WCAG 2 A/AA scan of the page; the presentation inside the frame is its author's. */
 async function violations(page: Page): Promise<string[]> {
-  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY).map((a) => a.finished.catch(() => undefined))));
   const axe = await new AxeBuilder({ page })
     .exclude("iframe[sandbox]")
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])

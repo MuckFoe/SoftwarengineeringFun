@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
-// Spec 015 task 37 (FR-12): the Games invite flow always shows a copy-invite-link button next
-// to the link, in light and dark at each width; it copies the link and confirms with a toast.
+// Spec 016 task 19 (FR-14, FR-7) over spec 015 task 37: the Games invite flow always shows a copy-invite-link button next
+// to the link, in light and dark at each width; it copies the link and confirms with a "Copied" status.
 import { appUrl, expect, test } from "../fixtures";
 import { SCHEMES, type Scheme } from "./matrix";
 
@@ -13,7 +13,7 @@ for (const scheme of SCHEMES as readonly Scheme[]) {
         permissions: ["clipboard-read", "clipboard-write"],
       });
 
-      test("FR-12: copy button is visible beside the link, copies it, and toasts", async ({
+      test("FR-14: copy button is visible beside the link, copies it, and confirms", async ({
         page,
         request,
       }) => {
@@ -24,7 +24,7 @@ for (const scheme of SCHEMES as readonly Scheme[]) {
 
         // Join form: visible with no interaction.
         const link = page.getByRole("textbox", { name: "Invite link", exact: true });
-        const copy = page.getByRole("button", { name: "Copy invite link" });
+        const copy = page.getByRole("button", { name: "Copy link" });
         await expect(link).toBeVisible();
         await expect(copy).toBeVisible();
         const url = await link.inputValue();
@@ -32,7 +32,7 @@ for (const scheme of SCHEMES as readonly Scheme[]) {
 
         // Mouse.
         await copy.click();
-        await expect(page.getByRole("status").filter({ hasText: "Invite link copied" })).toBeVisible();
+        await expect(page.getByRole("status").filter({ hasText: "Copied" })).toBeVisible();
         expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url);
 
         // Keyboard, after joining (button stays visible in the joined view).
@@ -43,7 +43,7 @@ for (const scheme of SCHEMES as readonly Scheme[]) {
         await expect(copy).toBeVisible();
         await copy.focus();
         await page.keyboard.press("Enter");
-        await expect(page.getByRole("status").filter({ hasText: "Invite link copied" })).toBeVisible();
+        await expect(page.getByRole("status").filter({ hasText: "Copied" })).toBeVisible();
         expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url);
       });
     });

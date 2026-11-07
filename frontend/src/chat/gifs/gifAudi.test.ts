@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 const read = (f: string) => readFileSync(new URL(f, import.meta.url), "utf8");
 const image = read("./GifImage.module.css");
 const picker = read("./GifPicker.module.css");
+const pane = read("../../components/ChatPane.module.css");
 
 const OLD =
   /var\(--(legacy-space-\d+|separator|label(-secondary)?|control-bg|row-hover-bg|focus-ring|font-text|type-[a-z0-9]+|radius-control)\)/;
@@ -16,10 +17,21 @@ describe("GIF restyle (task 29)", () => {
     expect(image).not.toMatch(OLD);
     expect(picker).not.toMatch(OLD);
   });
-  it("FR-1: square corners", () => {
-    for (const css of [image, picker]) {
-      expect(css).not.toMatch(/border-radius:(?!\s*0\b)/);
+  it("spec 016 FR-1/FR-9: rounded corners from radius tokens, no literal radius or duration", () => {
+    for (const css of [image, picker, pane]) {
+      expect(css).not.toMatch(/border-radius:[^;]*\d(px|rem|%)/);
+      expect(css).not.toMatch(/\d+m?s\b(?!\))/);
     }
+    expect(picker).toMatch(/\.cell\s*\{[^}]*border-radius:\s*var\(--radius-md\)/);
+    expect(picker).toMatch(/\.grid\s*\{[^}]*border-radius:\s*var\(--radius-md\)/);
+    expect(image).toMatch(/\.tile\s*\{[^}]*border-radius:\s*var\(--radius-md\)/);
+    expect(image).toMatch(/\.placeholder\s*\{[^}]*border-radius:\s*var\(--radius-md\)/);
+    expect(pane).toMatch(/\.picker\s*\{[^}]*border-radius:\s*var\(--radius-card\)/);
+    expect(pane).toMatch(/\.gif\s*\{[^}]*border-radius:\s*var\(--radius-md\)/);
+  });
+  it("spec 016 FR-8: the picker panel has no outline (tone separates it)", () => {
+    expect(pane).toMatch(/\.picker\s*\{[^}]*background:\s*var\(--surface-2\)/);
+    expect(pane).not.toMatch(/\.picker\s*\{[^}]*border:/);
   });
   it("FR-10: the GIF tile and placeholder sit on --neutral-700, pixels untouched", () => {
     expect(image).toMatch(/\.tile\s*\{[^}]*background:\s*var\(--neutral-700\)/);

@@ -1,0 +1,29 @@
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-16);
+  margin: 0;
+  padding: var(--space-8) var(--space-16);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+}
+
+.item {
+  display: flex;
+  gap: var(--space-8);
+  align-items: baseline;
+}
+
+.label {
+  margin: 0;
+}
+
+.value {
+  margin: 0;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}

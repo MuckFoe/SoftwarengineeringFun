@@ -21,7 +21,11 @@
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  overflow: hidden;
   font-family: var(--font-copy);
   font-size: var(--fs-copy-1);
   line-height: var(--lh-copy-1);
@@ -41,6 +45,10 @@
   padding: var(--space-8) var(--space-16);
   border-bottom: 1px solid var(--divider);
   vertical-align: middle;
+}
+
+.table tbody tr {
+  transition: background-color var(--motion-fast) ease;
 }
 
 .table tbody tr:hover {
@@ -66,7 +74,7 @@
 }
 
 .link:focus-visible {
-  outline: 2px solid var(--focus);
+  outline: var(--bw-focus) solid var(--focus);
   outline-offset: 2px;
 }
 

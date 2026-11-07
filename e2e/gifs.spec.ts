@@ -356,7 +356,7 @@ test("NFR-6: the open picker, notice and results, has no WCAG AA violations", as
 
   async function violations(): Promise<string[]> {
     if (!ada) return [];
-    await ada.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+    await ada.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY).map((a) => a.finished.catch(() => undefined))));
     // The Chat region holding the picker; the code editor beside it is spec 003's concern.
     const axe = await new AxeBuilder({ page: ada })
       .include('[aria-label="Inspector"] section[aria-label="Chat"]')

@@ -268,9 +268,22 @@ export function PresentationFrame(props: PresentationFrameProps) {
   const cursorAt = cursor && cursorRect ? at(cursorRect, [cursor.fx, cursor.fy]) : null;
 
   return (
-    <div className={styles.frame}>
+    // The frame is one keyboard stop that shows its own focus ring (a focused iframe cannot:
+    // `:focus` does not match it while its document holds focus); Enter moves focus inside.
+    // biome-ignore lint/a11y/useSemanticElements: a focus stop around a sandboxed iframe
+    <div
+      className={styles.frame}
+      role="button"
+      aria-label={`${title}, press Enter to interact`}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: see above
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && e.target === e.currentTarget) iframeRef.current?.focus();
+      }}
+    >
       <iframe
         ref={iframeRef}
+        tabIndex={-1}
         className={styles.iframe}
         src={frameUrl}
         title={title}

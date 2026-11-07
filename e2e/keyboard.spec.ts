@@ -88,7 +88,7 @@ test.describe("Linux in Chromium", () => {
     page,
   }) => {
     await pinPlatform(page, "Linux x86_64");
-    await page.goto("/");
+    await page.goto("/problems");
     await expect(page.getByRole("toolbar", { name: "Problems" })).toBeVisible();
 
     await page.keyboard.press("Control+Shift+Slash");
@@ -166,11 +166,11 @@ test.describe("keyboard only, Windows/Linux keys", () => {
     keycloak,
   }) => {
     const editor = editorUser(keycloak.users);
-    await page.goto("/api/auth/login?next=%2F");
+    await page.goto("/api/auth/login?next=%2Fproblems");
     await page.getByRole("textbox", { name: "Username" }).fill(editor.username);
     await page.getByRole("textbox", { name: "Password" }).fill(editor.password);
     await page.getByRole("button", { name: "Sign In" }).click();
-    await page.waitForURL((url) => url.pathname === "/");
+    await page.waitForURL((url) => url.pathname === "/problems");
     await expect(page.getByRole("toolbar", { name: "Problems" })).toBeVisible();
 
     // The list itself, read from the screen: action label → its keys.
@@ -229,6 +229,9 @@ test.describe("keyboard only, Windows/Linux keys", () => {
         await expect(sidebar).toBeVisible();
       },
       "New problem": async () => {
+        // The shortcut is registered once /api/me says the viewer is an editor; the button shows
+        // up at the same moment, so wait for it instead of racing the request.
+        await expect(page.getByRole("button", { name: "New problem" })).toBeVisible();
         await press("New problem");
         await expect(page.getByRole("dialog", { name: "New problem" })).toBeVisible();
       },
@@ -242,6 +245,13 @@ test.describe("keyboard only, Windows/Linux keys", () => {
         await press("Save problem");
         await expect(hud(page, "Problem saved")).toBeVisible();
         await expect(sheet).toBeHidden();
+      },
+      "Jump to anything": async () => {
+        await press("Jump to anything");
+        const jump = page.getByRole("dialog", { name: "Jump to anything" });
+        await expect(jump).toBeVisible();
+        await page.keyboard.press("Escape");
+        await expect(jump).toBeHidden();
       },
     };
     const sessionEffects: Record<string, (p: Page) => Promise<void>> = {
@@ -302,9 +312,9 @@ test.describe("keyboard only, Windows/Linux keys", () => {
     page,
     keycloak,
   }) => {
-    await page.goto("/api/auth/login?next=%2F");
+    await page.goto("/api/auth/login?next=%2Fproblems");
     await signInByKeyboard(page, keycloak.users);
-    await page.waitForURL((url) => url.pathname === "/");
+    await page.waitForURL((url) => url.pathname === "/problems");
     const rows = page.getByRole("main").getByRole("row");
     await expect(rows.nth(1)).toBeVisible();
 
@@ -315,6 +325,8 @@ test.describe("keyboard only, Windows/Linux keys", () => {
     await page.keyboard.type("Sum Two");
     await expect(rows).toHaveCount(2);
     for (let i = 0; i < "Sum Two".length; i++) await page.keyboard.press("Backspace");
+    await expect(search).toHaveValue("");
+    await expect(rows.nth(2)).toBeVisible(); // the full list is back before the next shortcut
 
     // Create.
     await page.keyboard.press("Control+Alt+n");
@@ -392,7 +404,18 @@ test.describe("keyboard only, Windows/Linux keys", () => {
         if (el.closest("section, [role=region]")) return "panel";
         return "other";
       });
-    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    // The sequential-focus starting point is where the removed join field was; put it at the top
+    // of the document so Tab starts from the first stop whatever the load did to the layout.
+    await expect(page.getByRole("toolbar", { name: "Session" })).toBeVisible();
+    await page.evaluate(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+      const range = document.createRange();
+      range.setStart(document.body, 0);
+      range.collapse(true);
+      const selection = getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    });
     const order: string[] = [];
     for (let i = 0; i < 30 && order.length < 4; i++) {
       await page.keyboard.press("Tab");

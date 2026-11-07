@@ -2,11 +2,11 @@
   display: inline-block;
   flex: none;
   box-sizing: border-box;
-  border-radius: 50%;
+  border-radius: var(--radius-max);
   border-style: solid;
   border-color: currentColor;
   border-right-color: transparent;
-  animation: spin 800ms linear infinite;
+  animation: spin var(--spin-duration) linear infinite;
 }
 
 @keyframes spin {
@@ -24,6 +24,6 @@
 /* Reduced motion: the indicator stays, but it pulses instead of turning. */
 @media (prefers-reduced-motion: reduce) {
   .spinner {
-    animation: pulse 1200ms ease-in-out infinite;
+    animation: pulse var(--pulse-duration) ease-in-out infinite;
   }
 }

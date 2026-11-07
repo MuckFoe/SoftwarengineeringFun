@@ -19,7 +19,7 @@
   height: 24px;
   padding: 0 var(--space-24) 0 var(--space-24);
   border: 1px solid var(--ui-stroke);
-  border-radius: var(--radius-0);
+  border-radius: var(--radius-pill);
   background: var(--canvas);
   color: var(--text-interactive);
   font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
@@ -44,7 +44,7 @@
   height: 16px;
   padding: 0;
   border: none;
-  border-radius: var(--radius-0);
+  border-radius: var(--radius-pill);
   background: var(--text-disabled);
   color: var(--surface-1);
 }

@@ -1,0 +1,83 @@
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-16);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    color var(--motion-fast);
+}
+
+.trigger:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.keys {
+  font: inherit;
+  color: var(--text-muted);
+}
+
+.dialog {
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - var(--space-32)));
+  max-height: calc(100vh - var(--space-64));
+  margin: var(--space-64) auto auto;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--canvas);
+  color: var(--text);
+  box-shadow: var(--elev-4);
+  overflow: auto;
+}
+
+.dialog::backdrop {
+  background: var(--scrim);
+}
+
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-16);
+  border: none;
+  border-bottom: 1px solid var(--divider);
+  background: transparent;
+  color: var(--text);
+  font: var(--fs-copy-1) / var(--lh-copy-1) var(--font-copy);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-16);
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+.option[aria-selected="true"] {
+  background: var(--surface);
+}
+
+.kind {
+  color: var(--text-muted);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-16);
+  color: var(--text-muted);
+}

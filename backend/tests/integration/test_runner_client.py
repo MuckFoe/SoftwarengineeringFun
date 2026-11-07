@@ -31,12 +31,21 @@ def _free_port() -> int:
         return s.getsockname()[1]
 
 
+def _assert_ok_values(outcomes: list[CaseOutcome], values: list) -> None:
+    """Status and value exactly; the runner also reports each case's peak memory and wall
+    time (ints)."""
+    assert [(o.status, o.value) for o in outcomes] == [("ok", v) for v in values]
+    for o in outcomes:
+        assert isinstance(o.memory_kb, int) and o.memory_kb > 0
+        assert isinstance(o.duration_ms, int) and o.duration_ms >= 0
+
+
 async def test_fr21_execute_against_the_real_runner_returns_ok_with_the_value(
     runner_url: str,
 ) -> None:
     outcomes = await execute(runner_url, "def add(a, b):\n    return a + b\n", "add", [[2, 3]])
 
-    assert outcomes == [CaseOutcome(status="ok", value=5)]
+    _assert_ok_values(outcomes, [5])
 
 
 async def test_fr21_runs_every_case_in_order(runner_url: str) -> None:
@@ -44,7 +53,7 @@ async def test_fr21_runs_every_case_in_order(runner_url: str) -> None:
         runner_url, "def mul(a, b):\n    return a * b\n", "mul", [[2, 3], [4, 5]]
     )
 
-    assert outcomes == [CaseOutcome(status="ok", value=6), CaseOutcome(status="ok", value=20)]
+    _assert_ok_values(outcomes, [6, 20])
 
 
 async def test_runner_unavailable_when_nothing_is_listening() -> None:

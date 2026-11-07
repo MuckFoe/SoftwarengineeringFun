@@ -78,6 +78,7 @@
   /* On the canvas, not the bubble fill: the GIF tile and its placeholder text keep their
      contrast in an own (accent) bubble too. */
   padding: var(--space-4);
+  border-radius: var(--radius-md);
   background: var(--canvas);
   color: var(--text);
 }
@@ -97,6 +98,12 @@
   max-width: 100%;
 }
 
+/* The kit's 144px label minimum would stack GIF over Send in the 320px inspector and push the
+   pinned compose form past the bottom of the chat region. */
+.actions > button[class] {
+  min-width: 0;
+}
+
 /* The GIF picker, opened above the compose form beside its button. */
 .picker {
   position: absolute;
@@ -107,13 +114,13 @@
   margin-bottom: var(--space-8);
   padding: var(--space-12);
   box-sizing: border-box;
-  border: 1px solid var(--divider);
-  background: var(--surface-1);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
 }
 
 .footer {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-8);

@@ -6,7 +6,8 @@
 // hub's /collab/ (HUB=1). Paths go through appUrl/appPathname and the stack's database
 // through stackCompose, so no spec assumes the app sits at the root of its origin.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {
   type APIRequestContext,
@@ -91,11 +92,36 @@ export async function createSession(
   return ((await created.json()) as { invite_id: string }).invite_id;
 }
 
+type SessionCookie = Awaited<ReturnType<BrowserContext["cookies"]>>[number];
+
+const COOKIE_CACHE = path.join(import.meta.dirname, ".session-cookies.json");
+const cookieMemo = new Map<string, SessionCookie[]>();
+
+/** Names the cache entries after the current test stack, so a rotated setup starts empty. */
+function stackKey(): string {
+  const state = readFileSync(path.join(import.meta.dirname, ".keycloak-state.json"));
+  return createHash("sha256").update(state).digest("hex").slice(0, 16);
+}
+
+function readCookieCache(): { key: string; cookies: Record<string, SessionCookie[]> } {
+  try {
+    const cache = JSON.parse(readFileSync(COOKIE_CACHE, "utf-8")) as {
+      key: string;
+      cookies: Record<string, SessionCookie[]>;
+    };
+    if (cache.key === stackKey()) return cache;
+  } catch {
+    // no cache yet
+  }
+  return { key: stackKey(), cookies: {} };
+}
+
 /**
- * Signs in through the app's sign-in route and waits until it lands back on `next` (an app
- * path, optionally with a query: "/profile?from=%2F" waits for that path and query).
+ * Signs in through Keycloak's page, as a user does: the app's sign-in route, the login form,
+ * and back to `next` (an app path, optionally with a query: "/profile?from=%2F" waits for that
+ * path and query). Specs about sign-in itself use this; everything else calls `signIn`.
  */
-export async function signIn(
+export async function signInViaKeycloak(
   page: Page,
   username: string,
   password: string,
@@ -105,12 +131,99 @@ export async function signIn(
   await page.locator("#username").fill(username);
   await page.locator("#password").fill(password);
   await page.locator("#kc-login").click();
+  await waitForApp(page, next);
+}
+
+async function waitForApp(page: Page, next: string): Promise<void> {
   const [nextPath, nextQuery] = next.split("?", 2);
   await page.waitForURL(
     (url) =>
       appPathname(url) === nextPath &&
       (nextQuery === undefined || new URL(url).search === `?${nextQuery}`),
   );
+}
+
+/**
+ * The app's session cookie for this user: one real Keycloak sign-in per user per test stack
+ * (in a throwaway context), kept in .session-cookies.json for every worker. The cookie is
+ * signed and stateless, so any number of contexts can carry it (two devices, one user).
+ */
+async function sessionCookies(
+  browser: Browser,
+  username: string,
+  password: string,
+): Promise<SessionCookie[]> {
+  const key = stackKey();
+  const memo = cookieMemo.get(`${key}/${username}`);
+  if (memo) return memo;
+  const cached = readCookieCache().cookies[username];
+  const fresh = cached?.find((c) => c.expires * 1000 > Date.now() + 5 * 60_000);
+  if (cached && fresh) {
+    cookieMemo.set(`${key}/${username}`, cached);
+    return cached;
+  }
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    await signInViaKeycloak(page, username, password);
+    const cookies = (await context.cookies()).filter((c) => c.name.endsWith("session"));
+    if (cookies.length === 0) throw new Error(`no session cookie after signing in ${username}`);
+    const cache = readCookieCache();
+    cache.cookies[username] = cookies;
+    const tmp = `${COOKIE_CACHE}.${process.pid}`;
+    writeFileSync(tmp, JSON.stringify(cache));
+    renameSync(tmp, COOKIE_CACHE);
+    cookieMemo.set(`${key}/${username}`, cookies);
+    return cookies;
+  } finally {
+    await context.close();
+  }
+}
+
+/**
+ * Deletes one account's stored preferences, so its next sign-in is a "first" one (spec 012
+ * FR-16). The account is named by the `sub` inside its session cookie, so parallel specs
+ * that use different accounts never see each other's rows.
+ */
+export async function resetPreferences(
+  browser: Browser,
+  user: { username: string; password: string },
+): Promise<void> {
+  const cookie = (await sessionCookies(browser, user.username, user.password))[0];
+  const payload = cookie?.value.split(".")[0];
+  if (!payload) throw new Error(`no session cookie for ${user.username}`);
+  const { sub } = JSON.parse(Buffer.from(payload, "base64").toString("utf-8")) as { sub: string };
+  if (!/^[\w-]+$/.test(sub)) throw new Error(`unexpected sub ${sub}`);
+  sql(`delete from account_preference where account_sub = '${sub}'`);
+}
+
+/** The per-worker account (look0..look9) for specs that depend on their own preference row. */
+export function workerUser(users: Record<string, { username: string; password: string }>) {
+  const found = users[`look${test.info().parallelIndex}`];
+  if (!found) throw new Error(`no per-worker test user look${test.info().parallelIndex}`);
+  return found;
+}
+
+/**
+ * Signs `page`'s context in as that user and lands on `next` (see `signInViaKeycloak` for the
+ * path-and-query rule). The session cookie comes from one real sign-in per user per stack
+ * (see `sessionCookies`); pass `{ real: true }` to drive Keycloak's page for this one.
+ */
+export async function signIn(
+  page: Page,
+  username: string,
+  password: string,
+  next = "/",
+  options: { real?: boolean } = {},
+): Promise<void> {
+  const browser = page.context().browser();
+  if (options.real || !browser) {
+    await signInViaKeycloak(page, username, password, next);
+    return;
+  }
+  await page.context().addCookies(await sessionCookies(browser, username, password));
+  await page.goto(appUrl(next));
+  await waitForApp(page, next);
 }
 
 /**

@@ -59,10 +59,16 @@ describe("Button", () => {
   });
 
   it("has primary, bordered, plain and destructive variants", () => {
-    for (const variant of ["primary", "bordered", "plain", "destructive"] as const) {
+    // Spec 016 task 4: "destructive" is kept as a name and renders the danger style.
+    for (const [variant, cls] of [
+      ["primary", "primary"],
+      ["bordered", "bordered"],
+      ["plain", "plain"],
+      ["destructive", "danger"],
+    ] as const) {
       render(<Button variant={variant}>{variant}</Button>);
-      expect(screen.getByRole("button", { name: variant }).className).toMatch(variant);
-      expect(buttonCss).toMatch(new RegExp(`\\.${variant}\\b`));
+      expect(screen.getByRole("button", { name: variant }).className).toMatch(cls);
+      expect(buttonCss).toMatch(new RegExp(`\\.${cls}\\b`));
     }
   });
 

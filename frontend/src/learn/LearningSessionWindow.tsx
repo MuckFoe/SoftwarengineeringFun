@@ -336,7 +336,7 @@ export function LearningSessionWindow({ createSocket }: Props) {
     );
   } else if (closed !== null) {
     body = (
-      <div className={styles.joinCard}>
+      <div className={styles.joinCard} data-card>
         <h1 className={styles.joinTitle}>Learning session</h1>
         <InlineMessage id="join-closed">{CLOSE_MESSAGES[closed]}</InlineMessage>
         <div className={styles.joinActions}>
@@ -350,7 +350,7 @@ export function LearningSessionWindow({ createSocket }: Props) {
     body = <p className={styles.loading}>Joining…</p>;
   } else {
     body = (
-      <div className={styles.joinCard}>
+      <div className={styles.joinCard} data-card>
         <h1 className={styles.joinTitle}>Join this learning session</h1>
         <form className={styles.joinForm} onSubmit={join}>
           <TextField

@@ -158,7 +158,7 @@ for (const scheme of ["light", "dark"] as const) {
         );
         expect.soft(clipped).toEqual([]);
 
-        await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+        await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY).map((a) => a.finished.catch(() => undefined))));
         const axe = await new AxeBuilder({ page })
           .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
           .analyze();

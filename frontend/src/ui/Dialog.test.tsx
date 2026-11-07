@@ -42,7 +42,7 @@ describe("Dialog (spec 015 task 19)", () => {
   it("FR-7: fills the viewport below 768 px", () => {
     const m = /@media \(max-width: 767px\)\s*\{([\s\S]*)\}/.exec(strip(css));
     expect(m).not.toBeNull();
-    const inner = norm(m![1] ?? "");
+    const inner = norm(m?.[1] ?? "");
     expect(inner).toContain("width: 100%");
     expect(inner).toContain("height: 100%");
     expect(inner).toContain("max-width: none");
@@ -107,7 +107,9 @@ describe("Dialog (spec 015 task 19)", () => {
       const [open, setOpen] = useState(false);
       return (
         <>
-          <button onClick={() => setOpen(true)}>open</button>
+          <button type="button" onClick={() => setOpen(true)}>
+            open
+          </button>
           <Dialog open={open} onClose={() => setOpen(false)} title="T">
             x
           </Dialog>

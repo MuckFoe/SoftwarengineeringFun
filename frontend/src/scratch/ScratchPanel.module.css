@@ -14,15 +14,11 @@
 }
 
 .input {
-  font:
-    var(--fs-copy-3) / var(--lh-copy-3) ui-monospace,
-    Menlo,
-    Consolas,
-    monospace;
+  font: var(--fs-copy-3) / var(--lh-copy-3) var(--font-mono);
   color: var(--text);
   padding: var(--space-8);
   border: 1px solid var(--divider);
-  border-radius: var(--radius-0);
+  border-radius: var(--radius-md);
   resize: vertical;
 }
 
@@ -39,13 +35,9 @@
 .output {
   margin: 0;
   padding: var(--space-8);
-  border-radius: var(--radius-0);
+  border-radius: var(--radius-md);
   background: var(--surface-1);
-  font:
-    var(--fs-copy-3) / var(--lh-copy-3) ui-monospace,
-    Menlo,
-    Consolas,
-    monospace;
+  font: var(--fs-copy-3) / var(--lh-copy-3) var(--font-mono);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   overflow-y: auto;

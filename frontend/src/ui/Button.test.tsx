@@ -1,6 +1,7 @@
 import { cleanup, createEvent, fireEvent, render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import tokensCss from "../styles/tokens.css?raw";
 import { Button } from "./Button";
 import buttonCss from "./Button.module.css?raw";
 import { Spinner } from "./Spinner";
@@ -13,29 +14,70 @@ const css = buttonCss.replace(/\/\*[\s\S]*?\*\//g, "");
 
 /** Declarations of the first rule whose selector list contains `selector` exactly. */
 function rule(selector: string): string {
-  const esc = selector.replace(/[.:()\\]/g, "\\$&");
+  const esc = selector.replace(/[.:()[\]\\]/g, "\\$&");
   const re = new RegExp(`(?:^|[},])\\s*${esc}\\s*(?:,[^{]*)?\\{([^}]*)\\}`, "m");
   const m = re.exec(css);
   if (!m) throw new Error(`no rule for ${selector}`);
-  return m[1]!.replace(/\s+/g, " ").trim();
+  return (m[1] ?? "").replace(/\s+/g, " ").trim();
 }
 
-const VARIANTS = ["primary", "secondary"] as const;
+const STATES = (v: string) => [
+  rule(`.${v}`),
+  rule(`.${v}:hover:not(:disabled)`),
+  rule(`.${v}:focus-visible`),
+  rule(`.${v}:active:not(:disabled)`),
+  rule(`.${v}:disabled`),
+  rule(`.${v}[data-error]`),
+];
 
-describe("Button states (FR-4)", () => {
-  for (const v of VARIANTS) {
-    it(`${v}: rest, hover, pressed and disabled use distinct --action-* tokens`, () => {
-      const states = [
-        rule(`.${v}`),
-        rule(`.${v}:hover:not(:disabled)`),
-        rule(`.${v}:active:not(:disabled)`),
-        rule(`.${v}:disabled`),
-      ];
-      for (const s of states) expect(s).toMatch(/var\(--action-/);
-      expect(new Set(states).size).toBe(4);
+describe("Button v2 (spec 016 FR-7, FR-11)", () => {
+  it("primary is a solid accent pill with a glow; secondary has neither", () => {
+    const p = rule(".primary");
+    expect(p).toMatch(/background:\s*var\(--accent\)/);
+    expect(p).toMatch(/box-shadow:\s*var\(--glow\)/);
+    expect(rule(".button")).toMatch(/border-radius:\s*var\(--radius-pill\)/);
+    const s = rule(".secondary");
+    expect(s).not.toMatch(/background:\s*var\(--accent\)/);
+    expect(s).not.toMatch(/box-shadow:\s*var\(--glow\)/);
+    expect(s).toMatch(/background:\s*transparent/);
+    expect(s).toMatch(/border-color:\s*var\(--accent\)/);
+  });
+
+  for (const v of ["primary", "secondary", "danger"]) {
+    it(`${v}: rest, hover, focus, pressed, disabled and error are all distinct`, () => {
+      const states = STATES(v);
+      expect(new Set(states).size).toBe(states.length);
     });
   }
 
+  it("danger uses the danger token", () => {
+    expect(rule(".danger")).toMatch(/var\(--danger\)/);
+  });
+
+  it("transitions use --motion-fast (zero under reduced motion via the token)", () => {
+    expect(rule(".button")).toMatch(/transition:[^;]*var\(--motion-fast\)/);
+    expect(tokensCss).toMatch(/prefers-reduced-motion: reduce\)[\s\S]*--motion-fast:\s*0s/);
+  });
+
+  it("variant danger and error prop set the class and data-error", () => {
+    render(
+      <Button variant="danger" error>
+        Del
+      </Button>,
+    );
+    const b = screen.getByRole("button", { name: "Del" });
+    expect(b.className).toMatch(/danger/);
+    expect(b.hasAttribute("data-error")).toBe(true);
+    expect(b.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("keeps the old destructive name as a danger button", () => {
+    render(<Button variant="destructive">Rm</Button>);
+    expect(screen.getByRole("button", { name: "Rm" }).className).toMatch(/danger/);
+  });
+});
+
+describe("Button states", () => {
   it("tertiary: rest, hover and disabled are distinct", () => {
     const states = [
       rule(".tertiary"),
@@ -50,8 +92,7 @@ describe("Button states (FR-4)", () => {
     expect(rule(".button:focus-visible")).toMatch(/var\(--focus\)/);
   });
 
-  it("has square corners and no raw colours", () => {
-    expect(rule(".button")).toMatch(/border-radius:\s*var\(--radius-0\)/);
+  it("has no raw colours", () => {
     expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i);
   });
 

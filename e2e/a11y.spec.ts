@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import type { APIRequestContext, Page } from "@playwright/test";
-import { expect, signIn, sql, test } from "./fixtures";
+import { expect, resetPreferences, signIn, test, workerUser } from "./fixtures";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 const PROBLEM = "Sum Two Numbers";
@@ -117,10 +117,11 @@ const SCREENS: Screen[] = [
     // Spec 012 NFR-5: the profile signed in, with account, preferences and a session row.
     name: "profile signed in",
     async open(page, request, users) {
-      const user = users.newuser;
-      if (!user) throw new Error("no keycloak test user 'newuser'");
+      const user = workerUser(users);
+      const browser = page.context().browser();
+      if (!browser) throw new Error("no browser");
       // No stored preferences, so the account takes this browser's (the OS's) appearance.
-      sql("delete from account_preference");
+      await resetPreferences(browser, user);
       const invite = await createSession(request);
       await signIn(page, user.username, user.password, `/s/${invite}`);
       await expect(page.getByRole("main").getByRole("textbox")).toContainText("pass");
@@ -238,7 +239,7 @@ for (const scheme of ["light", "dark"] as const) {
 
         // AC-21: WCAG AA contrast on every text/control pair, measured once rows and sheets
         // have finished fading in.
-        await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+        await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY).map((a) => a.finished.catch(() => undefined))));
         const axe = await new AxeBuilder({ page }).withRules(["color-contrast"]).analyze();
         expect.soft(
           axe.violations.flatMap((v) => v.nodes.map((n) => `${n.target.join(" ")}: ${n.failureSummary}`)),

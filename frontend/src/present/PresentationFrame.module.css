@@ -18,6 +18,11 @@
   border: 0;
 }
 
+.frame:focus-visible {
+  outline: var(--bw-focus) solid var(--focus);
+  outline-offset: calc(var(--bw-focus) * -1);
+}
+
 /* Exactly over the iframe, so frame-viewport coordinates are overlay coordinates. */
 .overlay {
   position: absolute;

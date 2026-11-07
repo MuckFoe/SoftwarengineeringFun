@@ -97,7 +97,7 @@ export function StepView({ step, readOnly = false, onSend }: Props) {
       )}
 
       {step.hint_html !== null && (
-        <section className={styles.box} aria-label="Hint">
+        <section className={styles.box} data-card aria-label="Hint">
           <h3 className={styles.boxTitle}>Hint</h3>
           <DescriptionView html={step.hint_html} />
         </section>
@@ -213,7 +213,7 @@ function TextCheck({ disabled, onSubmit }: { disabled: boolean; onSubmit(text: s
 
 function AnswerView({ answer, options }: { answer: Answer; options: string[] }) {
   return (
-    <section className={styles.box} aria-label="Answer">
+    <section className={styles.box} data-card aria-label="Answer">
       <h3 className={styles.boxTitle}>Answer</h3>
       {answer.type === "choice" && (
         <ul className={styles.answerList}>

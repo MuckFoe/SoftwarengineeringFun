@@ -457,6 +457,24 @@ describe("SessionWindow, layout (spec 003)", () => {
     expect(within(toolbar).getByRole("heading", { name: "Sum two" })).toBeTruthy();
   });
 
+  // Spec 016 task 20 (FR-9): live participants use LiveBadge.
+  it("shows the Live badge in Participants only while someone else is in the session", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    const alone = screen.getByRole("region", { name: "Participants" });
+    expect(within(alone).queryByText("Live")).toBeNull();
+    serverSends(socket, {
+      type: "presence",
+      participants: [
+        { id: "me", name: "Ada", signed_in: false },
+        { id: "l", name: "Linus", signed_in: false },
+      ],
+    } as never);
+    expect(
+      within(screen.getByRole("region", { name: "Participants" })).getByText("Live"),
+    ).toBeTruthy();
+  });
+
   it("hides and shows the run panel from the toolbar", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());

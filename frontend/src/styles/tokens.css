@@ -1,4 +1,5 @@
-/* Audi DS 3.0 design tokens: the sole definition site of visual values (spec 015, plan 1.2).
+/* Design tokens: the sole definition site of visual values (spec 015 plan 1.2, restyled by spec 016 task 1:
+   blue accent, pill and card radii, glow, edge-light, motion, z-index, dock).
    Values are pinned to src/styles/kit-values.json by tokens.test.ts. */
 
 :root {
@@ -66,13 +67,13 @@
   --fs-h4: 16px;
   --lh-h4: 24px;
   --page-margin: 16px;
-  --canvas: #ffffff;
+  --canvas: #f4f6fa;
   --canvas-inverted: #000000;
   --surface-1: #ffffff;
-  --surface-2: #ffffff;
-  --surface-3: #ffffff;
-  --surface-4: #f2f2f2;
-  --highlight: #eb0d3f;
+  --surface-2: #e9edf4;
+  --surface-3: #dde3ee;
+  --surface-4: #cbd3e2;
+  --highlight: #1f5fff;
   --on-highlight: #ffffff;
   --neutral-100: #000000;
   --neutral-200: #333333;
@@ -82,8 +83,8 @@
   --neutral-600: #e6e6e6;
   --neutral-700: #0000000d;
   --neutral-800: #ffffff;
-  --action-primary-fill: #000000;
-  --action-primary-fill-hover: #4d4d4d;
+  --action-primary-fill: #1f5fff;
+  --action-primary-fill-hover: #1a4fd6;
   --action-primary-fill-disabled: #b3b3b3;
   --action-primary-text: #ffffff;
   --action-secondary-stroke: #000000;
@@ -95,17 +96,17 @@
   --action-text-disabled: #b3b3b3;
   --form-stroke: #666666;
   --form-stroke-active: #000000;
-  --form-stroke-error: #eb0d3f;
+  --form-stroke-error: #c8102e;
   --form-stroke-disabled: #b3b3b3;
   --form-stroke-readonly: #d9d9d9;
   --form-underline: #333333;
   --form-underline-active: #000000;
-  --form-underline-error: #eb0d3f;
+  --form-underline-error: #c8102e;
   --form-underline-disabled: #b3b3b3;
   --form-text: #333333;
   --form-caption: #666666;
   --form-text-active: #000000;
-  --form-text-error: #eb0d3f;
+  --form-text-error: #c8102e;
   --form-text-disabled: #b3b3b3;
   --form-readonly-fill: #d9d9d9;
   --nav-active: #000000;
@@ -121,23 +122,44 @@
   --text-disabled: #b3b3b3;
   --scrim: #000000b2;
   --focus: #0989ff;
-  --negative: #eb0d3f;
+  --negative: #c8102e;
   --success: #0da20d;
   --notice: #ffaa00;
   --intelligent: #007579;
   --neon-blue: #2526fe;
   --board-light: #e6e6e6;
   --board-dark: #808080;
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --text-muted: #4d5566;
+  --accent: #1f5fff;
+  --accent-hover: #1a4fd6;
+  --accent-press: #1540ad;
+  --on-accent: #ffffff;
+  --danger: #c8102e;
+  --edge-light: #ffffffcc;
+  --glow: 0 0 24px 0 rgba(31, 95, 255, 0.45);
+  --radius-pill: 999px;
+  --radius-card: 24px;
+  --motion-fast: 150ms;
+  --motion-sweep: 600ms;
+  --spin-duration: 800ms;
+  --pulse-duration: 1200ms;
+  --z-header: 30;
+  --z-dock: 40;
+  --z-menu: 50;
+  --dock-height: 64px;
+  --bp-narrow: 640px;
 }
 
 :root[data-appearance="light"] {
-  --canvas: #ffffff;
+  --canvas: #f4f6fa;
   --canvas-inverted: #000000;
   --surface-1: #ffffff;
-  --surface-2: #ffffff;
-  --surface-3: #ffffff;
-  --surface-4: #f2f2f2;
-  --highlight: #eb0d3f;
+  --surface-2: #e9edf4;
+  --surface-3: #dde3ee;
+  --surface-4: #cbd3e2;
+  --highlight: #1f5fff;
   --on-highlight: #ffffff;
   --neutral-100: #000000;
   --neutral-200: #333333;
@@ -147,8 +169,8 @@
   --neutral-600: #e6e6e6;
   --neutral-700: #0000000d;
   --neutral-800: #ffffff;
-  --action-primary-fill: #000000;
-  --action-primary-fill-hover: #4d4d4d;
+  --action-primary-fill: #1f5fff;
+  --action-primary-fill-hover: #1a4fd6;
   --action-primary-fill-disabled: #b3b3b3;
   --action-primary-text: #ffffff;
   --action-secondary-stroke: #000000;
@@ -160,17 +182,17 @@
   --action-text-disabled: #b3b3b3;
   --form-stroke: #666666;
   --form-stroke-active: #000000;
-  --form-stroke-error: #eb0d3f;
+  --form-stroke-error: #c8102e;
   --form-stroke-disabled: #b3b3b3;
   --form-stroke-readonly: #d9d9d9;
   --form-underline: #333333;
   --form-underline-active: #000000;
-  --form-underline-error: #eb0d3f;
+  --form-underline-error: #c8102e;
   --form-underline-disabled: #b3b3b3;
   --form-text: #333333;
   --form-caption: #666666;
   --form-text-active: #000000;
-  --form-text-error: #eb0d3f;
+  --form-text-error: #c8102e;
   --form-text-disabled: #b3b3b3;
   --form-readonly-fill: #d9d9d9;
   --nav-active: #000000;
@@ -186,24 +208,34 @@
   --text-disabled: #b3b3b3;
   --scrim: #000000b2;
   --focus: #0989ff;
-  --negative: #eb0d3f;
+  --negative: #c8102e;
   --success: #0da20d;
   --notice: #ffaa00;
   --intelligent: #007579;
   --neon-blue: #2526fe;
   --board-light: #e6e6e6;
   --board-dark: #808080;
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --text-muted: #4d5566;
+  --accent: #1f5fff;
+  --accent-hover: #1a4fd6;
+  --accent-press: #1540ad;
+  --on-accent: #ffffff;
+  --danger: #c8102e;
+  --edge-light: #ffffffcc;
+  --glow: 0 0 24px 0 rgba(31, 95, 255, 0.45);
 }
 
 :root[data-appearance="dark"] {
-  --canvas: #000000;
+  --canvas: #0a0c11;
   --canvas-inverted: #ffffff;
-  --surface-1: #1a1a1a;
-  --surface-2: #333333;
-  --surface-3: #4d4d4d;
-  --surface-4: #666666;
-  --highlight: #fd2c4e;
-  --on-highlight: #000000;
+  --surface-1: #141821;
+  --surface-2: #1d2330;
+  --surface-3: #28303f;
+  --surface-4: #343e52;
+  --highlight: #6c9bff;
+  --on-highlight: #0a0c11;
   --neutral-100: #ffffff;
   --neutral-200: #e6e6e6;
   --neutral-300: #b3b3b3;
@@ -212,10 +244,10 @@
   --neutral-600: #333333;
   --neutral-700: #ffffff26;
   --neutral-800: #000000;
-  --action-primary-fill: #ffffff;
-  --action-primary-fill-hover: #b3b3b3;
+  --action-primary-fill: #6c9bff;
+  --action-primary-fill-hover: #8ab0ff;
   --action-primary-fill-disabled: #666666;
-  --action-primary-text: #000000;
+  --action-primary-text: #0a0c11;
   --action-secondary-stroke: #ffffff;
   --action-secondary-stroke-hover: #b3b3b3;
   --action-secondary-stroke-disabled: #666666;
@@ -225,17 +257,17 @@
   --action-text-disabled: #666666;
   --form-stroke: #b3b3b3;
   --form-stroke-active: #ffffff;
-  --form-stroke-error: #fd2c4e;
+  --form-stroke-error: #ff6b7d;
   --form-stroke-disabled: #666666;
   --form-stroke-readonly: #4d4d4d;
   --form-underline: #e6e6e6;
   --form-underline-active: #ffffff;
-  --form-underline-error: #fd2c4e;
+  --form-underline-error: #ff6b7d;
   --form-underline-disabled: #666666;
   --form-text: #e6e6e6;
   --form-caption: #b3b3b3;
   --form-text-active: #ffffff;
-  --form-text-error: #fd2c4e;
+  --form-text-error: #ff6b7d;
   --form-text-disabled: #666666;
   --form-readonly-fill: #4d4d4d;
   --nav-active: #ffffff;
@@ -251,25 +283,35 @@
   --text-disabled: #666666;
   --scrim: #000000b2;
   --focus: #0989ff;
-  --negative: #fd2c4e;
+  --negative: #ff6b7d;
   --success: #15da15;
   --notice: #ffaa00;
   --intelligent: #13e0c1;
   --neon-blue: #556efe;
   --board-light: #b3b3b3;
   --board-dark: #4d4d4d;
+  --bg: #0a0c11;
+  --surface: #141821;
+  --text-muted: #a9b1c2;
+  --accent: #6c9bff;
+  --accent-hover: #8ab0ff;
+  --accent-press: #5586f0;
+  --on-accent: #0a0c11;
+  --danger: #ff6b7d;
+  --edge-light: #ffffff40;
+  --glow: 0 0 24px 0 rgba(108, 155, 255, 0.5);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-appearance]) {
-    --canvas: #000000;
+    --canvas: #0a0c11;
     --canvas-inverted: #ffffff;
-    --surface-1: #1a1a1a;
-    --surface-2: #333333;
-    --surface-3: #4d4d4d;
-    --surface-4: #666666;
-    --highlight: #fd2c4e;
-    --on-highlight: #000000;
+    --surface-1: #141821;
+    --surface-2: #1d2330;
+    --surface-3: #28303f;
+    --surface-4: #343e52;
+    --highlight: #6c9bff;
+    --on-highlight: #0a0c11;
     --neutral-100: #ffffff;
     --neutral-200: #e6e6e6;
     --neutral-300: #b3b3b3;
@@ -278,10 +320,10 @@
     --neutral-600: #333333;
     --neutral-700: #ffffff26;
     --neutral-800: #000000;
-    --action-primary-fill: #ffffff;
-    --action-primary-fill-hover: #b3b3b3;
+    --action-primary-fill: #6c9bff;
+    --action-primary-fill-hover: #8ab0ff;
     --action-primary-fill-disabled: #666666;
-    --action-primary-text: #000000;
+    --action-primary-text: #0a0c11;
     --action-secondary-stroke: #ffffff;
     --action-secondary-stroke-hover: #b3b3b3;
     --action-secondary-stroke-disabled: #666666;
@@ -291,17 +333,17 @@
     --action-text-disabled: #666666;
     --form-stroke: #b3b3b3;
     --form-stroke-active: #ffffff;
-    --form-stroke-error: #fd2c4e;
+    --form-stroke-error: #ff6b7d;
     --form-stroke-disabled: #666666;
     --form-stroke-readonly: #4d4d4d;
     --form-underline: #e6e6e6;
     --form-underline-active: #ffffff;
-    --form-underline-error: #fd2c4e;
+    --form-underline-error: #ff6b7d;
     --form-underline-disabled: #666666;
     --form-text: #e6e6e6;
     --form-caption: #b3b3b3;
     --form-text-active: #ffffff;
-    --form-text-error: #fd2c4e;
+    --form-text-error: #ff6b7d;
     --form-text-disabled: #666666;
     --form-readonly-fill: #4d4d4d;
     --nav-active: #ffffff;
@@ -317,13 +359,23 @@
     --text-disabled: #666666;
     --scrim: #000000b2;
     --focus: #0989ff;
-    --negative: #fd2c4e;
+    --negative: #ff6b7d;
     --success: #15da15;
     --notice: #ffaa00;
     --intelligent: #13e0c1;
     --neon-blue: #556efe;
     --board-light: #b3b3b3;
     --board-dark: #4d4d4d;
+    --bg: #0a0c11;
+    --surface: #141821;
+    --text-muted: #a9b1c2;
+    --accent: #6c9bff;
+    --accent-hover: #8ab0ff;
+    --accent-press: #5586f0;
+    --on-accent: #0a0c11;
+    --danger: #ff6b7d;
+    --edge-light: #ffffff40;
+    --glow: 0 0 24px 0 rgba(108, 155, 255, 0.5);
   }
 }
 
@@ -385,5 +437,12 @@
     --lh-h2: 52px;
     --fs-h4: 20px;
     --lh-h4: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0s;
+    --motion-sweep: 0s;
   }
 }

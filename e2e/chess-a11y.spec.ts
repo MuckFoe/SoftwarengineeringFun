@@ -74,6 +74,7 @@ test("AC-31: a keyboard-only White plays to a promotion; squares and the last mo
 
     // 1. h4 by keyboard; the live region and the squares report it.
     await keyboardMove(white, "h2", "h4");
+    await expect(square(black, "h4")).toHaveAttribute("aria-label", /white pawn/);
     await expect(announcement(white, /White: h4/)).toBeVisible();
     await expect(square(white, "h4")).toHaveAttribute("aria-label", /white pawn.*last move/);
     await expect(square(white, "h2")).toHaveAttribute("aria-label", /empty.*last move/);
@@ -82,12 +83,15 @@ test("AC-31: a keyboard-only White plays to a promotion; squares and the last mo
     await pointerMove(black, "g7", "g5");
     await expect(announcement(white, /Black: g5/)).toBeVisible();
     await keyboardMove(white, "h4", "g5");
+    await expect(square(black, "g5")).toHaveAttribute("aria-label", /white pawn/);
     await pointerMove(black, "h7", "h6");
     await expect(announcement(white, /Black: h6/)).toBeVisible();
     await keyboardMove(white, "g5", "h6");
+    await expect(square(black, "h6")).toHaveAttribute("aria-label", /white pawn/);
     await pointerMove(black, "a7", "a6");
     await expect(announcement(white, /Black: a6/)).toBeVisible();
     await keyboardMove(white, "h6", "h7");
+    await expect(square(black, "h7")).toHaveAttribute("aria-label", /white pawn/);
     await pointerMove(black, "a6", "a5");
     await expect(announcement(white, /Black: a5/)).toBeVisible();
 

@@ -53,9 +53,8 @@
 
 .box {
   padding: var(--space-8) var(--space-12);
-  border: 1px solid var(--ui-stroke);
-  border-radius: var(--radius-0);
-  background: var(--canvas);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
 }
 
 .boxTitle {
@@ -105,12 +104,12 @@
 
 .attempt[data-correct="true"] > svg,
 .attempt[data-correct="true"] .result {
-  color: var(--success);
+  color: var(--accent);
 }
 
 .attempt[data-correct="false"] > svg,
 .attempt[data-correct="false"] .result {
-  color: var(--negative);
+  color: var(--danger);
 }
 
 .by {
@@ -128,7 +127,7 @@
   align-items: center;
   gap: var(--space-4);
   margin: 0;
-  color: var(--success);
+  color: var(--accent);
   font-weight: 600;
 }
 

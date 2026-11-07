@@ -56,8 +56,12 @@ def _chat(client: TestClient, invite: str) -> list[dict]:
 
 
 def _say(sock, text: str) -> None:
-    sock.send(type="chat_send", text=text, client_id=f"c-{text}")
-    sock.next("chat_message")
+    client_id = f"c-{text}"
+    sock.send(type="chat_send", text=text, client_id=client_id)
+    # Everyone gets every broadcast, so an earlier speaker's message may already be queued on
+    # this socket: wait for our own echo, which is sent only once the message is stored.
+    while sock.next("chat_message")["client_id"] != client_id:
+        pass
 
 
 async def test_ac24_after_a_restart_everything_is_as_it_was_and_play_continues(
@@ -134,9 +138,10 @@ async def test_a_repeated_position_before_the_restart_counts_after_it(database_u
                 if i < len(SHUFFLE) - 1:
                     for s in (ann, bob):
                         s.state(lambda st, n=5 + i: st["game"]["ply"] == n)
-            closed = ann.next("session_closed")
-            assert closed["result"] == "draw"
-            assert closed["reason"] == "threefold_repetition"
+            # A finished game is announced as an ended state; `session_closed` is for deletes.
+            game = ann.state(lambda st: st["game"]["status"] == "ended")["game"]
+            assert game["result"] == "draw"
+            assert game["reason"] == "threefold_repetition"
 
 
 async def test_after_a_restart_seated_players_are_away_and_no_claim_for_the_full_interval(

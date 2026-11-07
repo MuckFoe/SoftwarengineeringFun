@@ -11,8 +11,8 @@
   flex: 1;
 }
 
-/* Spec 015 task 24: Back is a tertiary link, Sign in / Register are an Audi primary and a
-   secondary link-button (radius 0, tokens only). */
+/* Spec 016 task 25: Back is a tertiary link, Sign in / Register are a v2 primary and a
+   secondary pill link-button (tokens only). */
 .back,
 .action {
   display: inline-flex;
@@ -23,7 +23,7 @@
   box-sizing: border-box;
   padding: 0 var(--space-16);
   border: var(--bw-1) solid var(--action-secondary-stroke);
-  border-radius: var(--radius-0);
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--action-text);
   font-family: var(--font-copy);
@@ -31,8 +31,9 @@
   line-height: 24px;
   text-decoration: none;
   transition:
-    background-color var(--dur-fast) var(--ease-audi),
-    border-color var(--dur-fast) var(--ease-audi);
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease;
 }
 
 .back {
@@ -45,14 +46,15 @@
 
 .action:first-child {
   min-width: 144px;
-  background: var(--action-primary-fill);
-  border-color: var(--action-primary-fill);
-  color: var(--action-primary-text);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--glow);
 }
 
 .action:first-child:hover {
-  background: var(--action-primary-fill-hover);
-  border-color: var(--action-primary-fill-hover);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .action:not(:first-child) {

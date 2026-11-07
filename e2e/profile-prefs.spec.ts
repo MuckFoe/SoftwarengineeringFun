@@ -4,14 +4,15 @@
 // and the profile is keyboard-reachable and passes WCAG AA in light and dark. Each browser
 // or device is its own Playwright context, against the production stack and real Keycloak.
 import AxeBuilder from "@axe-core/playwright";
-import type { BrowserContext, Page } from "@playwright/test";
+import type { Browser, BrowserContext, Page } from "@playwright/test";
+import type { KeycloakState } from "./global-setup";
 import {
   appPathname,
   appUrl,
   createSession,
   expect,
   signedInContext,
-  sql,
+  resetPreferences,
   test,
 } from "./fixtures";
 
@@ -25,10 +26,12 @@ interface StoredPrefs {
 
 /**
  * Starts the accounts with no stored preferences, so the next sign-in is a "first" one
- * (FR-16). Tests run one at a time, so clearing every account's row is safe.
+ * (FR-16). Only prefsuser's row goes: other specs run in parallel.
  */
-function resetPreferences(): void {
-  sql("delete from account_preference");
+async function resetPrefs(browser: Browser, keycloak: KeycloakState): Promise<void> {
+  const user = keycloak.users.prefsuser;
+  if (!user) throw new Error("no keycloak test user 'prefsuser'");
+  await resetPreferences(browser, user);
 }
 
 const appearance = (page: Page) =>
@@ -74,8 +77,8 @@ test("FR-15: dark and chat hidden on the laptop are dark and chat hidden in anot
   keycloak,
   request,
 }) => {
-  resetPreferences();
-  const laptop = await signedInContext(browser, keycloak, "newuser", "/", LIGHT_OS);
+  await resetPrefs(browser, keycloak);
+  const laptop = await signedInContext(browser, keycloak, "prefsuser", "/", LIGHT_OS);
   contexts.push(laptop.context);
   await accountSynced(laptop.page);
 
@@ -89,7 +92,7 @@ test("FR-15: dark and chat hidden on the laptop are dark and chat hidden in anot
     .poll(() => accountPrefs(laptop.page))
     .toEqual({ appearance: "dark", chat_visible: false });
 
-  const other = await signedInContext(browser, keycloak, "newuser", "/", LIGHT_OS);
+  const other = await signedInContext(browser, keycloak, "prefsuser", "/", LIGHT_OS);
   contexts.push(other.context);
   await expect.poll(() => appearance(other.page)).toBe("dark");
   await openSession(other.page, await createSession(request));
@@ -102,8 +105,8 @@ test("FR-16: a dark browser's first sign-in keeps dark for the account; another 
   browser,
   keycloak,
 }) => {
-  resetPreferences();
-  const first = await signedInContext(browser, keycloak, "newuser", "/", LIGHT_OS, async (page) => {
+  await resetPrefs(browser, keycloak);
+  const first = await signedInContext(browser, keycloak, "prefsuser", "/", LIGHT_OS, async (page) => {
     await page.goto(appUrl("/"));
     await chooseAppearance(page, "Dark");
   });
@@ -111,7 +114,7 @@ test("FR-16: a dark browser's first sign-in keeps dark for the account; another 
   await expect.poll(() => accountPrefs(first.page)).toMatchObject({ appearance: "dark" });
   expect(await appearance(first.page)).toBe("dark");
 
-  const second = await signedInContext(browser, keycloak, "newuser", "/", LIGHT_OS);
+  const second = await signedInContext(browser, keycloak, "prefsuser", "/", LIGHT_OS);
   contexts.push(second.context);
   await expect.poll(() => appearance(second.page)).toBe("dark");
 });
@@ -140,18 +143,18 @@ test("FR-17: signed out, a visitor's light is kept in that browser and nothing i
   expect(saves).toEqual([]);
 });
 
-test("FR-17: newuser with dark signs out, and that browser stays dark after reload", async ({
+test("FR-17: prefsuser with dark signs out, and that browser stays dark after reload", async ({
   browser,
   keycloak,
 }) => {
-  resetPreferences();
-  const { context, page } = await signedInContext(browser, keycloak, "newuser", "/", LIGHT_OS);
+  await resetPrefs(browser, keycloak);
+  const { context, page } = await signedInContext(browser, keycloak, "prefsuser", "/", LIGHT_OS);
   contexts.push(context);
   await accountSynced(page);
   await chooseAppearance(page, "Dark");
   await expect.poll(() => accountPrefs(page)).toMatchObject({ appearance: "dark" });
 
-  await page.getByRole("link", { name: "newuser" }).click();
+  await page.getByRole("link", { name: "prefsuser" }).click();
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByRole("heading", { name: "You're not signed in" })).toBeVisible();
   const me = (await (await page.request.get(appUrl("/api/me"))).json()) as { signed_in: boolean };
@@ -169,14 +172,14 @@ test("FR-18: Light in the profile turns the app light at once, and a session the
   keycloak,
   request,
 }) => {
-  resetPreferences();
-  const { context, page } = await signedInContext(browser, keycloak, "newuser", "/", LIGHT_OS);
+  await resetPrefs(browser, keycloak);
+  const { context, page } = await signedInContext(browser, keycloak, "prefsuser", "/", LIGHT_OS);
   contexts.push(context);
   await accountSynced(page);
   await chooseAppearance(page, "Dark");
   await expect.poll(() => accountPrefs(page)).toMatchObject({ appearance: "dark" });
 
-  await page.getByRole("link", { name: "newuser" }).click();
+  await page.getByRole("link", { name: "prefsuser" }).click();
   const prefs = page.getByRole("region", { name: "Preferences" });
   await prefs.getByRole("radio", { name: "Light" }).click();
   // "At once": applied by the click itself, before any reload or request round trip.
@@ -242,8 +245,8 @@ for (const scheme of ["light", "dark"] as const) {
       }) => {
         let page: Page;
         if (who === "signed in") {
-          resetPreferences();
-          const signed = await signedInContext(browser, keycloak, "newuser", "/", {
+          await resetPrefs(browser, keycloak);
+          const signed = await signedInContext(browser, keycloak, "prefsuser", "/", {
             colorScheme: scheme,
           });
           contexts.push(signed.context);
@@ -261,7 +264,7 @@ for (const scheme of ["light", "dark"] as const) {
           await expect(page.getByRole("link", { name: "Register" })).toBeVisible();
         }
         await expect.poll(() => appearance(page)).toBe(scheme);
-        await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+        await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY).map((a) => a.finished.catch(() => undefined))));
 
         const axe = await new AxeBuilder({ page })
           .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])

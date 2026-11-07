@@ -311,6 +311,7 @@ test("AC-18–AC-23: drawing on slides, live for everyone, cleared, and never ke
   browser,
   keycloak,
 }) => {
+  test.setTimeout(35_000); // six participants and many strokes: about 13-16 s measured
   await ensureLibrary(browser, keycloak);
   const contexts: BrowserContext[] = [];
   try {

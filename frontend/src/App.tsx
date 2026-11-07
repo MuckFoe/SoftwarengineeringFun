@@ -3,6 +3,7 @@ import { Route, Routes, useParams } from "react-router";
 import { RequireRole } from "./auth/RequireRole";
 import { ChessSessionWindow } from "./games/chess/ChessSessionWindow";
 import { GamesWindow } from "./games/GamesWindow";
+import { HomeLanding } from "./home/HomeLanding";
 import { LearningSessionWindow } from "./learn/LearningSessionWindow";
 import { LearnWindow } from "./learn/LearnWindow";
 import { NotFound } from "./pages/NotFound";
@@ -14,6 +15,7 @@ import { PresentWindow } from "./present/PresentWindow";
 import { ShortcutList } from "./shortcuts/ShortcutList";
 import { ShortcutsProvider, useShortcut } from "./shortcuts/useShortcut";
 import { useAppearance } from "./theme/useAppearance";
+import { Dock } from "./ui/Dock";
 
 /** The deep links are for editors, as the pages they replace were (spec 001 FR-1, FR-2a). */
 function EditorsOnly({ children }: { children: ReactNode }) {
@@ -48,7 +50,8 @@ function AppShell() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<ProblemsWindow />} />
+        <Route path="/" element={<HomeLanding />} />
+        <Route path="/problems" element={<ProblemsWindow />} />
         <Route
           path="/problems/new"
           element={
@@ -75,6 +78,7 @@ function AppShell() {
         <Route path="/profile" element={<ProfileWindow />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <Dock />
       <ShortcutList open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </>
   );

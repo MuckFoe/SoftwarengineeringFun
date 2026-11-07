@@ -8,7 +8,7 @@ interface Props {
   children?: ReactNode;
 }
 
-/** Audi-styled chat bubble (spec 015 FR-4): square, no tail. Children render unchanged. */
+/** Audi-styled chat bubble (spec 016 FR-8): rounded with one pointed corner; own is accent. Children render unchanged. */
 export function ChatBubble({ author, time, own, children }: Props) {
   return (
     <div className="chat-bubble" data-own={own ? "true" : "false"}>

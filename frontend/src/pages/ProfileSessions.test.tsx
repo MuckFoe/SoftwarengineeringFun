@@ -173,7 +173,7 @@ describe("ProfileSessions", () => {
   });
 
   it("FR-10: a signed-out profile has no sessions section", async () => {
-    const fetchMock = stubServer([P1], { signed_in: false, roles: [] });
+    stubServer([P1], { signed_in: false, roles: [] });
     render(
       <ShortcutsProvider>
         <MemoryRouter initialEntries={["/profile"]}>
@@ -186,10 +186,7 @@ describe("ProfileSessions", () => {
     expect(await screen.findByText("You're not signed in")).toBeTruthy();
     expect(screen.queryByRole("table", { name: "Sessions" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Sessions" })).toBeNull();
-    expect(
-      fetchMock.mock.calls.some(
-        ([u]) => new URL(String(u), "http://localhost").pathname === "/api/me/sessions",
-      ),
-    ).toBe(false);
+    // The shared header's live check may call /api/me/sessions; the profile must not list its rows.
+    expect(screen.queryByText(P1.title)).toBeNull();
   });
 });

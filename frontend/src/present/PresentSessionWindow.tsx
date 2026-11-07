@@ -664,6 +664,7 @@ function SessionView(props: SessionViewProps) {
                   <li key={p.id} className={styles.person}>
                     <span
                       data-swatch
+                      data-v2-exempt
                       className={styles.swatch}
                       style={{ background: strokeColor(p.color) }}
                       aria-hidden="true"

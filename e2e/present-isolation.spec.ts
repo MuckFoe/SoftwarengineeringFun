@@ -282,7 +282,7 @@ test.describe("presentation isolation", () => {
     browser,
     keycloak,
   }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(20_000);
     const invite = await startSession(
       browser,
       editor(keycloak.users),

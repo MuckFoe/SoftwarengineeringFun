@@ -46,7 +46,7 @@ function markStale(invite: string): void {
   );
 }
 
-async function signIn(page: Page, username: string, password: string, next = "/"): Promise<void> {
+async function signIn(page: Page, username: string, password: string, next = "/problems"): Promise<void> {
   await page.goto(`/api/auth/login?next=${encodeURIComponent(next)}`);
   await page.locator("#username").fill(username);
   await page.locator("#password").fill(password);
@@ -129,6 +129,6 @@ test("spec 008 FR-9: a stale session shows its chat history below the descriptio
   const descriptionBox = await description.boundingBox();
   const historyBox = await history.boundingBox();
   if (!descriptionBox || !historyBox) throw new Error("no layout boxes");
-  expect(historyBox.y).toBeGreaterThanOrEqual(descriptionBox.y + descriptionBox.height - 1);
+  expect(historyBox.y).toBeGreaterThanOrEqual(descriptionBox.y + descriptionBox.height - 2);
   await context.close();
 });

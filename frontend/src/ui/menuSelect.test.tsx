@@ -53,7 +53,7 @@ describe("Select", () => {
     expect(document.activeElement).toBe(selected);
     fireEvent.keyDown(selected, { key: "ArrowDown" });
     expect(document.activeElement).toBe(screen.getByRole("option", { name: "Beta" }));
-    fireEvent.keyDown(document.activeElement!, { key: "Enter" });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Enter" });
     expect(onChange).toHaveBeenCalledWith("b");
     expect(screen.queryByRole("listbox")).toBeNull();
     expect(document.activeElement).toBe(trigger);
@@ -64,7 +64,7 @@ describe("Select", () => {
     render(<Select label="Letter" value="a" onChange={onChange} options={options} />);
     const trigger = screen.getByRole("combobox", { name: "Letter" });
     fireEvent.click(trigger);
-    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     expect(screen.queryByRole("listbox")).toBeNull();
     expect(onChange).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(trigger);
@@ -103,12 +103,12 @@ describe("Menu", () => {
     const trigger = screen.getByRole("button", { name: "Actions" });
     fireEvent.click(trigger);
     expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Rename" }));
-    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "ArrowDown" });
     expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Delete" }));
-    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "ArrowDown" });
     expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Rename" }));
-    fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
-    fireEvent.keyDown(document.activeElement!, { key: "Enter" });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "ArrowUp" });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Enter" });
     expect(second).toHaveBeenCalled();
     expect(first).not.toHaveBeenCalled();
     expect(screen.queryByRole("menu")).toBeNull();
@@ -120,7 +120,7 @@ describe("Menu", () => {
     render(<Menu label="Actions" items={[{ label: "Rename", onSelect }]} />);
     const trigger = screen.getByRole("button", { name: "Actions" });
     fireEvent.click(trigger);
-    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     expect(screen.queryByRole("menu")).toBeNull();
     expect(document.activeElement).toBe(trigger);
     fireEvent.click(trigger);

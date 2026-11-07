@@ -10,9 +10,12 @@ interface Props {
 export function Badge({ kind, value, label }: Props) {
   if (kind === "dot")
     return <span role="img" aria-label={label} className={`${styles.badge} ${styles.dot}`} />;
-  return (
-    <span aria-label={label} className={`${styles.badge} ${styles[kind]}`}>
-      {value}
-    </span>
-  );
+  const cls = `${styles.badge} ${styles[kind]}`;
+  if (label)
+    return (
+      <span role="img" aria-label={label} className={cls}>
+        {value}
+      </span>
+    );
+  return <span className={cls}>{value}</span>;
 }

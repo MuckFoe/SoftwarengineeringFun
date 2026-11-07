@@ -38,7 +38,7 @@ describe("Tooltip (Audi popover)", () => {
     expect(r).toMatch(/color:\s*var\(--canvas\)/);
     expect(r).toMatch(/12px/);
     expect(r).toMatch(/16px/);
-    expect(r).toMatch(/border-radius:\s*0/);
+    expect(r).toMatch(/border-radius:\s*var\(--radius-0\)/);
   });
 });
 
@@ -71,7 +71,7 @@ describe("Toast (Audi notification)", () => {
     expect(rule('.toast[data-tone="notice"]')).toMatch(/background:\s*var\(--notice\)/);
     expect(rule('.toast[data-tone="negative"]')).toMatch(/background:\s*var\(--negative\)/);
     expect(rule('.toast[data-tone="info"]')).toMatch(/background:\s*var\(--canvas-inverted\)/);
-    expect(rule(".toast")).toMatch(/border-radius:\s*0/);
+    expect(rule(".toast")).toMatch(/border-radius:\s*var\(--radius-0\)/);
   });
 
   it("each tone's text passes 4.5:1 in both appearances (contrast list)", () => {
@@ -79,8 +79,9 @@ describe("Toast (Audi notification)", () => {
     for (const n of names) {
       const p = PAIRS.find((x) => x.name === n);
       expect(p, n).toBeTruthy();
+      if (!p) throw new Error(n);
       for (const a of APPEARANCES) {
-        expect(evaluatePair(p!, a).ratio, `${n} ${a}`).toBeGreaterThanOrEqual(THRESHOLD.text);
+        expect(evaluatePair(p, a).ratio, `${n} ${a}`).toBeGreaterThanOrEqual(THRESHOLD.text);
       }
     }
   });

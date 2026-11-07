@@ -7,7 +7,7 @@ import { appPathname, appUrl, expect, signIn, test } from "./fixtures";
 async function signInAsEditor(
   page: Page,
   users: Record<string, { username: string; password: string }>,
-  next = "/",
+  next = "/problems",
 ): Promise<void> {
   const editor = users.editor1;
   if (!editor) throw new Error("no keycloak test user 'editor1'");
@@ -43,7 +43,7 @@ test("AC-2: edit opens a sheet over the list, the URL stays, closing keeps the s
   const sheet = page.locator("dialog[open]");
   await expect(sheet).toBeVisible();
   await expect(sheet.getByRole("heading", { name: "Edit problem" })).toBeVisible();
-  expect(appPathname(page.url())).toBe("/");
+  expect(appPathname(page.url())).toBe("/problems");
 
   await sheet.getByRole("button", { name: "Cancel" }).click();
   await expect(page.locator("dialog[open]")).toHaveCount(0);

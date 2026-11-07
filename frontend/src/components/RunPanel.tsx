@@ -5,6 +5,8 @@ import { Icon } from "../ui/Icon";
 import { InlineMessage } from "../ui/InlineMessage";
 import { Spinner } from "../ui/Spinner";
 import styles from "./RunPanel.module.css";
+import { RunSummaryStrip } from "./RunSummaryStrip";
+import { toRunSummary } from "./runSummary";
 
 const OUTCOME_LABEL: Record<Outcome, string> = {
   passed: "passed",
@@ -79,20 +81,23 @@ export function RunPanel({
         </p>
       ) : (
         result && (
-          <ul className={styles.results}>
-            {result.results.map((r) => (
-              <li key={r.position} className={styles.result} data-outcome={r.outcome}>
-                <Icon name={r.outcome === "passed" ? "checkmark" : "xmark"} />
-                <span>
-                  {`Test ${r.position}: ${OUTCOME_LABEL[r.outcome]}`}
-                  {r.outcome === "error" && r.error_message && <span> — {r.error_message}</span>}
-                </span>
-                {r.outcome === "error" && r.traceback && (
-                  <pre className={styles.traceback}>{r.traceback}</pre>
-                )}
-              </li>
-            ))}
-          </ul>
+          <>
+            <RunSummaryStrip summary={toRunSummary(result)} />
+            <ul className={styles.results}>
+              {result.results.map((r) => (
+                <li key={r.position} className={styles.result} data-outcome={r.outcome}>
+                  <Icon name={r.outcome === "passed" ? "checkmark" : "xmark"} />
+                  <span>
+                    {`Test ${r.position}: ${OUTCOME_LABEL[r.outcome]}`}
+                    {r.outcome === "error" && r.error_message && <span> — {r.error_message}</span>}
+                  </span>
+                  {r.outcome === "error" && r.traceback && (
+                    <pre className={styles.traceback}>{r.traceback}</pre>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
         )
       )}
     </section>

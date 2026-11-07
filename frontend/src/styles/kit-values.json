@@ -1,8 +1,8 @@
 {
   "colour": {
     "--canvas": {
-      "light": "#FFFFFF",
-      "dark": "#000000"
+      "light": "#F4F6FA",
+      "dark": "#0A0C11"
     },
     "--canvas-inverted": {
       "light": "#000000",
@@ -10,27 +10,27 @@
     },
     "--surface-1": {
       "light": "#FFFFFF",
-      "dark": "#1A1A1A"
+      "dark": "#141821"
     },
     "--surface-2": {
-      "light": "#FFFFFF",
-      "dark": "#333333"
+      "light": "#E9EDF4",
+      "dark": "#1D2330"
     },
     "--surface-3": {
-      "light": "#FFFFFF",
-      "dark": "#4D4D4D"
+      "light": "#DDE3EE",
+      "dark": "#28303F"
     },
     "--surface-4": {
-      "light": "#F2F2F2",
-      "dark": "#666666"
+      "light": "#CBD3E2",
+      "dark": "#343E52"
     },
     "--highlight": {
-      "light": "#EB0D3F",
-      "dark": "#FD2C4E"
+      "light": "#1F5FFF",
+      "dark": "#6C9BFF"
     },
     "--on-highlight": {
       "light": "#FFFFFF",
-      "dark": "#000000"
+      "dark": "#0A0C11"
     },
     "--neutral-100": {
       "light": "#000000",
@@ -65,12 +65,12 @@
       "dark": "#000000"
     },
     "--action-primary-fill": {
-      "light": "#000000",
-      "dark": "#FFFFFF"
+      "light": "#1F5FFF",
+      "dark": "#6C9BFF"
     },
     "--action-primary-fill-hover": {
-      "light": "#4D4D4D",
-      "dark": "#B3B3B3"
+      "light": "#1A4FD6",
+      "dark": "#8AB0FF"
     },
     "--action-primary-fill-disabled": {
       "light": "#B3B3B3",
@@ -78,7 +78,7 @@
     },
     "--action-primary-text": {
       "light": "#FFFFFF",
-      "dark": "#000000"
+      "dark": "#0A0C11"
     },
     "--action-secondary-stroke": {
       "light": "#000000",
@@ -117,8 +117,8 @@
       "dark": "#FFFFFF"
     },
     "--form-stroke-error": {
-      "light": "#EB0D3F",
-      "dark": "#FD2C4E"
+      "light": "#C8102E",
+      "dark": "#FF6B7D"
     },
     "--form-stroke-disabled": {
       "light": "#B3B3B3",
@@ -137,8 +137,8 @@
       "dark": "#FFFFFF"
     },
     "--form-underline-error": {
-      "light": "#EB0D3F",
-      "dark": "#FD2C4E"
+      "light": "#C8102E",
+      "dark": "#FF6B7D"
     },
     "--form-underline-disabled": {
       "light": "#B3B3B3",
@@ -157,8 +157,8 @@
       "dark": "#FFFFFF"
     },
     "--form-text-error": {
-      "light": "#EB0D3F",
-      "dark": "#FD2C4E"
+      "light": "#C8102E",
+      "dark": "#FF6B7D"
     },
     "--form-text-disabled": {
       "light": "#B3B3B3",
@@ -221,8 +221,8 @@
       "dark": "#0989FF"
     },
     "--negative": {
-      "light": "#EB0D3F",
-      "dark": "#FD2C4E"
+      "light": "#C8102E",
+      "dark": "#FF6B7D"
     },
     "--success": {
       "light": "#0DA20D",
@@ -239,6 +239,46 @@
     "--neon-blue": {
       "light": "#2526FE",
       "dark": "#556EFE"
+    },
+    "--bg": {
+      "light": "#F4F6FA",
+      "dark": "#0A0C11"
+    },
+    "--surface": {
+      "light": "#FFFFFF",
+      "dark": "#141821"
+    },
+    "--text-muted": {
+      "light": "#4D5566",
+      "dark": "#A9B1C2"
+    },
+    "--accent": {
+      "light": "#1F5FFF",
+      "dark": "#6C9BFF"
+    },
+    "--accent-hover": {
+      "light": "#1A4FD6",
+      "dark": "#8AB0FF"
+    },
+    "--accent-press": {
+      "light": "#1540AD",
+      "dark": "#5586F0"
+    },
+    "--on-accent": {
+      "light": "#FFFFFF",
+      "dark": "#0A0C11"
+    },
+    "--danger": {
+      "light": "#C8102E",
+      "dark": "#FF6B7D"
+    },
+    "--edge-light": {
+      "light": "#FFFFFFCC",
+      "dark": "#FFFFFF40"
+    },
+    "--glow": {
+      "light": "0 0 24px 0 rgba(31, 95, 255, 0.45)",
+      "dark": "0 0 24px 0 rgba(108, 155, 255, 0.5)"
     }
   },
   "shared": {
@@ -292,7 +332,18 @@
     "--lh-label-3": "12px",
     "--ease-audi": "cubic-bezier(0.75, 0.02, 0.5, 1)",
     "--dur-fast": "150ms",
-    "--dur-base": "250ms"
+    "--dur-base": "250ms",
+    "--radius-pill": "999px",
+    "--radius-card": "24px",
+    "--motion-fast": "150ms",
+    "--motion-sweep": "600ms",
+    "--spin-duration": "800ms",
+    "--pulse-duration": "1200ms",
+    "--z-header": "30",
+    "--z-dock": "40",
+    "--z-menu": "50",
+    "--dock-height": "64px",
+    "--bp-narrow": "640px"
   },
   "responsive": {
     "--fs-display-1": {

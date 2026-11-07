@@ -570,6 +570,26 @@ async def test_nfr5_fr9_tests_reach_only_editors(
     )
     assert prefs.status_code == signed_in_status
 
+    # Spec 017 home routes: an account (cookie) or a guest (X-Rejoin-Token); neither is 401.
+    # Nothing here is editor-only and a preview of anything not openable is a 404.
+    home = sweep.http(("GET", "/api/home"), client.get("/api/home"))
+    assert home.status_code == signed_in_status
+    no_session = "00000000-0000-4000-8000-000000000000"
+    pv = sweep.http(
+        ("GET", "/api/home/preview/{session_id}"), client.get(f"/api/home/preview/{no_session}")
+    )
+    assert pv.status_code == (404 if observer == "plain1" else 401)
+    # Brand assets are unauthenticated: the generated stylesheet is always served, a missing
+    # asset is a 404, for every observer.
+    css = sweep.http(("GET", "/brand/{asset_path:path}"), client.get("/brand/brand.css"))
+    assert css.status_code == 200
+    assert (
+        sweep.http(
+            ("GET", "/brand/{asset_path:path}"), client.get("/brand/no-such.png")
+        ).status_code
+        == 404
+    )
+
     # A deleted problem's public view, after runs exist.
     sweep.http(("GET", "/api/problems/{problem_id}"), client.get(f"/api/problems/{p}"))
 

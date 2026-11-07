@@ -29,8 +29,7 @@ async function startChess(
 ): Promise<{ page: Page; invite: string }> {
 	const context = await browser.newContext();
 	const page = await context.newPage();
-	await page.goto(appUrl("/"));
-	await page.getByRole("tab", { name: "Games" }).click();
+	await page.goto(appUrl("/games"));
 	await page.getByRole("button", { name: "Start Chess" }).click();
 	await page.waitForURL((url) =>
 		/^\/games\/chess\/s\/[\w-]+$/.test(appPathname(url)),
@@ -64,7 +63,12 @@ async function setUpGame(browser: Browser) {
 	const viewer = await joinInvite(browser, invite, "Vera");
 	await expect(seats(white)).toContainText("Boris");
 	await white.getByRole("button", { name: "Start" }).click();
-	await expect(moves(black)).toBeAttached();
+	// Everyone has the started game before anyone moves (a click earlier is ignored).
+	for (const page of [white, black, viewer]) {
+		await expect(moves(page)).toBeAttached();
+	}
+	// The players' Resign button shows once their page is in the started game.
+	for (const page of [white, black]) await expect(page.getByRole("button", { name: "Resign" })).toBeVisible();
 	return { white, black, viewer, invite };
 }
 
@@ -73,8 +77,7 @@ test("AC-1 AC-2: Games lists chess with its description; Start opens an unstarte
 }) => {
 	const context = await browser.newContext();
 	const page = await context.newPage();
-	await page.goto(appUrl("/"));
-	await page.getByRole("tab", { name: "Games" }).click();
+	await page.goto(appUrl("/games"));
 	await expect(page.getByRole("heading", { name: "Games" })).toBeVisible();
 	const item = page
 		.getByRole("listitem")

@@ -44,9 +44,9 @@
   width: min(360px, calc(100vw - 2 * var(--space-16)));
   padding: var(--space-20);
   border: none;
-  border-radius: var(--radius-0);
-  background: var(--surface-1);
-  color: var(--text-interactive);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--text);
   box-shadow: var(--elev-4);
 }
 
@@ -62,5 +62,5 @@
 
 .alertText {
   margin: 0 0 var(--space-16);
-  color: var(--form-caption);
+  color: var(--text-muted);
 }

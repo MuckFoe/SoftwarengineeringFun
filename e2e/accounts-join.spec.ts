@@ -127,7 +127,7 @@ test("FR-1: signed in, starting a coding session shows no name prompt and lists 
   if (!visitorContext) throw new Error("no browser context");
   try {
     const page = await laptop.newPage();
-    await page.goto(appUrl("/"));
+    await page.goto(appUrl("/problems"));
     await page
       .getByRole("button", { name: `Start session: ${PROBLEM}` })
       .first()

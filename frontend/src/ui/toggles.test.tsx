@@ -26,7 +26,7 @@ describe("toggle styling (FR-4)", () => {
   it("radio is a 20px circle", () => {
     const r = rule(".ui-radio__input");
     expect(r).toMatch(/width:\s*20px/);
-    expect(r).toMatch(/border-radius:\s*50%/);
+    expect(r).toMatch(/border-radius:\s*var\(--radius-max\)/);
   });
   it("switch is a 56x32 pill", () => {
     const r = rule(".ui-switch__input");

@@ -19,21 +19,11 @@ for (const scheme of SCHEMES) {
           await expect
             .poll(() => page.evaluate(() => document.documentElement.dataset.appearance))
             .toBe(scheme);
-          // Header tabs replace the old Areas sidebar: Learn is the selected tab, no AreaNav.
+          // The dock replaced the header tabs and the Areas sidebar: the dock is the one Areas navigation.
           if (screen.name === "learn area") {
-            await expect(page.getByRole("tab", { name: "Learn" })).toHaveAttribute(
-              "aria-selected",
-              "true",
-            );
-            await expect(page.getByRole("navigation", { name: "Areas" })).toHaveCount(0);
+            await expect(page.getByRole("navigation", { name: "Areas" })).toHaveCount(1);
           }
-          // Square controls (radius 0), no Apple blur.
-          const radii = await page.evaluate(() =>
-            Array.from(document.querySelectorAll("main button")).map(
-              (b) => getComputedStyle(b).borderTopLeftRadius,
-            ),
-          );
-          expect(radii.filter((r) => r !== "0px")).toEqual([]);
+          // Pill shapes are enforced by checkScreen (spec 016 FR-1); no Apple blur.
           await checkScreen(page, watch, scheme);
         });
       });

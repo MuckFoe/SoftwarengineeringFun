@@ -342,7 +342,7 @@ test("NFR-2: by keyboard alone the chat control and the divider work, and the re
   // Separate, named regions, and no accessibility violations in the session window.
   await expect(page.getByRole("region", { name: "Description" })).toHaveCount(1);
   await expect(page.getByRole("region", { name: "Chat" })).toHaveCount(1);
-  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY).map((a) => a.finished.catch(() => undefined))));
   const axe = await new AxeBuilder({ page }).analyze();
   expect(
     axe.violations.flatMap((v) => v.nodes.map((n) => `${v.id} ${n.target.join(" ")}`)),

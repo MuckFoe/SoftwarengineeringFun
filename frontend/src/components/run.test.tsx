@@ -5,7 +5,13 @@ import { PresenceList } from "./PresenceList";
 import { RunPanel } from "./RunPanel";
 
 function runResult(overrides: Partial<RunResult>): RunResult {
-  return { run_id: "r1", problem_id: "p1", accepted: false, results: [], ...overrides };
+  return {
+    run_id: "r1",
+    problem_id: "p1",
+    accepted: false,
+    results: [],
+    ...overrides,
+  };
 }
 
 afterEach(cleanup);
@@ -47,12 +53,54 @@ describe("RunPanel", () => {
     expect(screen.getByText("Test 2: wrong answer")).toBeTruthy();
   });
 
+  it("FR-17: a run with all figures shows time, memory and examples in a strip", () => {
+    renderPanel({
+      progress: {
+        accepted: true,
+        last_run: runResult({
+          results: [{ position: 1, outcome: "passed" }],
+          duration_ms: 120,
+          memory_kb: 2048,
+          examples_passed: 1,
+          examples_total: 1,
+        }),
+      },
+    });
+    const strip = screen.getByLabelText("Run summary");
+    expect(strip.textContent).toContain("120 ms");
+    expect(strip.textContent).toContain("2.0 MB");
+    expect(strip.textContent).toContain("1/1");
+  });
+
+  it("FR-17: no strip before a run, and after a reload only the examples count shows", () => {
+    renderPanel();
+    expect(screen.queryByLabelText("Run summary")).toBeNull();
+    cleanup();
+    renderPanel({
+      progress: {
+        accepted: false,
+        last_run: runResult({ examples_passed: 0, examples_total: 2 }),
+      },
+    });
+    const strip = screen.getByLabelText("Run summary");
+    expect(strip.textContent).toContain("0/2");
+    expect(strip.textContent).not.toContain("Time");
+    expect(strip.textContent).not.toContain("Memory");
+  });
+
   it("FR-22: an error shows its message and traceback", () => {
     renderPanel({
       progress: {
         accepted: false,
         last_run: runResult({
-          results: [{ position: 1, outcome: "error", error_message: "bad", traceback: "Trace" }],
+          results: [
+            {
+              position: 1,
+              outcome: "error",
+              error_message: "bad",
+              traceback: "Trace",
+            },
+          ],
         }),
       },
     });
@@ -110,7 +158,10 @@ describe("RunPanel feedback (spec 003)", () => {
         running={false}
         progress={{
           accepted: true,
-          last_run: runResult({ accepted: true, results: [{ position: 1, outcome: "passed" }] }),
+          last_run: runResult({
+            accepted: true,
+            results: [{ position: 1, outcome: "passed" }],
+          }),
         }}
       />,
     );
@@ -128,7 +179,9 @@ describe("RunPanel feedback (spec 003)", () => {
         running
         progress={{
           accepted: false,
-          last_run: runResult({ results: [{ position: 1, outcome: "wrong_answer" }] }),
+          last_run: runResult({
+            results: [{ position: 1, outcome: "wrong_answer" }],
+          }),
         }}
       />,
     );

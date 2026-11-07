@@ -127,7 +127,15 @@ def test_contract_returns_one_result_per_case_in_order(runner_url):
         runner_url, "def mul(a, b):\n    return a * b\n", "mul", [[2, 3], [4, 5]]
     )
     assert status == 200
-    assert body == {"cases": [{"status": "ok", "value": 6}, {"status": "ok", "value": 20}]}
+    assert [(c["status"], c["value"]) for c in body["cases"]] == [("ok", 6), ("ok", 20)]
+
+
+def test_fr17_runner_passes_the_measured_figures_through(runner_url):
+    status, body = execute(runner_url, "def f():\n    return 1\n", "f", [[]])
+    assert status == 200
+    case = body["cases"][0]
+    assert case["memory_kb"] > 0
+    assert case["duration_ms"] > 0
 
 
 def test_contract_exception_gives_error(runner_url):
@@ -192,7 +200,7 @@ def test_fr25_opening_a_socket_gives_error(runner_url):
 def test_nfr2_container_is_gone_after_the_call(runner_url):
     status, body = execute(runner_url, "def f():\n    return 1\n", "f", [[]])
     assert status == 200
-    assert body == {"cases": [{"status": "ok", "value": 1}]}
+    assert [(c["status"], c["value"]) for c in body["cases"]] == [("ok", 1)]
     assert runner_containers() == []
 
 
@@ -266,7 +274,11 @@ def test_cap_slot_is_released_after_a_run(sandbox_image):
         assert status == 200
         assert body["cases"][0]["status"] == "error"
         status, body = execute(url, "def f():\n    return 1\n", "f", [[]])
-        assert (status, body) == (200, {"cases": [{"status": "ok", "value": 1}]})
+        assert status == 200
+        (case,) = body["cases"]
+        assert (case["status"], case["value"]) == ("ok", 1)
+        assert isinstance(case["memory_kb"], int) and case["memory_kb"] > 0
+        assert isinstance(case["duration_ms"], int) and case["duration_ms"] >= 0
 
 
 def test_cap_slot_is_released_when_the_run_fails(sandbox_image):

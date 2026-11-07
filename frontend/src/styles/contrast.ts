@@ -30,7 +30,11 @@ function luminance([r, g, b]: [number, number, number]): number {
 
 function over(fg: Rgba, bg: [number, number, number]): [number, number, number] {
   const a = fg[3];
-  return [0, 1, 2].map((i) => fg[i]! * a + bg[i]! * (1 - a)) as [number, number, number];
+  return [0, 1, 2].map((i) => (fg[i] ?? 0) * a + (bg[i] ?? 0) * (1 - a)) as [
+    number,
+    number,
+    number,
+  ];
 }
 
 /** WCAG ratio. A translucent bg is composited on bgBase (default white) first; a translucent fg over the result. */
@@ -106,7 +110,7 @@ const PIECE_BLACK = "#000000";
 function mixHex(a: string, b: string, weightA: number): string {
   const [x, y] = [parseHex(a), parseHex(b)];
   const ch = (i: number) =>
-    Math.round(x[i]! * weightA + y[i]! * (1 - weightA))
+    Math.round((x[i] ?? 0) * weightA + (y[i] ?? 0) * (1 - weightA))
       .toString(16)
       .padStart(2, "0");
   return `#${ch(0)}${ch(1)}${ch(2)}`;
@@ -120,7 +124,7 @@ export const PAIRS: Pair[] = [
   { name: "body text on canvas", kind: "text", fg: "--text", bg: "--canvas" },
   { name: "body text on surface-1", kind: "text", fg: "--text", bg: "--surface-1" },
   { name: "body text on surface-2", kind: "text", fg: "--text", bg: "--surface-2" },
-  { name: "body text on hover tint", kind: "text", fg: "--text", bg: "--neutral-700" },
+  { name: "body text on hover tint", kind: "text", fg: "--text", bg: "--surface-2" },
   { name: "interactive text on canvas", kind: "text", fg: "--text-interactive", bg: "--canvas" },
   { name: "secondary text (nav idle) on canvas", kind: "text", fg: "--nav-idle", bg: "--canvas" },
   {
@@ -184,12 +188,12 @@ export const PAIRS: Pair[] = [
     bg: "--canvas",
   },
   { name: "highlight text on canvas", kind: "text", fg: "--on-highlight", bg: "--highlight" },
-  { name: "chat bubble other", kind: "text", fg: "--text", bg: "--neutral-700" },
+  { name: "chat bubble other", kind: "text", fg: "--text", bg: "--surface-2" },
   {
     name: "chat bubble own",
     kind: "text",
-    fg: "--action-primary-text",
-    bg: "--action-primary-fill",
+    fg: "--on-accent",
+    bg: "--accent",
   },
   // Toast: black or white text, whichever passes (plan 1.7)
   { name: "toast text on success fill", kind: "text", fg: toastOn("--success"), bg: "--success" },

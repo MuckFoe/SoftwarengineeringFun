@@ -18,6 +18,8 @@ class CaseOutcome:
     value: Any = None
     error_message: str | None = None
     traceback: str | None = None
+    memory_kb: int | None = None  # peak RSS of the case; absent unless it finished
+    duration_ms: int | None = None
 
 
 async def execute(

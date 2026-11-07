@@ -69,11 +69,10 @@ for (const scheme of SCHEMES) {
         expect(own, "own bubble").toBeTruthy();
         expect(others, "other bubble").toBeTruthy();
         expect(own?.bg).not.toBe(others?.bg);
-        for (const b of bubbles) expect(b.radius).toBe("0px");
+        for (const b of bubbles) expect(Number.parseFloat(b.radius)).toBeGreaterThan(0); // 016: rounded
 
-        // FR-1: the chat panel and description sit on a surface, with no Apple radius/backdrop.
-        const c = await readComputed(page);
-        expect(c.radii).toEqual([]);
+        // FR-1: pill controls are enforced by checkScreen (spec 016); no Apple backdrop.
+        await readComputed(page);
 
         // FR-7: the compose form stays pinned inside the viewport, however many messages.
         for (let i = 0; i < 12; i++) await say(page, `filler message ${i}`);

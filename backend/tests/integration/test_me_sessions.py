@@ -202,6 +202,7 @@ async def test_fr2_lists_own_sessions_most_recent_first(
             "last_activity_at": NOW.isoformat(),
             "stale": False,
             "hosted_by_me": False,
+            "live": False,
         },
         {
             "kind": "learning",
@@ -210,6 +211,7 @@ async def test_fr2_lists_own_sessions_most_recent_first(
             "last_activity_at": (NOW - timedelta(hours=1)).isoformat(),
             "stale": False,
             "hosted_by_me": False,
+            "live": False,
         },
         {
             "kind": "coding",
@@ -218,6 +220,7 @@ async def test_fr2_lists_own_sessions_most_recent_first(
             "last_activity_at": (NOW - timedelta(days=1)).isoformat(),
             "stale": False,
             "hosted_by_me": False,
+            "live": False,
         },
     ]
     assert s2 not in {r["invite_id"] for r in rows}
@@ -367,6 +370,7 @@ async def test_014_ac28_chess_sessions_are_listed_with_kind_chess(
             "last_activity_at": NOW.isoformat(),
             "stale": False,
             "hosted_by_me": False,
+            "live": False,
         },
         {
             "kind": "chess",
@@ -375,6 +379,7 @@ async def test_014_ac28_chess_sessions_are_listed_with_kind_chess(
             "last_activity_at": (NOW - timedelta(hours=1)).isoformat(),
             "stale": True,
             "hosted_by_me": False,
+            "live": False,
         },
     ]
 

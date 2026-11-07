@@ -40,7 +40,12 @@ function parse(src: string, media: string | null = null): Rule[] {
     }
     const body = src.slice(open + 1, j - 1);
     if (head.startsWith("@media")) rules.push(...parse(body, head.slice(6).trim()));
-    else rules.push({ media, selector: head.replace(/\s+/g, " "), decls: parseDecls(body) });
+    else
+      rules.push({
+        media,
+        selector: head.replace(/\s+/g, " "),
+        decls: parseDecls(body),
+      });
     i = j;
   }
   return rules;
@@ -64,7 +69,10 @@ type Path = "light" | "explicit-light" | "dark" | "system-dark" | "system-dark-a
 // Resolve every variable the way the cascade would for a given path and viewport width.
 function resolve(path: Path, width = 1440): Decls {
   const out: Decls = new Map();
-  const apply = (r: Rule) => r.decls.forEach((v, k) => out.set(k, v));
+  const apply = (r: Rule) =>
+    r.decls.forEach((v, k) => {
+      out.set(k, v);
+    });
   const sel: Record<Path, string[]> = {
     light: [LIGHT],
     "explicit-light": [LIGHT, EXPLICIT_LIGHT],
@@ -268,7 +276,111 @@ describe("appearance paths (FR-6)", () => {
     const media = rules.filter((r) => r.media === DARK_QUERY);
     expect(media.every((r) => r.selector.includes(":not([data-appearance])"))).toBe(true);
     const attrSet = resolve("system-dark-attr-set");
-    expect(norm(attrSet.get("--canvas") ?? "")).toBe("#ffffff");
-    expect(norm(resolve("explicit-light").get("--canvas") ?? "")).toBe("#ffffff");
+    expect(norm(attrSet.get("--canvas") ?? "")).toBe("#f4f6fa");
+    expect(norm(resolve("explicit-light").get("--canvas") ?? "")).toBe("#f4f6fa");
+  });
+});
+
+// Spec 016 task 1: the v2 tokens (FR-1, FR-10, FR-11, Consistency).
+const V2_COLOUR = [
+  "--bg",
+  "--surface",
+  "--surface-2",
+  "--text",
+  "--text-muted",
+  "--accent",
+  "--accent-hover",
+  "--accent-press",
+  "--on-accent",
+  "--glow",
+  "--danger",
+  "--edge-light",
+];
+const V2_SHARED = [
+  "--radius-pill",
+  "--radius-card",
+  "--motion-fast",
+  "--motion-sweep",
+  "--z-dock",
+  "--z-header",
+  "--z-menu",
+  "--dock-height",
+  "--bp-narrow",
+];
+
+function hue(hex: string): { h: number; s: number } {
+  const n = parseInt(hex.replace("#", "").slice(0, 6), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => c / 255) as [
+    number,
+    number,
+    number,
+  ];
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  if (d === 0) return { h: 0, s: 0 };
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return { h: (h * 60 + 360) % 360, s: d / (1 - Math.abs(max + min - 1)) };
+}
+
+describe("v2 tokens (spec 016 task 1)", () => {
+  it("defines every plan token in each theme path (Consistency)", () => {
+    for (const path of ["light", "explicit-light", "dark", "system-dark"] as Path[]) {
+      const got = resolve(path);
+      expect([path, [...V2_COLOUR, ...V2_SHARED].filter((n) => !got.has(n))]).toEqual([path, []]);
+    }
+  });
+
+  it("v2 colours differ per theme where they should and match kit-values.json", () => {
+    for (const n of V2_COLOUR) {
+      const k = (kit.colour as Record<string, { light: string; dark: string }>)[n];
+      expect(k, n).toBeDefined();
+      expect(norm(resolve("light").get(n) ?? ""), n).toBe(norm(k?.light ?? ""));
+      expect(norm(resolve("dark").get(n) ?? ""), n).toBe(norm(k?.dark ?? ""));
+    }
+  });
+
+  it("FR-1: the accent family is blue-hued in both themes", () => {
+    for (const path of ["light", "dark"] as Path[]) {
+      const got = resolve(path);
+      for (const n of ["--accent", "--accent-hover", "--accent-press"]) {
+        const { h, s } = hue(got.get(n) ?? "#000000");
+        expect([path, n, h >= 200 && h <= 250 && s > 0.4]).toEqual([path, n, true]);
+      }
+    }
+  });
+
+  it("FR-1: --danger is the only red colour token among the v2 set", () => {
+    for (const path of ["light", "dark"] as Path[]) {
+      const got = resolve(path);
+      for (const n of V2_COLOUR) {
+        const v = got.get(n) ?? "";
+        if (!/^#[0-9a-f]{6}/i.test(v)) continue;
+        const { h, s } = hue(v);
+        const red = s > 0.4 && (h <= 15 || h >= 345);
+        expect([path, n, red]).toEqual([path, n, n === "--danger"]);
+      }
+    }
+  });
+
+  it("FR-10: with no data-appearance the dark palette applies under the media query; an attribute overrides it", () => {
+    expect(hasDarkRule).toBe(true);
+    const sys = resolve("system-dark");
+    for (const n of V2_COLOUR) expect(sys.get(n), n).toBe(resolve("dark").get(n));
+    expect(resolve("system-dark-attr-set").get("--bg")).toBe(resolve("light").get("--bg"));
+    expect(resolve("explicit-light").get("--bg")).not.toBe(sys.get("--bg"));
+  });
+
+  it("FR-11: under reduced motion every --motion-* token is 0s", () => {
+    const reduced = rules.filter((r) => r.media === "(prefers-reduced-motion: reduce)");
+    expect(reduced.length).toBeGreaterThan(0);
+    const motion = [...resolve("light").keys()].filter((n) => n.startsWith("--motion-"));
+    expect(motion.length).toBeGreaterThan(0);
+    const got = new Map<string, string>();
+    for (const r of reduced) {
+      for (const [k, v] of r.decls) got.set(k, v);
+    }
+    for (const n of motion) expect([n, got.get(n)]).toEqual([n, "0s"]);
+    for (const n of motion) expect(resolve("light").get(n), n).not.toBe("0s");
   });
 });

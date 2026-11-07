@@ -12,7 +12,7 @@
   z-index: 20;
   max-width: 240px;
   padding: var(--space-4) var(--space-8);
-  border-radius: 0;
+  border-radius: var(--radius-0);
   background: var(--canvas-inverted);
   color: var(--canvas);
   font-size: 12px;
@@ -29,7 +29,7 @@
   min-width: 240px;
   max-width: 480px;
   padding: var(--space-16);
-  border-radius: 0;
+  border-radius: var(--radius-0);
   background: var(--canvas-inverted);
   color: var(--canvas);
   font-size: 16px;
@@ -79,6 +79,6 @@
 @media (prefers-reduced-motion: reduce) {
   .tooltip,
   .toast {
-    transition-duration: 0s;
+    transition-duration: var(--motion-fast);
   }
 }

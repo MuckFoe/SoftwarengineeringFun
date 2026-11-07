@@ -69,11 +69,21 @@ def run_raw(image: str, code: str, function_name: str, cases: list[list]) -> tup
     return proc.stdout, proc.stderr
 
 
-def run_cases(image: str, code: str, function_name: str, cases: list[list]) -> list[dict]:
+def run_cases_full(image: str, code: str, function_name: str, cases: list[list]) -> list[dict]:
+    """Result lines as written, including the per-case `memory_kb` and `duration_ms`."""
     stdout, _ = run_raw(image, code, function_name, cases)
     lines = stdout.splitlines()
     assert len(lines) == len(cases), stdout
     return [json.loads(line) for line in lines]
+
+
+def run_cases(image: str, code: str, function_name: str, cases: list[list]) -> list[dict]:
+    """Result lines without the measured figures (spec 016 task 8), for older assertions."""
+    results = run_cases_full(image, code, function_name, cases)
+    for r in results:
+        r.pop("memory_kb", None)
+        r.pop("duration_ms", None)
+    return results
 
 
 def run_one(image: str, code: str, function_name: str = "f", args: list | None = None) -> dict:
@@ -96,7 +106,10 @@ def mul(a, b):
 def test_fr22_returns_value_and_discards_printed_output(sandbox_image):
     stdout, stderr = run_raw(sandbox_image, PRINTING_CODE, "mul", [[2, 3]])
     results = [json.loads(line) for line in stdout.splitlines()]
-    assert results == [{"status": "ok", "value": 6}]
+    assert {k: v for k, v in results[0].items() if k not in ("memory_kb", "duration_ms")} == {
+        "status": "ok",
+        "value": 6,
+    }
     for text in ("PRINTED-SENTINEL", "STDERR-SENTINEL"):
         assert text not in stdout
         assert text not in stderr
@@ -310,3 +323,48 @@ def test_fr25_a_case_cannot_read_the_harness_process_memory(sandbox_image):
         return "read"
     """
     assert run_one(sandbox_image, code) == {"status": "ok", "value": "blocked"}
+
+
+# --- spec 016 FR-17: memory and time per case --------------------------------------
+
+
+def test_fr17_figures_match_what_each_case_did(sandbox_image):
+    code = """
+    def f(n):
+        data = bytearray(n)
+        for i in range(0, n, 4096):
+            data[i] = 1
+        return len(data)
+    """
+    big, idle = run_cases_full(sandbox_image, code, "f", [[50_000_000], [0]])
+    assert big["status"] == idle["status"] == "ok"
+    assert big["memory_kb"] > 40_000
+    assert idle["memory_kb"] < big["memory_kb"] - 30_000
+    for r in (big, idle):
+        assert r["duration_ms"] > 0
+        assert r["duration_ms"] <= 3000  # within the case's wall limit
+
+
+def test_fr17_error_case_also_reports_figures(sandbox_image):
+    result = run_cases_full(sandbox_image, "def f():\n    raise ValueError('x')\n", "f", [[]])[0]
+    assert result["status"] == "error"
+    assert result["memory_kb"] > 0
+    assert result["duration_ms"] > 0
+
+
+def test_fr17_timeout_and_memory_cases_omit_the_figures(sandbox_image):
+    code = """
+    def spin():
+        while True:
+            pass
+
+    def hog():
+        return bytearray(400 * 1024 * 1024)
+    """
+    (timeout,) = run_cases_full(sandbox_image, code, "spin", [[]])
+    (memory,) = run_cases_full(sandbox_image, code, "hog", [[]])
+    assert timeout["status"] == "timeout"
+    assert memory["status"] == "memory"
+    for r in (timeout, memory):
+        assert "memory_kb" not in r
+        assert "duration_ms" not in r

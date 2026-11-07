@@ -148,6 +148,8 @@ test.describe("empty brand directory", () => {
     ).toBe(false);
     // The logo element is hidden, the app name is visible and sits at the header padding.
     await expect(page.locator(".app-header .brand-logo")).toBeHidden();
+    // Spec 016 FR-12: no logo <img> at all with nothing supplied.
+    expect(await page.locator('.app-header img, img[alt="Audi"]').count()).toBe(0);
     const gap = await page.evaluate(() => {
       const header = document.querySelector(".app-header") as HTMLElement;
       const name = document.querySelector(".app-header .brand-name") as HTMLElement;

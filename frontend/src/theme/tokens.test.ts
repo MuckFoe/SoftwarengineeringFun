@@ -40,12 +40,13 @@ describe("theme tokens", () => {
     expect([...dark.keys()].sort()).toEqual(colourTokens(light).sort());
   });
 
-  // FR-1: one accent. Spec 015 retarget: the single interactive family is --action-primary-*
-  // (and --highlight for the brand red); no second accent, tint or brand family exists.
+  // FR-1: one accent. Spec 016 retarget: the single interactive family is --accent* plus its
+  // --action-primary-* aliases; no second accent, tint or brand family exists.
   it("has exactly one primary-action token family, also applied as accent-color", () => {
     const accentLike = [...light.keys()].filter((n) => /accent|tint|brand|primary/.test(n));
     expect(accentLike.length).toBeGreaterThan(0);
-    for (const name of accentLike) expect(name).toMatch(/^--action-primary-[a-z-]+$/);
+    for (const name of accentLike)
+      expect(name).toMatch(/^--(action-primary-[a-z-]+|accent(-hover|-press)?|on-accent)$/);
     expect(light.has("--action-primary-fill")).toBe(true);
     expect(base).toMatch(/accent-color:\s*var\(--action-primary-fill\)/);
   });

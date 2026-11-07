@@ -25,6 +25,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(function Switch(
         id={inputId}
         type="checkbox"
         role="switch"
+        aria-checked={checked}
         className={["ui-toggle__input", "ui-switch__input", className].filter(Boolean).join(" ")}
         checked={checked}
         disabled={disabled}

@@ -12,7 +12,7 @@ const FILES = [
 ].map((n) => `${n}.module.css`);
 
 const OLD_LOOK =
-  /--legacy-space-|--row-alt-bg|--control-bg|--control-border|--separator|--label\b|--label-secondary|--accent\b|--focus-ring|--status-|--radius-control|--radius-sheet|--type-|--font-text|--shadow-|--content-bg/;
+  /--legacy-space-|--row-alt-bg|--control-bg|--control-border|--separator|--label\b|--label-secondary|--focus-ring|--status-|--radius-control|--radius-sheet|--type-|--font-text|--shadow-|--content-bg/;
 
 describe("learn styles use Audi tokens", () => {
   for (const file of FILES) {

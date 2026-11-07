@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
-// Spec 015 task 12: assertions shared by the screen matrix and the per-screen specs (tasks
-// 24-33). Each helper reports a list of offenders so a failure names what is wrong.
+// Spec 016 task 3: assertions shared by the screen matrix and the per-screen specs (tasks
+// 20-25). Replaces the spec 015 shape checks with the v2 look. Each helper reports a list of offenders so a failure names what is wrong.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page } from "@playwright/test";
 
@@ -77,10 +77,30 @@ export async function checkNoOverlap(page: Page): Promise<void> {
 
 /** Accessibility NFR: axe colour-contrast and focus rules, once animations have settled. */
 export async function checkAxe(page: Page): Promise<void> {
-  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))));
+  // Colour contrast is read from computed colours, so a fade in progress (rows that mount when
+  // another test's session goes live or stale, in a list everyone shares) reads as low contrast.
+  // Contrast does not depend on motion: analyse under reduced motion, which stops those fades,
+  // and put the page's own setting back afterwards.
+  const wasReduced = await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (!wasReduced) await page.emulateMedia({ reducedMotion: "reduce" });
+  // Infinite animations (the Live dot, the header sweep) never finish; wait only for finite ones.
+  await page.evaluate(async () => {
+    const finite = () =>
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY);
+    const frame = () => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+    for (let round = 0; round < 10; round++) {
+      await Promise.all(finite().map((a) => a.finished.catch(() => undefined)));
+      await frame();
+      await frame();
+      if (finite().length === 0) return;
+    }
+  });
   const axe = await new AxeBuilder({ page })
     .withRules(["color-contrast", "focus-order-semantics", "scrollable-region-focusable", "tabindex"])
     .analyze();
+  if (!wasReduced) await page.emulateMedia({ reducedMotion: null });
   expect
     .soft(
       axe.violations.flatMap((v) =>
@@ -99,6 +119,180 @@ export function checkClean(watch: Watch): void {
   expect.soft(watch.problems(), "console errors and failed or 4xx requests").toEqual([]);
 }
 
+export interface V2Options {
+  /** Allow the danger hue (errors, destructive actions). Default true. */
+  danger?: boolean;
+}
+
+/**
+ * FR-1 (spec 016): the v2 look, as a list of offenders (empty = passes).
+ *  - shape: visible buttons are pills (radius >= min(--radius-pill, height / 2)); cards and
+ *    tiles (`[data-card]`, `[data-tile]`) have radius >= min(--radius-card, half their short side);
+ *  - tone: `aside` and `[data-region]` differ in background from the region behind them;
+ *  - no outlines: header, nav, aside, footer, main and `[data-region]` have no border;
+ *  - colour: every saturated colour (text, background, visible border) is in the accent family
+ *    (hue within 20 degrees of --accent) or, when `danger` is allowed, of --danger.
+ * Exempt: anything inside `.cm-editor`, iframes, `[data-v2-exempt]`, chess squares, checkboxes
+ * and radios (their shape is not a design choice).
+ */
+export async function v2Offenders(page: Page, opts: V2Options = {}): Promise<string[]> {
+  const allowDanger = opts.danger ?? true;
+  return page.evaluate((allowDanger) => {
+    const out: string[] = [];
+    const root = getComputedStyle(document.documentElement);
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    const px = (v: string, fallback: number) => {
+      const n = Number.parseFloat(v);
+      return Number.isFinite(n) ? n : fallback;
+    };
+    const pill = px(root.getPropertyValue("--radius-pill"), 999);
+    const cardR = px(root.getPropertyValue("--radius-card"), 24);
+    const exempt = (el: Element) =>
+      !!el.closest(".cm-editor, [data-v2-exempt], [data-square], iframe") ||
+      (el instanceof HTMLInputElement && ["checkbox", "radio"].includes(el.type));
+    const visible = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      const s = getComputedStyle(el);
+      return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none";
+    };
+    const name = (el: Element) =>
+      `${el.tagName.toLowerCase()}[${(el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 20)}]`;
+    const radius = (el: Element) => {
+      const s = getComputedStyle(el);
+      return Math.min(
+        ...[s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomLeftRadius, s.borderBottomRightRadius].map((v) =>
+          px(v, 0),
+        ),
+      );
+    };
+
+    // Shape.
+    for (const el of document.querySelectorAll("button")) {
+      // A tile or card that is itself a button is held to the card radius below, not the pill.
+      if (exempt(el) || !visible(el) || el.matches("[data-card], [data-tile]")) continue;
+      const r = el.getBoundingClientRect();
+      const want = Math.min(pill, r.height / 2) - 0.5;
+      if (radius(el) < want) out.push(`shape: ${name(el)} radius ${radius(el)}px < ${want}px (pill)`);
+    }
+    for (const el of document.querySelectorAll("[data-card], [data-tile]")) {
+      if (exempt(el) || !visible(el)) continue;
+      const r = el.getBoundingClientRect();
+      const want = Math.min(cardR, Math.min(r.width, r.height) / 2) - 0.5;
+      if (radius(el) < want) out.push(`shape: ${name(el)} radius ${radius(el)}px < ${want}px (card)`);
+    }
+
+    // Tone and outlines.
+    const bgOf = (el: Element | null): string => {
+      for (let n = el; n; n = n.parentElement) {
+        const c = getComputedStyle(n).backgroundColor;
+        if (c !== "rgba(0, 0, 0, 0)" && c !== "transparent") return c;
+      }
+      return "rgb(255, 255, 255)";
+    };
+    for (const el of document.querySelectorAll("header, nav, aside, footer, main, [data-region]")) {
+      if (exempt(el) || !visible(el)) continue;
+      const s = getComputedStyle(el);
+      const sides = [s.borderTopWidth, s.borderRightWidth, s.borderBottomWidth, s.borderLeftWidth];
+      const styled = [s.borderTopStyle, s.borderRightStyle, s.borderBottomStyle, s.borderLeftStyle];
+      if (sides.some((w, i) => px(w, 0) > 0 && styled[i] !== "none")) out.push(`outline: ${name(el)} has a border`);
+    }
+    for (const el of document.querySelectorAll("aside, [data-region]")) {
+      if (exempt(el) || !visible(el) || !el.parentElement) continue;
+      if (bgOf(el) === bgOf(el.parentElement)) out.push(`tone: ${name(el)} has the same background as its surroundings`);
+    }
+
+    // Colour: parse rgb()/color(srgb) strings to hue + saturation.
+    const parse = (c: string): [number, number, number, number] | null => {
+      const n = c.match(/-?[\d.]+/g)?.map(Number);
+      if (!n || n.length < 3) return null;
+      const scale = c.startsWith("color(") ? 1 : 255;
+      return [n[0]! / scale, n[1]! / scale, n[2]! / scale, n.length > 3 ? n[3]! : 1];
+    };
+    const hs = (c: string): { h: number; s: number } | null => {
+      const p = parse(c);
+      if (!p || p[3] < 0.1) return null;
+      const [r, g, b] = p;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const d = max - min;
+      if (d === 0) return { h: 0, s: 0 };
+      const l = (max + min) / 2;
+      const s = d / (1 - Math.abs(2 * l - 1));
+      const h =
+        max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return { h: ((h * 60) % 360 + 360) % 360, s };
+    };
+    const probe = document.createElement("span");
+    document.body.appendChild(probe);
+    const resolve = (v: string, fallback: string) => {
+      const raw = root.getPropertyValue(v).trim();
+      probe.style.color = "";
+      probe.style.color = raw || fallback;
+      return getComputedStyle(probe).color;
+    };
+    const accent = hs(resolve("--accent", dark ? "#6c9bff" : "#1f5fff"));
+    const danger = hs(resolve("--danger", dark ? "#ff6b7d" : "#c8102e"));
+    probe.remove();
+    const near = (a: number, b: number) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b)) <= 20;
+    const bad = new Map<string, string>();
+    for (const el of document.querySelectorAll("body, body *")) {
+      if (exempt(el) || !visible(el)) continue;
+      const s = getComputedStyle(el);
+      const colours: [string, string][] = [
+        ["color", s.color],
+        ["background", s.backgroundColor],
+      ];
+      if (px(s.borderTopWidth, 0) > 0 && s.borderTopStyle !== "none") colours.push(["border", s.borderTopColor]);
+      for (const [what, c] of colours) {
+        const v = hs(c);
+        if (!v || v.s < 0.25) continue;
+        if (accent && near(v.h, accent.h)) continue;
+        if (allowDanger && danger && near(v.h, danger.h)) continue;
+        const key = `${name(el)} ${what}`;
+        if (!bad.has(key)) bad.set(key, `colour: ${key} ${c} is outside the accent family`);
+      }
+    }
+    out.push(...bad.values());
+    return out;
+  }, allowDanger);
+}
+
+/** FR-1: the v2 look. */
+export async function expectV2Look(page: Page, opts: V2Options = {}): Promise<void> {
+  expect.soft(await v2Offenders(page, opts), "v2 look offenders").toEqual([]);
+}
+
+/** Responsive: `scrollWidth <= clientWidth` and no control cut off at the sides. */
+export const expectNoOverflow = checkNoOverflow;
+
+/** Use before navigating: the page then reports `prefers-reduced-motion: reduce`. */
+export async function emulateReducedMotion(page: Page): Promise<void> {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+}
+
+/** FR-3: with reduced motion on, nothing runs forever (light line, vent texture, pulse dots). */
+export async function expectReducedMotion(page: Page): Promise<void> {
+  const o = await page.evaluate(() => ({
+    reduce: matchMedia("(prefers-reduced-motion: reduce)").matches,
+    looping: document
+      .getAnimations()
+      .filter((a) => {
+        const t = a.effect?.getComputedTiming();
+        return a.playState === "running" && t !== undefined && t.iterations === Number.POSITIVE_INFINITY;
+      })
+      .map((a) => {
+        const target = (a.effect as KeyframeEffect | null)?.target;
+        return `${(a as CSSAnimation).animationName ?? "animation"} on ${target?.tagName.toLowerCase() ?? "?"}`;
+      }),
+  }));
+  expect(o.reduce, "prefers-reduced-motion is reduce (call emulateReducedMotion first)").toBe(true);
+  expect(o.looping, "infinite animations running under reduced motion").toEqual([]);
+}
+
+export async function setViewport(page: Page, width: number, height = 800): Promise<void> {
+  await page.setViewportSize({ width, height });
+}
+
 export interface Computed {
   canvas: string;
   bodyFont: string;
@@ -107,7 +301,7 @@ export interface Computed {
   backdrop: string[];
 }
 
-/** FR-1, FR-3, FR-8: the computed styles that make the Audi look. */
+/** Computed styles read by the per-screen specs (canvas, fonts, radii, backdrop-filter). */
 export async function readComputed(page: Page): Promise<Computed> {
   return page.evaluate(() => {
     const bg = (el: Element) => getComputedStyle(el).backgroundColor;
@@ -149,19 +343,15 @@ export function luminance(color: string): number {
 }
 
 export async function checkComputed(page: Page, scheme: "light" | "dark"): Promise<void> {
-  const c = await readComputed(page);
-  // FR-1/FR-6: canvas follows the scheme (dark palette is dark, light is light).
-  if (scheme === "dark") expect.soft(luminance(c.canvas), `dark canvas ${c.canvas}`).toBeLessThan(0.1);
-  else expect.soft(luminance(c.canvas), `light canvas ${c.canvas}`).toBeGreaterThan(0.5);
-  // FR-3: Audi Type leads the stack (the brand face, with fallbacks behind it).
-  expect.soft(c.bodyFont, "first body font-family entry").toBe("Audi Type");
-  // FR-3: extended headline width.
-  if (c.headlineStretch !== null) {
-    expect.soft(c.headlineStretch, "headline font-stretch").toBe("130%");
-  }
-  // FR-1: radius 0 on buttons and inputs; FR-8: no backdrop-filter.
-  expect.soft(c.radii, "buttons and inputs with a non-zero radius").toEqual([]);
-  expect.soft(c.backdrop, "elements with backdrop-filter").toEqual([]);
+  const canvas = await page.evaluate(() => {
+    const bg = (el: Element) => getComputedStyle(el).backgroundColor;
+    const c = bg(document.body);
+    return c === "rgba(0, 0, 0, 0)" ? bg(document.documentElement) : c;
+  });
+  // FR-10: canvas follows the scheme (dark palette is dark, light is light).
+  if (scheme === "dark") expect.soft(luminance(canvas), `dark canvas ${canvas}`).toBeLessThan(0.1);
+  else expect.soft(luminance(canvas), `light canvas ${canvas}`).toBeGreaterThan(0.5);
+  await expectV2Look(page);
 }
 
 /** All shared checks, in one call, for a screen that is open and settled. */

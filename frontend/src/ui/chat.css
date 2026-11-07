@@ -1,17 +1,18 @@
-/* Spec 015 task 21: chat bubble (no kit equivalent, plan 1.7) and list row. Tokens only. */
+/* Spec 016 task 6: chat bubble v2 (rounded, one pointed corner) and list row. Tokens only. */
 .chat-bubble {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-8) var(--space-12);
-  border-radius: var(--radius-0);
-  background: var(--neutral-700);
+  border-radius: var(--radius-card) var(--radius-card) var(--radius-card) var(--radius-xs);
+  background: var(--surface-2);
   color: var(--text);
 }
 
 .chat-bubble[data-own="true"] {
-  background: var(--action-primary-fill);
-  color: var(--action-primary-text);
+  border-radius: var(--radius-card) var(--radius-card) var(--radius-xs) var(--radius-card);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .chat-bubble__author {

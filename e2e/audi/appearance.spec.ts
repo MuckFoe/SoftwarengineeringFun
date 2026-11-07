@@ -3,29 +3,11 @@
 // {light, dark via emulateMedia} x widths, and the appearance behaviour. Written to fail
 // against the current look; the screen tasks (24-33) turn it green.
 import { expect, test } from "../fixtures";
-import { checkScreen, luminance, readComputed, watchPage } from "./checks";
-import { SCHEMES, SCREENS, widthsFor } from "./matrix";
+import { luminance, readComputed } from "./checks";
+import { SCREENS } from "./matrix";
+import { defineSharedChecks } from "./matrix-specs";
 
-for (const scheme of SCHEMES) {
-  for (const screen of SCREENS) {
-    for (const width of widthsFor(screen)) {
-      test.describe(`${scheme} ${width}px`, () => {
-        test.use({ colorScheme: scheme, viewport: { width, height: 800 } });
-
-        test(`${screen.name}: shared checks`, async ({ page, request, keycloak }) => {
-          const watch = watchPage(page);
-          await screen.open(page, request, keycloak.users);
-          if (screen.app !== false) {
-            await expect
-              .poll(() => page.evaluate(() => document.documentElement.dataset.appearance))
-              .toBe(scheme);
-          }
-          await checkScreen(page, watch, scheme);
-        });
-      });
-    }
-  }
-}
+defineSharedChecks(SCREENS.filter((s) => !s.giphy));
 
 const canvas = (page: import("@playwright/test").Page) =>
   readComputed(page).then((c) => luminance(c.canvas));
@@ -62,5 +44,25 @@ test.describe("appearance (FR-6, FR-6a)", () => {
     await toggle.click();
     await page.getByRole("menuitemradio", { name: /system/i }).click();
     await expect.poll(() => canvas(page)).toBeLessThan(0.1);
+  });
+
+  // Spec 016 task 12 (FR-6): the floating panel is wholly inside the viewport and on top.
+  test("016 FR-6: the panel lists three icon items, sits inside the viewport and on top", async ({
+    page,
+  }) => {
+    await page.goto("/games");
+    await page.getByRole("button", { name: /appearance|theme/i }).click();
+    const menu = page.getByRole("menu", { name: /appearance/i });
+    await expect(menu.getByRole("menuitemradio")).toHaveCount(3);
+    const m = await menu.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return {
+        inside:
+          r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight,
+        onTop: hit !== null && el.contains(hit),
+      };
+    });
+    expect(m).toEqual({ inside: true, onTop: true });
   });
 });

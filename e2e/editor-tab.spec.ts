@@ -40,16 +40,20 @@ test("FR-2: Tab accepts an open suggestion and inserts nothing else", async ({
   request,
 }) => {
   await join(page, await createSession(request, PROBLEM_TITLE), "Ada");
-  await resetEditor(page, "");
-  await page.keyboard.type("pri");
-  const option = page.locator(".cm-tooltip-autocomplete [role=option]", { hasText: "print" });
-  await expect(option.first()).toBeVisible();
-
-  await page.keyboard.press("Tab");
-
   const line = page.locator(".cm-content > .cm-line").first();
-  await expect(page.locator(".cm-tooltip-autocomplete")).toBeHidden();
-  await expect.poll(async () => NBSP_FREE(await line.textContent())).toMatch(/^print\S*$/);
+  // Under load the suggestion list can close between "visible" and the keypress (a remote
+  // update re-renders the editor); then Tab rightly inserts spaces, so the attempt repeats.
+  await expect(async () => {
+    await resetEditor(page, "");
+    await page.keyboard.type("pri");
+    const option = page.locator(".cm-tooltip-autocomplete [role=option]", { hasText: "print" });
+    await expect(option.first()).toBeVisible({ timeout: 2_000 });
+
+    await page.keyboard.press("Tab");
+
+    await expect(page.locator(".cm-tooltip-autocomplete")).toBeHidden({ timeout: 2_000 });
+    expect(NBSP_FREE(await line.textContent())).toMatch(/^print\S*$/);
+  }).toPass({ timeout: 15_000 });
 });
 
 test("FR-5: Esc then Tab moves focus out of the editor and leaves the text alone", async ({

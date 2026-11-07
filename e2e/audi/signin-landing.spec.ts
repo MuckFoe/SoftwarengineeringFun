@@ -33,7 +33,7 @@ for (const scheme of SCHEMES) {
 test.describe("sign-in page controls", () => {
   test.use({ viewport: { width: 1024, height: 800 } });
 
-  test("FR-1: the sign-in button and fields are square", async ({ page, request, keycloak }) => {
+  test("spec 016: the sign-in button and fields are pill-shaped", async ({ page, request, keycloak }) => {
     const screen = screens.find((s) => s.name === "Keycloak sign-in");
     if (!screen) throw new Error("no sign-in screen");
     await screen.open(page, request, keycloak.users);
@@ -43,6 +43,6 @@ test.describe("sign-in page controls", () => {
       ),
     );
     expect(radii.length).toBeGreaterThan(0);
-    for (const r of radii) expect(parseFloat(r)).toBe(0);
+    for (const r of radii) expect(parseFloat(r)).toBeGreaterThan(0);
   });
 });

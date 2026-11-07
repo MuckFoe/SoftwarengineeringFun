@@ -7,12 +7,15 @@ import path from "node:path";
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 
 export default async function globalTeardown(): Promise<void> {
+  // PW_KEEP_STACK=1: leave the stack, .env and .keycloak-state.json for the next run.
+  if (process.env.PW_KEEP_STACK === "1") return;
   try {
     execFileSync("docker", ["compose", "-f", "docker-compose.yml", "down", "-v"], {
       cwd: REPO_ROOT,
       stdio: "inherit",
     });
   } finally {
+    rmSync(path.join(import.meta.dirname, ".stack-fingerprint"), { force: true });
     rmSync(path.join(REPO_ROOT, ".env"), { force: true });
     rmSync(path.join(import.meta.dirname, ".keycloak-state.json"), { force: true });
   }

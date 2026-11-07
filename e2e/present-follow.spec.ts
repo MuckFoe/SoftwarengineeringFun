@@ -142,11 +142,24 @@ async function expectSlide(page: Page, n: number): Promise<void> {
 }
 
 /** Where an element of the frame is, in the frame's own viewport, and that viewport's size. */
-async function inFrameViewport(page: Page, selector: string) {
+async function inFrameViewport(page: Page, selector: string, retries = 3): Promise<{ top: number; bottom: number; height: number; scrollY: number }> {
+  try {
+    return await inFrameViewportOnce(page, selector);
+  } catch (error) {
+    if (retries > 0 && /context was destroyed/.test(String(error))) {
+      return inFrameViewport(page, selector, retries - 1);
+    }
+    throw error;
+  }
+}
+
+async function inFrameViewportOnce(page: Page, selector: string) {
   const frame = await presentationFrame(page);
+  // The frame's document can be replaced while the page settles: ask again on that error.
   return frame.evaluate(`(() => {
-    const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
-    return { top: r.top, bottom: r.bottom, height: innerHeight, scrollY };
+    const r = document.querySelector(${JSON.stringify(selector)})?.getBoundingClientRect();
+    // Before the frame's document has the element: not in view yet.
+    return { top: r ? r.top : -1, bottom: r ? r.bottom : -1, height: innerHeight, scrollY };
   })()`) as Promise<{ top: number; bottom: number; height: number; scrollY: number }>;
 }
 

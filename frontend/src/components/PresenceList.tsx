@@ -28,7 +28,12 @@ export function PresenceList({ participants }: Props) {
     <ul aria-label="Participants" className={styles.list}>
       {participants.map((p) => (
         <li key={p.id} className={`${styles.row} anim-row-in`}>
-          <span data-dot className={styles.dot} style={{ background: colourOf(p.id) }} />
+          <span
+            data-dot
+            data-v2-exempt
+            className={styles.dot}
+            style={{ background: colourOf(p.id) }}
+          />
           {p.name}
           {p.signed_in && <SignedInMark />}
         </li>
@@ -41,7 +46,7 @@ export function PresenceList({ participants }: Props) {
           aria-hidden="true"
           className={`${styles.row} ${styles.ghost} anim-row-out`}
         >
-          <span className={styles.dot} style={{ background: colourOf(p.id) }} />
+          <span data-v2-exempt className={styles.dot} style={{ background: colourOf(p.id) }} />
         </li>
       ))}
     </ul>

@@ -3,6 +3,8 @@
 .tile {
   display: inline-block;
   line-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
   background: var(--neutral-700);
 }
 
@@ -10,7 +12,7 @@
   display: block;
   max-width: 100%;
   height: auto;
-  border-radius: 0;
+  border-radius: var(--radius-md);
 }
 
 /* Same box as the GIF it replaces, so the row keeps its place (FR-12). */
@@ -22,7 +24,7 @@
   max-width: 100%;
   padding: var(--space-8);
   border: 1px dashed var(--divider);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: var(--neutral-700);
   color: var(--text);
   font-family: var(--font-copy);

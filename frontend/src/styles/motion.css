@@ -121,15 +121,17 @@
 /* Last in the file, so the fade-only twins win over the base .anim-* rules at equal specificity. */
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --dur-fast: 0ms;
-    --dur-base: 0ms;
+    --dur-fast: var(--motion-fast);
+    --dur-base: var(--motion-fast);
   }
 
   *,
   *::before,
   *::after {
-    animation-duration: 0ms !important;
-    transition-duration: 0ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced-motion must beat every authored duration, whatever its specificity */
+    animation-duration: var(--motion-fast) !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced-motion must beat every authored duration, whatever its specificity */
+    transition-duration: var(--motion-fast) !important;
   }
 
   .anim-sheet-in {

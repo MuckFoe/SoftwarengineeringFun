@@ -7,6 +7,8 @@ import type {
   DescriptionPreview,
   EditableProblem,
   FieldError,
+  HomePreview,
+  HomeSnapshot,
   Me,
   Preferences,
   Problem,
@@ -133,6 +135,15 @@ const shownAppearance = (): "light" | "dark" =>
 export const registerUrl = (next: string) =>
   apiPath(`/auth/register?next=${enc(next)}&appearance=${shownAppearance()}`);
 
+/** A guest or invitee has no cookie: the raw rejoin token they hold names them (spec 017 FR-11). */
+const rejoinHeader = (token?: string | null): RequestInit =>
+  token ? { headers: { "X-Rejoin-Token": token } } : {};
+
+export const getHome = (rejoinToken?: string | null) =>
+  send<HomeSnapshot>("GET", "/home", rejoinHeader(rejoinToken));
+/** 200 with an excerpt; 204 (no code yet) resolves to null; 404 throws ApiError. */
+export const getHomePreview = (sessionId: string) =>
+  request<HomePreview | null>("GET", `/home/preview/${enc(sessionId)}`);
 export const getMySessions = () => request<RecentSession[]>("GET", "/me/sessions");
 export const hideMySession = (kind: RecentSession["kind"], invite: string) =>
   request<void>("POST", `/me/sessions/${enc(kind)}/${enc(invite)}/hide`);

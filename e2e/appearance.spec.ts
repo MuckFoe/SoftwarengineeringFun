@@ -24,7 +24,7 @@ async function join(page: Page, invite: string, name: string): Promise<void> {
   await expect(page.locator(".cm-content")).toContainText("pass");
 }
 
-async function signIn(page: Page, username: string, password: string, next = "/"): Promise<void> {
+async function signIn(page: Page, username: string, password: string, next = "/problems"): Promise<void> {
   await page.goto(`/api/auth/login?next=${encodeURIComponent(next)}`);
   await page.locator("#username").fill(username);
   await page.locator("#password").fill(password);

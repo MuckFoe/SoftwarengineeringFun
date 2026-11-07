@@ -127,8 +127,8 @@ describe("motion.css", () => {
     const m = /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*)\}\s*$/.exec(css.trim());
     expect(m).toBeTruthy();
     const inner = norm(m?.[1] ?? "");
-    expect(inner).toContain("--dur-fast: 0ms");
-    expect(inner).toContain("--dur-base: 0ms");
+    expect(inner).toContain("--dur-fast: var(--motion-fast)");
+    expect(inner).toContain("--dur-base: var(--motion-fast)");
   });
 });
 
