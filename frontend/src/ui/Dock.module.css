@@ -4,7 +4,8 @@
   bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
   /* Idle: slid down so only a sliver of the pill stays at the screen edge. */
   transform: translate(-50%, calc(100% + var(--space-16) + env(safe-area-inset-bottom) - 18px));
-  transition: transform var(--motion-fast) ease;
+  /* Leaving waits a beat before sliding away. */
+  transition: transform var(--motion-fast) ease 250ms;
   z-index: var(--z-dock);
   height: var(--dock-height);
   max-width: calc(100vw - var(--space-16));
@@ -31,6 +32,20 @@
 .dock:hover,
 .dock:has(:focus-visible) {
   transform: translate(-50%, 0);
+  /* Coming up is instant. */
+  transition-delay: 0s;
+}
+
+/* Idle shows just the pill's nub: the items (and the blue current one) stay hidden. */
+.dock > * {
+  opacity: 0;
+  transition: opacity var(--motion-fast) ease 250ms;
+}
+
+.dock:hover > *,
+.dock:has(:focus-visible) > * {
+  opacity: 1;
+  transition-delay: 0s;
 }
 
 .item {
