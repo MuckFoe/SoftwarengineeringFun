@@ -1,9 +1,10 @@
 // Spec 014 FR-10, FR-12, FR-24, FR-25, FR-33, FR-35: Start, Resign, draw, Claim win, Delete.
 import { useState } from "react";
 import { Button } from "../../ui/Button";
-import { Sheet } from "../../ui/Sheet";
+import { Dialog } from "../../ui/Dialog";
 import { type ChessState, opposite, roleOf } from "./chessState";
 import type { ChessClientMessage } from "./chessTypes";
+import styles from "./GameControls.module.css";
 
 interface Props {
   state: ChessState;
@@ -53,9 +54,9 @@ export function GameControls({ state, send, isAdmin, onAdminDelete }: Props) {
   const offeredByMe = isPlayer && offerBy === role;
 
   return (
-    <div>
+    <div className={styles.controls}>
       {!inProgress && (
-        <div>
+        <div className={styles.row}>
           <Button
             variant="primary"
             disabled={startReason !== null}
@@ -63,18 +64,18 @@ export function GameControls({ state, send, isAdmin, onAdminDelete }: Props) {
           >
             Start
           </Button>
-          {startReason && <p>{startReason}</p>}
+          {startReason && <p className={styles.hint}>{startReason}</p>}
         </div>
       )}
       {inProgress && isPlayer && (
-        <div>
+        <div className={styles.row}>
           <Button variant="destructive" onClick={() => setPending("resign")}>
             Resign
           </Button>
           <Button disabled={offeredByMe} onClick={() => send({ type: "offer_draw" })}>
             Offer draw
           </Button>
-          {offeredByMe && <p>Draw offered</p>}
+          {offeredByMe && <p className={styles.hint}>Draw offered</p>}
           {offerToMe && (
             <>
               <Button onClick={() => send({ type: "answer_draw", accept: true })}>Accept</Button>
@@ -91,18 +92,22 @@ export function GameControls({ state, send, isAdmin, onAdminDelete }: Props) {
           Delete session
         </Button>
       )}
-      <Sheet
+      <Dialog
         open={pending !== null}
         onClose={() => setPending(null)}
         title={pending ? CONFIRM[pending].title : ""}
         defaultAction={run}
+        footer={
+          <>
+            <Button onClick={() => setPending(null)}>Cancel</Button>
+            <Button variant="primary" onClick={run}>
+              Confirm
+            </Button>
+          </>
+        }
       >
-        {pending && <p>{CONFIRM[pending].text}</p>}
-        <Button onClick={() => setPending(null)}>Cancel</Button>
-        <Button variant="primary" onClick={run}>
-          Confirm
-        </Button>
-      </Sheet>
+        {pending && <p className={styles.confirm}>{CONFIRM[pending].text}</p>}
+      </Dialog>
     </div>
   );
 }

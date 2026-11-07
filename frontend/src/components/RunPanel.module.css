@@ -1,40 +1,40 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  font: var(--type-body) var(--font-text);
-  color: var(--label);
+  gap: var(--space-8);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  color: var(--text);
 }
 
 .header {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-12);
 }
 
 .accepted {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-control);
-  background: var(--status-success-bg);
-  color: var(--status-success);
+  gap: var(--space-4);
+  padding: 2px var(--space-8);
+  border-radius: var(--radius-0);
+  background: var(--neutral-700);
+  color: var(--text);
   font-weight: 600;
 }
 
 .running {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-8);
   margin: 0;
-  color: var(--label-secondary);
+  color: var(--form-caption);
 }
 
 .results {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -44,24 +44,28 @@
   display: grid;
   grid-template-columns: 16px 1fr;
   align-items: start;
-  column-gap: var(--space-2);
+  column-gap: var(--space-8);
 }
 
 .result[data-outcome="passed"] > svg {
-  color: var(--status-success);
+  color: var(--success);
 }
 
 .result:not([data-outcome="passed"]) > svg {
-  color: var(--status-error);
+  color: var(--negative);
 }
 
 .traceback {
   grid-column: 2;
-  margin: var(--space-1) 0 0;
-  padding: var(--space-2);
-  border-radius: var(--radius-control);
-  background: var(--window-bg);
-  font: var(--type-callout) var(--font-mono);
+  margin: var(--space-4) 0 0;
+  padding: var(--space-8);
+  border-radius: var(--radius-0);
+  background: var(--surface-1);
+  font:
+    var(--fs-copy-3) / var(--lh-copy-3) ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
   white-space: pre-wrap;
   overflow-x: auto;
 }

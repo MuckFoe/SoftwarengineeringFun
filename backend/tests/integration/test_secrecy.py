@@ -537,6 +537,23 @@ async def test_nfr5_fr9_tests_reach_only_editors(
             present_ws.receive_json()
     assert closed.value.code == 4404
 
+    # Spec 014 games routes hold no problem data; swept for coverage. Anyone may start a chess
+    # session; the rest answer not-found for an invite that does not exist.
+    chess = "/api/games/chess/sessions"
+    cs = chess + "/{invite}"
+    sweep.http(("GET", "/api/games"), client.get("/api/games"))
+    sweep.http(("POST", chess), client.post("/api/games/chess/sessions"))
+    sweep.http(("GET", cs), client.get(chess + "/no-such"))
+    sweep.http(("GET", cs + "/chat"), client.get(chess + "/no-such/chat"))
+    sweep.http(("DELETE", cs + "/chat/{message_id}"), client.delete(chess + "/no-such/chat/1"))
+    sweep.http(("POST", cs + "/reactivate"), client.post(chess + "/no-such/reactivate"))
+    sweep.http(("DELETE", cs), client.delete(chess + "/no-such"))
+    sweep.routes_hit.add(("WS", cs + "/ws"))
+    with client.websocket_connect(chess + "/no-such/ws?name=Ada") as chess_ws:
+        with pytest.raises(WebSocketDisconnect) as closed:
+            chess_ws.receive_json()
+    assert closed.value.code == 4404
+
     # Spec 012 account routes hold no problem data; swept for coverage. Signed in only (not
     # editor-only): the anonymous observer gets 401, plain1 its own (empty) rows.
     signed_in_status = 200 if observer == "plain1" else 401

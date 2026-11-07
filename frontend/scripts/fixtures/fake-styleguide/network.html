@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><title>Fake styleguide</title></head>
+<body><div id="root"></div>
+<script>
+// The logo is never in the DOM; it is only fetched (network candidate).
+setTimeout(() => { fetch("logo-valid.svg"); }, 150);
+</script></body></html>

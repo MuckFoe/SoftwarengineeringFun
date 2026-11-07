@@ -74,11 +74,6 @@ describe("Toolbar", () => {
     fireEvent.keyDown(search, { key: "ArrowRight" });
     expect(document.activeElement).toBe(search);
   });
-
-  it("uses the material", () => {
-    render(<Bar />);
-    expect(screen.getByRole("toolbar").className).toMatch(/material/);
-  });
 });
 
 describe("SourceList", () => {

@@ -1,10 +1,8 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
-import { AccountControl } from "../components/AccountControl";
-import { AppearanceControl } from "../components/AppearanceControl";
+import { AppHeader } from "../ui/AppHeader";
 import { EmptyState } from "../ui/EmptyState";
 import type { IconName } from "../ui/Icon";
-import { Toolbar } from "../ui/Toolbar";
 import { Window } from "../ui/Window";
 import styles from "./NotFound.module.css";
 
@@ -19,11 +17,9 @@ export function EmptyStateWindow({ icon, title, children }: WindowProps) {
   return (
     <Window
       toolbar={
-        <Toolbar label="Window">
+        <AppHeader label="Window">
           <span className={styles.spacer} />
-          <AppearanceControl />
-          <AccountControl />
-        </Toolbar>
+        </AppHeader>
       }
     >
       <EmptyState

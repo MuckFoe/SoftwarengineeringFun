@@ -5,23 +5,21 @@ import { Link, useParams } from "react-router";
 import { reactivateSession } from "../../api/client";
 import type { ChatSendMessage } from "../../api/types";
 import { useMe } from "../../auth/useMe";
-import { apiPath } from "../../base";
+import { apiPath, BASE } from "../../base";
 import { type ChatTransport, useChat } from "../../chat/useChat";
-import { AccountControl } from "../../components/AccountControl";
-import { AppearanceControl } from "../../components/AppearanceControl";
-import { AreaNav } from "../../components/AreaNav";
 import { ChatPane } from "../../components/ChatPane";
+import { AppHeader } from "../../ui/AppHeader";
 import { Banner } from "../../ui/Banner";
 import { Button } from "../../ui/Button";
+import { Card } from "../../ui/Card";
 import { InlineMessage } from "../../ui/InlineMessage";
-import { Sidebar } from "../../ui/Sidebar";
+import { InviteLink } from "../../ui/InviteLink";
 import { TextField } from "../../ui/TextField";
-import { Toolbar } from "../../ui/Toolbar";
 import { Window } from "../../ui/Window";
 import { getChessSession } from "../gamesApi";
 import { Board } from "./Board";
 import styles from "./ChessSessionWindow.module.css";
-import { ChessSocket, type SocketFactory } from "./chessSocket";
+import { ChessSocket, type SocketFactory, storedRejoin } from "./chessSocket";
 import {
   bottomColor,
   type ChessLocalAction,
@@ -29,7 +27,7 @@ import {
   initialChessState,
   roleOf,
 } from "./chessState";
-import type { ChessClientMessage, ChessServerMessage, PromotionPiece } from "./chessTypes";
+import type { ChessClientMessage, ChessServerMessage, Game, PromotionPiece } from "./chessTypes";
 import { GameControls } from "./GameControls";
 import { MoveList } from "./MoveList";
 import { PromotionPicker } from "./PromotionPicker";
@@ -42,6 +40,23 @@ type Page =
   | { kind: "full" }
   | { kind: "error" }
   | { kind: "ready"; stale: boolean };
+
+// Spec 014 FR-3/AC-2: before the game starts the board shows the standard starting position.
+const START_GAME: Game = {
+  status: "in_progress",
+  fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  turn: "white",
+  ply: 0,
+  moves: [],
+  last_move: null,
+  check_square: null,
+  legal: {},
+  promotions: [],
+  draw_offer_by: null,
+  claim_available_to: null,
+  result: null,
+  reason: null,
+};
 
 const NO_LONGER_EXISTS = "This session no longer exists";
 
@@ -59,6 +74,10 @@ type Listener = (payload: never) => void;
 
 export function ChessSessionWindow({ createSocket }: Props) {
   const { invite = "" } = useParams();
+  const inviteLink = new URL(
+    `${BASE}games/chess/s/${encodeURIComponent(invite)}`,
+    window.location.origin,
+  ).toString();
   const me = useMe();
   const signedIn = me.status === "ready" && me.me.signed_in;
   const isAdmin = me.status === "ready" && me.me.signed_in && me.me.roles.includes("admin");
@@ -111,10 +130,12 @@ export function ChessSessionWindow({ createSocket }: Props) {
     };
   }, [invite]);
 
-  // Signed in: no name prompt (the server names us after the account).
+  // Signed in: no name prompt (the server names us after the account). A guest holding a
+  // rejoin token is the same participant as before: no prompt either (FR-21, FR-28).
   useEffect(() => {
-    if (page.kind === "ready" && signedIn && joinName === undefined) setJoinName(null);
-  }, [page.kind, signedIn, joinName]);
+    if (page.kind !== "ready" || joinName !== undefined) return;
+    if (signedIn || storedRejoin(invite)) setJoinName(null);
+  }, [page.kind, signedIn, joinName, invite]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: connects once the name is known.
   useEffect(() => {
@@ -196,19 +217,10 @@ export function ChessSessionWindow({ createSocket }: Props) {
 
   const shell = (body: React.ReactNode, banner?: React.ReactNode) => (
     <Window
-      sidebarOpen
-      sidebar={
-        <Sidebar label="Sidebar">
-          <AreaNav />
-        </Sidebar>
-      }
       toolbar={
-        <Toolbar label="Chess">
+        <AppHeader label="Chess">
           <h1 className={styles.title}>Chess</h1>
-          <span className={styles.spacer} />
-          <AppearanceControl />
-          <AccountControl />
-        </Toolbar>
+        </AppHeader>
       }
       banner={banner}
     >
@@ -216,7 +228,9 @@ export function ChessSessionWindow({ createSocket }: Props) {
     </Window>
   );
 
-  if (page.kind === "not_found" || gone === "not_found" || gone === "deleted") {
+  // A closed-by-result sheet (FR-34) outlives the deletion that follows it.
+  const deletedNow = page.kind === "not_found" || gone === "not_found" || gone === "deleted";
+  if (deletedNow && !state.closed) {
     return shell(<DeletedNotice />);
   }
   if (page.kind === "full" || gone === "full") {
@@ -236,29 +250,32 @@ export function ChessSessionWindow({ createSocket }: Props) {
   if (joinName === undefined || gone === "invalid_name") {
     return shell(
       <div className={styles.center}>
-        <h2>Join this game</h2>
-        <form className={styles.joinForm} onSubmit={join}>
-          <TextField
-            label="Your name"
-            value={name}
-            onChange={setName}
-            invalid={nameError !== null || gone === "invalid_name"}
-          />
-          {(nameError || gone === "invalid_name") && (
-            <InlineMessage id="join-name-error">
-              {nameError ?? "That name was refused by the server."}
-            </InlineMessage>
-          )}
-          <Button
-            variant="primary"
-            type="submit"
-            onClick={() => {
-              if (gone === "invalid_name") setGone(null);
-            }}
-          >
-            Join
-          </Button>
-        </form>
+        <Card className={styles.joinCard}>
+          <h2 className={styles.joinTitle}>Join this game</h2>
+          <InviteLink link={inviteLink} />
+          <form className={styles.joinForm} onSubmit={join}>
+            <TextField
+              label="Your name"
+              value={name}
+              onChange={setName}
+              invalid={nameError !== null || gone === "invalid_name"}
+            />
+            {(nameError || gone === "invalid_name") && (
+              <InlineMessage id="join-name-error">
+                {nameError ?? "That name was refused by the server."}
+              </InlineMessage>
+            )}
+            <Button
+              variant="primary"
+              type="submit"
+              onClick={() => {
+                if (gone === "invalid_name") setGone(null);
+              }}
+            >
+              Join
+            </Button>
+          </form>
+        </Card>
       </div>,
     );
   }
@@ -284,6 +301,7 @@ export function ChessSessionWindow({ createSocket }: Props) {
   return shell(
     <div className={styles.layout}>
       <div className={styles.main}>
+        <InviteLink link={inviteLink} />
         {state.closed ? <ClosedSheet closed={state.closed} /> : null}
         {state.error && !state.error.startsWith("chat_") && !state.error.startsWith("gif_") && (
           <InlineMessage id="chess-error">{errorText(state.error)}</InlineMessage>
@@ -295,16 +313,14 @@ export function ChessSessionWindow({ createSocket }: Props) {
         {snap && (
           <>
             <fieldset className={styles.frozen} disabled={stale} aria-label="Board">
-              {game && (
-                <Board
-                  game={game}
-                  seat={stale ? "viewer" : roleOf(state)}
-                  bottom={bottomColor(state)}
-                  selected={state.selected}
-                  onSelect={(square) => dispatchLocal({ type: "square_selected", square })}
-                  onMove={tryMove}
-                />
-              )}
+              <Board
+                game={game ?? START_GAME}
+                seat={stale || !game ? "viewer" : roleOf(state)}
+                bottom={bottomColor(state)}
+                selected={state.selected}
+                onSelect={(square) => dispatchLocal({ type: "square_selected", square })}
+                onMove={tryMove}
+              />
             </fieldset>
             <Button variant="plain" onClick={() => dispatchLocal({ type: "flip_toggled" })}>
               Flip board
@@ -319,7 +335,7 @@ export function ChessSessionWindow({ createSocket }: Props) {
                 onAdminDelete={() => void adminDelete()}
               />
             </fieldset>
-            {game && <MoveList moves={game.moves} />}
+            <MoveList moves={game?.moves ?? []} />
           </>
         )}
       </div>

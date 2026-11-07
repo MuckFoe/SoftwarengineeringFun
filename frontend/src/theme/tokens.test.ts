@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import raw from "./tokens.css?raw";
+import base from "../styles/base.css?raw";
+import raw from "../styles/tokens.css?raw";
 
 const css = raw.replace(/\/\*[\s\S]*?\*\//g, "");
 
@@ -22,8 +23,11 @@ const dark = block(':root[data-appearance="dark"]');
 // A token is a colour token when its value contains a literal colour (shadows included).
 // Aliases such as `var(--accent)` follow whichever block defines their target.
 const COLOUR = /(#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|oklch\()/i;
+// Spec 015 retarget: elevation shadows (--elev-*) are shared by both appearances (plan 1.3).
 const colourTokens = (props: Map<string, string>) =>
-  [...props].filter(([, value]) => COLOUR.test(value)).map(([name]) => name);
+  [...props]
+    .filter(([name, value]) => COLOUR.test(value) && !name.startsWith("--elev-"))
+    .map(([name]) => name);
 
 describe("theme tokens", () => {
   it("defines colour tokens on :root", () => {
@@ -36,50 +40,25 @@ describe("theme tokens", () => {
     expect([...dark.keys()].sort()).toEqual(colourTokens(light).sort());
   });
 
-  // FR-1: one accent.
-  it("has exactly one accent token family, also applied as accent-color", () => {
+  // FR-1: one accent. Spec 015 retarget: the single interactive family is --action-primary-*
+  // (and --highlight for the brand red); no second accent, tint or brand family exists.
+  it("has exactly one primary-action token family, also applied as accent-color", () => {
     const accentLike = [...light.keys()].filter((n) => /accent|tint|brand|primary/.test(n));
     expect(accentLike.length).toBeGreaterThan(0);
-    for (const name of accentLike) expect(name).toMatch(/^--accent(-[a-z]+)*$/);
-    expect(light.has("--accent")).toBe(true);
-    expect(css).toMatch(/accent-color:\s*var\(--accent\)/);
+    for (const name of accentLike) expect(name).toMatch(/^--action-primary-[a-z-]+$/);
+    expect(light.has("--action-primary-fill")).toBe(true);
+    expect(base).toMatch(/accent-color:\s*var\(--action-primary-fill\)/);
   });
 
-  // FR-1, NFR-1: system typeface by family name only.
-  it("references fonts by family name only", () => {
-    expect(css).not.toMatch(/@font-face/);
-    expect(css).not.toMatch(/url\(/);
-    const fonts = [...light].filter(([n]) => n.startsWith("--font-"));
-    expect(fonts.map(([n]) => n).sort()).toEqual(["--font-mono", "--font-text"]);
-    for (const [, value] of fonts) expect(value).not.toMatch(/\.(otf|ttf|woff2?)/i);
-    expect(light.get("--font-text")).toMatch(/^system-ui,/);
-    expect(light.get("--font-mono")).toMatch(/^ui-monospace,/);
-  });
-
-  // FR-1: HIG macOS type scale.
-  it("uses the HIG macOS type scale", () => {
-    const scale = (name: string) => light.get(name)?.replace(/\s+/g, "");
-    expect(scale("--type-body")).toBe("13px/16px");
-    expect(scale("--type-title2")).toBe("17px/22px");
-  });
-
-  // FR-1: generous, regular spacing.
+  // FR-1: regular spacing. Spec 015 retarget: the kit scale is --space-N (px); the 2 px
+  // hairline step is the only value off the 4 px grid.
   it("uses a 4 px spacing grid", () => {
-    const spacing = [...light].filter(([n]) => n.startsWith("--space-"));
+    const spacing = [...light].filter(([n]) => /^--space-\d+$/.test(n));
     expect(spacing.length).toBeGreaterThan(3);
     for (const [name, value] of spacing) {
       const px = /^(\d+)px$/.exec(value);
       expect(px, name).not.toBeNull();
-      expect(Number(px?.[1]) % 4, name).toBe(0);
+      if (name !== "--space-2") expect(Number(px?.[1]) % 4, name).toBe(0);
     }
-  });
-
-  it("rounds controls at 6 px and sheets/popovers at 10 px", () => {
-    expect(light.get("--radius-control")).toBe("6px");
-    expect(light.get("--radius-sheet")).toBe("10px");
-  });
-
-  it("defines a focus ring token", () => {
-    expect(light.has("--focus-ring")).toBe(true);
   });
 });

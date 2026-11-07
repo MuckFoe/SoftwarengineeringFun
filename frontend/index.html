@@ -22,6 +22,8 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- After the app stylesheets (which Vite puts in the head), so the supplied icons override the fallback glyphs at equal specificity. -->
+    <link rel="stylesheet" href="%BASE_URL%brand/brand.css" />
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

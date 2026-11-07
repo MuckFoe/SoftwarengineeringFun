@@ -1,6 +1,6 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import tokensRaw from "../theme/tokens.css?raw";
+import tokensRaw from "../styles/tokens.css?raw";
 import { ICON_NAMES, Icon, SignedInMark } from "../ui/Icon";
 import { PresenceList } from "./PresenceList";
 
@@ -35,8 +35,8 @@ describe("PresenceList signed-in mark (FR-8)", () => {
 describe("SignedInMark", () => {
   it("is a decorative in-house glyph plus visually hidden 'signed in' text", () => {
     const { container } = render(<SignedInMark />);
-    const svg = container.querySelector("svg");
-    expect(svg?.getAttribute("aria-hidden")).toBe("true");
+    const glyph = container.querySelector(".icon[data-icon]");
+    expect(glyph?.getAttribute("aria-hidden")).toBe("true");
     const text = screen.getByText("signed in");
     expect(text.style.position).toBe("absolute");
     expect(text.style.width).toBe("1px");
@@ -46,9 +46,9 @@ describe("SignedInMark", () => {
   it("draws a person-with-checkmark icon in currentColor", () => {
     expect(ICON_NAMES).toContain("personCheck");
     const { container } = render(<Icon name="personCheck" />);
-    const svg = container.querySelector("svg") as SVGSVGElement;
-    expect(svg.querySelectorAll("circle, path").length).toBeGreaterThanOrEqual(2);
-    expect(svg.getAttribute("stroke")).toBe("currentColor");
+    const glyph = container.querySelector(".icon[data-icon]") as HTMLElement;
+    expect(glyph.getAttribute("data-icon")).toBe("personCheck");
+    expect(container.querySelector("svg")).toBeNull();
   });
 
   it("sets no colour of its own, so it inherits the name's colour", () => {
@@ -59,7 +59,7 @@ describe("SignedInMark", () => {
 });
 
 // Non-text contrast (WCAG 1.4.11, 3:1): the mark is drawn in the row's text colour
-// (`--label`, PresenceList.module.css), so that colour must hold against the window and
+// (`--text-interactive`, PresenceList.module.css), so that colour must hold against the window and
 // content backgrounds in light and dark.
 describe("signed-in mark contrast", () => {
   const css = tokensRaw.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -113,9 +113,9 @@ describe("signed-in mark contrast", () => {
     ["light", Object.fromEntries(light)],
     ["dark", dark],
   ] as const) {
-    for (const bg of ["--window-bg", "--content-bg"]) {
+    for (const bg of ["--canvas", "--surface-1"]) {
       it(`meets 3:1 on ${bg} in ${appearance}`, () => {
-        const fg = parse(tokens["--label"] as string);
+        const fg = parse(tokens["--text-interactive"] as string);
         expect(ratio(fg, parse(tokens[bg] as string))).toBeGreaterThanOrEqual(3);
       });
     }

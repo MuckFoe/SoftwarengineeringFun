@@ -145,10 +145,10 @@ describe("LearnWindow", () => {
     expect(pathname()).toBe("/learn");
   });
 
-  it("FR-1: the sidebar has the Areas navigation with Learn current", async () => {
+  it("FR-1: the header has the Areas tabs with Learn current", async () => {
     await renderWindow();
-    expect(screen.getByRole("link", { name: "Learn" }).getAttribute("aria-current")).toBe("page");
-    expect(screen.getByRole("link", { name: "Problems" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Learn" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tab", { name: "Problems" })).toBeTruthy();
   });
 
   it("FR-27: an admin sees the stale learning sessions, from the learn endpoint", async () => {

@@ -1,13 +1,12 @@
-import { indentWithTab } from "@codemirror/commands";
 import { python } from "@codemirror/lang-python";
 import { indentUnit } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
-import { keymap } from "@codemirror/view";
 import { basicSetup, EditorView } from "codemirror";
 import { useEffect, useRef } from "react";
 import { yCollab } from "y-codemirror.next";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
+import { editorTabKeymap } from "./editorTab";
 import { editorTheme } from "./editorTheme";
 
 interface Props {
@@ -20,8 +19,8 @@ interface Props {
  * Binds CodeMirror (Python) to the session's shared `Y.Text` for this problem, with
  * remote cursors labelled by awareness `name` (FR-16, FR-18, FR-20).
  *
- * Tab indents by 4 spaces and Shift+Tab dedents, as Python expects. So keyboard users
- * aren't trapped (spec 003 FR-21, WCAG 2.1.2), Esc then Tab moves focus out instead; that
+ * Tab inserts 4 spaces at the cursor, accepts an open suggestion, or indents the selected
+ * lines; Shift+Tab dedents (spec 010). So keyboard users aren't trapped (spec 003 FR-21, WCAG 2.1.2), Esc then Tab moves focus out instead; that
  * escape is CodeMirror's own tab-focus mode.
  */
 export function CodeEditor({ doc, awareness, problemId }: Props) {
@@ -37,7 +36,7 @@ export function CodeEditor({ doc, awareness, problemId }: Props) {
         basicSetup,
         python(),
         indentUnit.of("    "),
-        keymap.of([indentWithTab]),
+        editorTabKeymap,
         editorTheme,
         // A name for the textbox, so screen readers announce it (spec 008 NFR-2).
         EditorView.contentAttributes.of({ "aria-label": "Code" }),

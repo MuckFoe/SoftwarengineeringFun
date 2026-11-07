@@ -1,7 +1,9 @@
 import { type FormEvent, useId, useState } from "react";
 import { DescriptionView } from "../description/DescriptionView";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
 import { Icon, SignedInMark } from "../ui/Icon";
+import { Radio } from "../ui/Radio";
 import { TextField } from "../ui/TextField";
 import type { Answer, Attempt, LearnClientMessage, StepView as StepViewData } from "./learnTypes";
 import styles from "./StepView.module.css";
@@ -151,16 +153,25 @@ function ChoiceCheck({
         </legend>
         {options.map((option, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: options are a fixed list, addressed by index on the wire.
-          <label key={index} className={styles.option}>
-            <input
-              type={multiple ? "checkbox" : "radio"}
-              name={name}
-              checked={selected.includes(index)}
-              disabled={disabled}
-              onChange={(e) => toggle(index, e.target.checked)}
-            />
-            {option}
-          </label>
+          <div key={index} className={styles.option}>
+            {multiple ? (
+              <Checkbox
+                label={option}
+                name={name}
+                checked={selected.includes(index)}
+                disabled={disabled}
+                onChange={(on) => toggle(index, on)}
+              />
+            ) : (
+              <Radio
+                label={option}
+                name={name}
+                checked={selected.includes(index)}
+                disabled={disabled}
+                onChange={(on) => toggle(index, on)}
+              />
+            )}
+          </div>
         ))}
       </fieldset>
       <div className={styles.actions}>

@@ -6,6 +6,11 @@ traceback?}]}` (plan: Runner contract, run pipeline step 3). Infrastructure fail
 returns 503, as does waiting too long for a sandbox slot (`{"error": "busy"}`).
 `GET /health` returns 200.
 
+`POST /execute-stream` takes `{code: str, stdin: str}`, runs the code as a program in the same
+sandbox limits and answers with chunked NDJSON: `{"s": "out"|"err", "b": <base64>}` per chunk
+as bytes arrive, then `{"end": "exited", "code": n}` or `{"end": "time_limit"}`. A client that
+closes the connection gets the container removed.
+
 The runner knows nothing about problems, sessions or expected values. Stdlib and the
 `docker` CLI only.
 
@@ -19,17 +24,24 @@ Environment:
   RUNNER_PORT       listen port (default 8080)
 """
 
+import base64
 import json
 import os
+import queue
+import select
 import subprocess
 import sys
 import threading
+import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 CONTAINER_LABEL = "collab-coding.runner"
 MAX_REQUEST_B = 1024 * 1024
 MAX_OUTPUT_B = 64 * 1024 * 1024
+TIME_LIMIT_EXIT = 124  # the sandbox harness's exit code for the wall or CPU limit
+DOCKER_RUN_FAILED = 125  # `docker run` itself failed
+CHUNK_B = 16 * 1024
 
 
 # Set in main() from SANDBOX_MAX_CONCURRENT; None means no cap.
@@ -135,6 +147,81 @@ def execute(code: str, function_name: str, cases: list[list]) -> list[dict]:
     return results
 
 
+def _pump(pipe, stream: str, events: "queue.Queue") -> None:
+    """Forwards each read from `pipe` to `events` as it arrives; None marks end of stream."""
+    try:
+        while chunk := pipe.read1(CHUNK_B):
+            events.put((stream, chunk))
+    except (OSError, ValueError):
+        pass
+    finally:
+        events.put((stream, None))
+
+
+def execute_stream(code: str, stdin: str, send, client_gone) -> None:
+    """Runs `code` as a program and calls `send(message)` for each output chunk and the end
+    line. `client_gone()` says whether the caller disconnected. `send` is not called before the
+    first byte of output or the end, so an infrastructure failure can still raise InfraError."""
+    image = os.environ.get("SANDBOX_IMAGE", "")
+    if not image:
+        raise InfraError("SANDBOX_IMAGE is not set")
+    runtime = os.environ.get("SANDBOX_RUNTIME", "")
+    timeout_s = float(os.environ.get("RUNNER_TIMEOUT_S", "20"))
+    name = f"collab-sandbox-{uuid.uuid4().hex}"
+    payload = json.dumps({"mode": "scratch", "code": code, "stdin": stdin}).encode()
+    try:
+        proc = subprocess.Popen(  # noqa: S603
+            docker_command(name, image, runtime),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except OSError as exc:
+        raise InfraError(f"cannot start docker: {exc}") from exc
+    events: queue.Queue = queue.Queue()
+    try:
+        for pipe, stream in ((proc.stdout, "out"), (proc.stderr, "err")):
+            threading.Thread(target=_pump, args=(pipe, stream, events), daemon=True).start()
+        try:
+            proc.stdin.write(payload)
+            proc.stdin.close()
+        except OSError:
+            pass  # the container died early; its exit code tells
+        deadline = time.monotonic() + timeout_s
+        open_pipes = 2
+        sent = False
+        while open_pipes:
+            if time.monotonic() > deadline:
+                send({"end": "time_limit"})
+                return
+            try:
+                stream, chunk = events.get(timeout=0.25)
+            except queue.Empty:
+                if client_gone():
+                    return
+                continue
+            if chunk is None:
+                open_pipes -= 1
+                continue
+            send({"s": stream, "b": base64.b64encode(chunk).decode()})
+            sent = True
+        try:
+            code_n = proc.wait(timeout=max(0.0, deadline - time.monotonic()) + 1)
+        except subprocess.TimeoutExpired:
+            send({"end": "time_limit"})
+            return
+        if code_n == DOCKER_RUN_FAILED and not sent:
+            raise InfraError("docker run failed")
+        if code_n == TIME_LIMIT_EXIT:
+            send({"end": "time_limit"})
+        else:
+            send({"end": "exited", "code": code_n})
+    finally:
+        proc.kill()
+        _remove_container(name)
+        proc.wait()
+
+
 def _valid_request(body: object) -> bool:
     return (
         isinstance(body, dict)
@@ -162,8 +249,46 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._reply(404, {"error": "not_found"})
 
+    def _client_gone(self) -> bool:
+        readable, _, _ = select.select([self.connection], [], [], 0)
+        if not readable:
+            return False
+        try:
+            return self.connection.recv(1, 2) == b""  # MSG_PEEK
+        except OSError:
+            return True
+
+    def _stream(self, body: dict) -> None:
+        started = False
+
+        def send(message: dict) -> None:
+            nonlocal started
+            if not started:
+                started = True
+                self.send_response(200)
+                self.send_header("Content-Type", "application/x-ndjson")
+                self.send_header("Transfer-Encoding", "chunked")
+                self.end_headers()
+            line = json.dumps(message).encode() + b"\n"
+            self.wfile.write(f"{len(line):x}\r\n".encode() + line + b"\r\n")
+            self.wfile.flush()
+
+        try:
+            execute_stream(body["code"], body["stdin"], send, self._client_gone)
+            if started:
+                self.wfile.write(b"0\r\n\r\n")
+                self.wfile.flush()
+        except InfraError as exc:
+            self.log_error("infra error: %s", exc)
+            if started:
+                self.close_connection = True
+            else:
+                self._reply(503, {"error": "infra_error"})
+        except OSError:
+            self.close_connection = True  # the client went away mid-stream
+
     def do_POST(self) -> None:  # noqa: N802 - http.server naming
-        if self.path != "/execute":
+        if self.path not in ("/execute", "/execute-stream"):
             self._reply(404, {"error": "not_found"})
             return
         try:
@@ -178,11 +303,26 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(length))
         except ValueError:
             body = None
-        if not _valid_request(body):
+        streaming = self.path == "/execute-stream"
+        valid = (
+            isinstance(body, dict)
+            and isinstance(body.get("code"), str)
+            and isinstance(body.get("stdin"), str)
+            if streaming
+            else _valid_request(body)
+        )
+        if not valid:
             self._reply(400, {"error": "bad_request"})
             return
         if _slots is not None and not _slots.acquire(timeout=_slot_wait_s):
             self._reply(503, {"error": "busy"})
+            return
+        if streaming:
+            try:
+                self._stream(body)
+            finally:
+                if _slots is not None:
+                    _slots.release()
             return
         try:
             cases = execute(body["code"], body["function_name"], body["cases"])

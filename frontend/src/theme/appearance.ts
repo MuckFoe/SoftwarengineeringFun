@@ -23,7 +23,9 @@ export function loadChoice(): Choice {
 
 export function saveChoice(c: Choice): void {
   try {
-    localStorage.setItem(KEY, c);
+    // "System" is the absence of a stored value (FR-6a).
+    if (c === "system") localStorage.removeItem(KEY);
+    else localStorage.setItem(KEY, c);
   } catch {
     // Storage unavailable: the choice still applies for this page, it just isn't kept.
   }

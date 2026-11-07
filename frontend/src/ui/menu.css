@@ -1,0 +1,109 @@
+/* Select and Menu (spec 015 task 16): Audi underline select and dropdown panel. */
+.ui-select {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  position: relative;
+}
+
+.ui-select-label {
+  font: var(--type-body, inherit);
+  font-family: var(--font-copy);
+  color: var(--form-caption);
+}
+
+.ui-select-trigger {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-bottom: 1px solid var(--form-underline);
+  border-radius: 0;
+  background: transparent;
+  color: var(--form-text);
+  font-family: var(--font-copy);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ui-select-trigger:hover,
+.ui-select-trigger[aria-expanded="true"] {
+  border-bottom: 2px solid var(--form-underline-active);
+  color: var(--form-text-active);
+}
+
+.ui-select-trigger:focus-visible {
+  outline: var(--bw-focus) solid var(--focus);
+  outline-offset: 0;
+}
+
+.ui-select-trigger[aria-invalid="true"] {
+  border-bottom-color: var(--form-underline-error);
+}
+
+.ui-select-trigger:disabled {
+  border-bottom-color: var(--form-underline-disabled);
+  color: var(--form-text-disabled);
+  cursor: not-allowed;
+}
+
+.ui-select-error {
+  font-family: var(--font-copy);
+  color: var(--form-text-error);
+}
+
+.ui-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.ui-menu-panel {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  min-width: 100%;
+  margin-top: var(--space-1);
+  padding: var(--space-1);
+  box-sizing: border-box;
+  background: var(--surface-2);
+  box-shadow: var(--elev-2);
+  border-radius: var(--radius-0);
+}
+
+.ui-menu-option {
+  display: block;
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-0);
+  background: transparent;
+  color: var(--text-interactive);
+  font-family: var(--font-copy);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ui-menu-option:hover {
+  background: var(--neutral-700);
+}
+
+.ui-menu-option:focus-visible {
+  outline: var(--bw-focus) solid var(--focus);
+  outline-offset: -2px;
+}
+
+.ui-menu-option[aria-selected="true"] {
+  font-weight: 700;
+}
+
+.ui-menu-option:disabled,
+.ui-menu-option[aria-disabled="true"] {
+  color: var(--form-text-disabled);
+  cursor: not-allowed;
+}

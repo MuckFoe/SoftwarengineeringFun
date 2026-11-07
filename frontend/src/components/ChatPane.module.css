@@ -4,7 +4,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-12);
 }
 
 .list {
@@ -13,40 +13,46 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-8);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* The bubble itself (square, neutral or accent fill) comes from ui/chat.css. */
+.group {
+  flex: none;
+}
+
 .header {
-  margin: 0 0 var(--space-1);
-  font: var(--type-subheadline) var(--font-text);
-  font-weight: 600;
-  color: var(--label);
+  margin: 0;
+  font-family: var(--font-copy);
+  font-size: var(--fs-label-1);
+  line-height: var(--lh-label-1);
+  font-weight: 500;
 }
 
 .time {
   font-weight: 400;
-  color: var(--label-secondary);
 }
 
 .message {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-1);
+  gap: var(--space-8);
 }
 
 .message + .message {
-  margin-top: var(--space-1);
+  margin-top: var(--space-4);
 }
 
 .text {
   flex: 1;
   min-width: 0;
   margin: 0;
-  font: var(--type-body) var(--font-text);
-  color: var(--label);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-1);
+  line-height: var(--lh-copy-1);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -56,7 +62,9 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-8);
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--divider);
 }
 
 /* A GIF message: the image and its credit, in the text's place (spec 007 FR-11). */
@@ -66,17 +74,27 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-1);
+  gap: var(--space-4);
+  /* On the canvas, not the bubble fill: the GIF tile and its placeholder text keep their
+     contrast in an own (accent) bubble too. */
+  padding: var(--space-4);
+  background: var(--canvas);
+  color: var(--text);
 }
 
 .credit {
-  font: var(--type-caption) var(--font-text);
-  color: var(--label-secondary);
+  font-family: var(--font-copy);
+  font-size: var(--fs-label-1);
+  line-height: var(--lh-label-1);
+  opacity: 0.8;
 }
 
 .actions {
   display: flex;
-  gap: var(--space-1);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-8);
+  max-width: 100%;
 }
 
 /* The GIF picker, opened above the compose form beside its button. */
@@ -86,57 +104,30 @@
   bottom: 100%;
   z-index: 10;
   max-width: 100%;
-  margin-bottom: var(--space-1);
-  padding: var(--space-3);
+  margin-bottom: var(--space-8);
+  padding: var(--space-12);
   box-sizing: border-box;
-  border-radius: var(--radius-sheet);
-  background: var(--content-bg);
-  box-shadow: var(--shadow-popover);
-}
-
-.label {
-  font: var(--type-subheadline) var(--font-text);
-  color: var(--label-secondary);
-}
-
-.input {
-  box-sizing: border-box;
-  width: 100%;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius-control);
-  background: var(--control-bg);
-  color: var(--label);
-  font: var(--type-body) var(--font-text);
-  resize: vertical;
-}
-
-.input:focus-visible {
-  outline: 3px solid var(--focus-ring);
-}
-
-.input:disabled {
-  opacity: 0.5;
+  border: 1px solid var(--divider);
+  background: var(--surface-1);
 }
 
 .footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-8);
 }
 
 .counter,
 .over {
-  font: var(--type-caption) var(--font-text);
+  font-family: var(--font-copy);
+  font-size: var(--fs-label-1);
+  line-height: var(--lh-label-1);
   font-variant-numeric: tabular-nums;
-  color: var(--label-secondary);
+  color: var(--form-caption);
 }
 
 .over {
-  color: var(--status-error);
-}
-
-/* Your own messages (spec 012 FR-3): the sender ("You") in the accent colour. */
-.own .sender {
-  color: var(--accent);
+  color: var(--negative);
 }

@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-// Spec 003 AC-5, AC-6, AC-7, AC-8, AC-22: appearance follows the OS and the user's choice,
+// Spec 003 AC-5, AC-6, AC-7, AC-8 (AC-22 removed by spec 015 FR-8: no vibrancy remains): appearance follows the OS and the user's choice,
 // dark mode leaves no light surfaces, and reduced motion and reduced transparency are
 // honoured, in a real browser against the real stack.
 import type { APIRequestContext, Locator, Page } from "@playwright/test";
@@ -61,7 +61,7 @@ const DARK = 0.1;
 
 async function chooseAppearance(page: Page, choice: "Light" | "Dark" | "System"): Promise<void> {
   await page.getByRole("button", { name: "Appearance" }).first().click();
-  await page.getByRole("radio", { name: choice }).click();
+  await page.getByRole("menuitemradio", { name: choice }).click();
   await page.keyboard.press("Escape");
 }
 
@@ -160,7 +160,7 @@ test.describe("with a dark OS, games", () => {
     expect(await backgroundLuminance(page.getByRole("list", { name: "Moves" }))).toBeLessThan(
       DARK,
     );
-    expect(await backgroundLuminance(page.getByRole("region", { name: "Chat" }))).toBeLessThan(
+    expect(await backgroundLuminance(page.getByRole("complementary", { name: "Chat" }))).toBeLessThan(
       DARK,
     );
   });
@@ -198,28 +198,4 @@ test.describe("with reduced motion", () => {
       await other.close();
     }
   });
-});
-
-test("AC-22: with reduced transparency the sidebar and toolbar are opaque", async ({
-  page,
-  browserName,
-}) => {
-  test.skip(browserName !== "chromium", "prefers-reduced-transparency is emulated over CDP");
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send("Emulation.setEmulatedMedia", {
-    features: [{ name: "prefers-reduced-transparency", value: "reduce" }],
-  });
-  await page.goto("/");
-
-  for (const el of [
-    page.getByRole("toolbar", { name: "Problems" }),
-    page.getByRole("navigation", { name: "Sidebar" }),
-  ]) {
-    const style = await el.evaluate((node) => {
-      const s = getComputedStyle(node);
-      return { filter: s.backdropFilter, background: s.backgroundColor };
-    });
-    expect(style.filter).toBe("none");
-    expect(style.background).toMatch(/^rgb\(/);
-  }
 });

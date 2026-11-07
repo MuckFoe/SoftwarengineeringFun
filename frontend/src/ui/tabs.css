@@ -1,0 +1,37 @@
+/* Audi Navigation Bar / Tabs: 56 px, active = 2 px underline + --nav-active (plan 1.7). */
+
+.ui-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-24);
+  height: 56px;
+}
+
+.ui-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  height: 56px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--nav-idle);
+  font-family: var(--font-copy);
+  cursor: pointer;
+}
+
+.ui-tab:hover {
+  color: var(--nav-active);
+}
+
+.ui-tab[aria-selected="true"] {
+  color: var(--nav-active);
+  border-bottom: 2px solid var(--nav-active);
+}
+
+.ui-tab:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}

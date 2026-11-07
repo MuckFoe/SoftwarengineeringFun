@@ -1,0 +1,55 @@
+/* Spec 015 task 3: reset, canvas and the single focus indicator. Values come from tokens.css. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Not kit tokens: the monospace exception (plan 1.4, kit has no monospace face) and the
+   per-collaborator presence colours, aliased to kit palette tokens (both appearances follow). */
+:root {
+  accent-color: var(--action-primary-fill);
+  --font-mono: ui-monospace, Menlo, Consolas, monospace;
+  --presence-1: var(--negative);
+  --presence-2: var(--success);
+  --presence-3: var(--neon-blue);
+  --presence-4: var(--intelligent);
+  --presence-5: var(--notice);
+  --presence-6: var(--highlight);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  color-scheme: light dark;
+}
+
+:root[data-appearance="light"] {
+  color-scheme: light;
+}
+
+:root[data-appearance="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--text);
+  font-family: var(--font-copy);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Kit double-ring focus indicator (focus colour on both canvases >= 3:1). */
+:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 var(--bw-2) var(--canvas),
+    0 0 0 var(--bw-focus) var(--focus);
+}

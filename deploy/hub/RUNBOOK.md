@@ -95,6 +95,7 @@ keep the example's values. `SANDBOX_RUNTIME` stays empty (plan §7 D4).
 
 ```sh
 ~/hub/check/static.sh docker-compose.hub.yml
+frontend/scripts/brand.sh   # spec 015: fetch the logo and write brand-assets/brand.css (never fails)
 docker compose -f docker-compose.hub.yml --env-file .env.hub build sandbox
 docker compose -f docker-compose.hub.yml --env-file .env.hub up -d --build --wait
 ```
@@ -145,6 +146,7 @@ Participants need no account. They join with an invite link (FR2).
 ```sh
 cd ~/collab
 git pull
+frontend/scripts/brand.sh   # spec 015: fetch the logo and write brand-assets/brand.css (never fails)
 docker compose -f docker-compose.hub.yml --env-file .env.hub build sandbox
 docker compose -f docker-compose.hub.yml --env-file .env.hub up -d --build --wait
 deploy/hub/smoke.sh

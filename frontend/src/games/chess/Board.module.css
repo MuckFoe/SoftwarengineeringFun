@@ -3,7 +3,7 @@
   grid-template-rows: repeat(8, 1fr);
   width: min(100%, 560px);
   aspect-ratio: 1;
-  border: 1px solid var(--control-border);
+  border: 1px solid var(--ui-stroke);
   user-select: none;
   touch-action: none;
 }
@@ -22,16 +22,14 @@
   border: 0;
   border-radius: 0;
   cursor: default;
-  --sq-light: #f0d9b5;
-  --sq-dark: #b58863;
 }
 
 .light {
-  background: var(--sq-light);
+  background: var(--board-light);
 }
 
 .dark {
-  background: var(--sq-dark);
+  background: var(--board-dark);
 }
 
 .movable {
@@ -39,21 +37,21 @@
 }
 
 .square:focus-visible {
-  outline: 3px solid #0a58ca;
+  outline: 3px solid var(--focus);
   outline-offset: -3px;
   z-index: 1;
 }
 
 .last {
-  box-shadow: inset 0 0 0 100px rgba(255, 221, 0, 0.4);
+  box-shadow: inset 0 0 0 100px color-mix(in srgb, var(--focus) 30%, transparent);
 }
 
 .selected {
-  box-shadow: inset 0 0 0 100px rgba(20, 120, 255, 0.45);
+  box-shadow: inset 0 0 0 100px color-mix(in srgb, var(--focus) 55%, transparent);
 }
 
 .check {
-  box-shadow: inset 0 0 0 100px rgba(220, 30, 30, 0.55);
+  box-shadow: inset 0 0 0 100px color-mix(in srgb, var(--negative) 60%, transparent);
 }
 
 .legal::after {
@@ -62,14 +60,14 @@
   width: 28%;
   height: 28%;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--highlight);
 }
 
 .legal.occupied::after {
   width: 90%;
   height: 90%;
   background: transparent;
-  border: 4px solid rgba(0, 0, 0, 0.45);
+  border: 4px solid var(--highlight);
 }
 
 .piece {

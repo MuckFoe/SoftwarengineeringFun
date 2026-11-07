@@ -3,9 +3,9 @@
   flex: none;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 2px solid currentColor;
+  border-style: solid;
+  border-color: currentColor;
   border-right-color: transparent;
-  opacity: 0.8;
   animation: spin 800ms linear infinite;
 }
 

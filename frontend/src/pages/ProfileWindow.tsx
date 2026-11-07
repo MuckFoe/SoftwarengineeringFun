@@ -3,14 +3,14 @@ import { Link, useLocation, useSearchParams } from "react-router";
 import { loginUrl, logout, registerUrl } from "../api/client";
 import type { Me } from "../api/types";
 import { useMe } from "../auth/useMe";
-import { AppearanceControl } from "../components/AppearanceControl";
 import { useChatVisible } from "../components/chatVisibility";
 import type { Choice } from "../theme/appearance";
 import { useAppearance } from "../theme/useAppearance";
+import { AppHeader } from "../ui/AppHeader";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
 import { Icon } from "../ui/Icon";
 import { SegmentedControl } from "../ui/SegmentedControl";
-import { Toolbar } from "../ui/Toolbar";
 import { Window } from "../ui/Window";
 import { ProfileSessions } from "./ProfileSessions";
 import styles from "./ProfileWindow.module.css";
@@ -76,15 +76,14 @@ export function ProfileWindow({ onSignedOut = () => window.location.reload() }: 
   return (
     <Window
       toolbar={
-        <Toolbar label="Profile">
+        <AppHeader label="Profile">
           <Link className={styles.back} to={backTarget(params.get("from"))}>
             <Icon name="chevronLeft" />
             Back
           </Link>
           <h1 className={styles.title}>Profile</h1>
           <span className={styles.spacer} />
-          <AppearanceControl />
-        </Toolbar>
+        </AppHeader>
       }
     >
       <div className={styles.content}>{content}</div>
@@ -154,14 +153,11 @@ function PreferencesSection() {
           options={APPEARANCE_OPTIONS}
         />
       </div>
-      <label className={styles.check}>
-        <input
-          type="checkbox"
-          checked={chatVisible}
-          onChange={(e) => setChatVisible(e.currentTarget.checked)}
-        />
-        Show chat beside the description
-      </label>
+      <Checkbox
+        label="Show chat beside the description"
+        checked={chatVisible}
+        onChange={setChatVisible}
+      />
     </section>
   );
 }

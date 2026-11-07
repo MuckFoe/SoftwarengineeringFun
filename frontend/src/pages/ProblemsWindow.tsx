@@ -3,18 +3,16 @@ import { useNavigate } from "react-router";
 import { createSession, searchProblems } from "../api/client";
 import type { ProblemSummary } from "../api/types";
 import { useMe } from "../auth/useMe";
-import { AccountControl } from "../components/AccountControl";
-import { AppearanceControl } from "../components/AppearanceControl";
-import { AreaNav } from "../components/AreaNav";
 import { StaleSessionsList } from "../components/StaleSessionsList";
 import { ShortcutScope, useShortcut } from "../shortcuts/useShortcut";
+import { AppHeader } from "../ui/AppHeader";
 import { Button } from "../ui/Button";
 import { Hud } from "../ui/Hud";
 import { InlineMessage } from "../ui/InlineMessage";
 import { SearchField } from "../ui/SearchField";
 import { Sidebar, SidebarSection } from "../ui/Sidebar";
 import { SourceList } from "../ui/SourceList";
-import { Toolbar } from "../ui/Toolbar";
+import { Tag } from "../ui/Tag";
 import { Window } from "../ui/Window";
 import { ProblemEditorSheet } from "./ProblemEditorSheet";
 import styles from "./ProblemsWindow.module.css";
@@ -108,7 +106,6 @@ export function ProblemsWindow({ initialSheet }: Props) {
         sidebarOpen={sidebarOpen}
         sidebar={
           <Sidebar label="Sidebar">
-            <AreaNav />
             <SidebarSection title="Problems">
               <SourceList
                 label="Problems"
@@ -122,7 +119,7 @@ export function ProblemsWindow({ initialSheet }: Props) {
           </Sidebar>
         }
         toolbar={
-          <Toolbar label="Problems">
+          <AppHeader label="Problems">
             <Button
               variant="plain"
               icon="sidebar"
@@ -140,9 +137,7 @@ export function ProblemsWindow({ initialSheet }: Props) {
                 New problem
               </Button>
             )}
-            <AppearanceControl />
-            <AccountControl />
-          </Toolbar>
+          </AppHeader>
         }
       >
         <div className={styles.content}>
@@ -161,7 +156,7 @@ export function ProblemsWindow({ initialSheet }: Props) {
               {shown.map((p) => (
                 <tr key={p.id} className="anim-row-in">
                   <td className={styles.titleCell}>{p.title}</td>
-                  <td className={styles.kind}>{p.is_starter ? "Starter" : ""}</td>
+                  <td className={styles.kind}>{p.is_starter ? <Tag label="Starter" /> : ""}</td>
                   <td className={styles.actions}>
                     {isEditor && (
                       <Button

@@ -1,10 +1,10 @@
 import { type ReactNode, useId } from "react";
 import styles from "./Sidebar.module.css";
 
-/** The window's source-list sidebar: a navigation landmark on the translucent material. */
+/** The window's source-list sidebar: a navigation landmark. */
 export function Sidebar({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <nav aria-label={label} className={`${styles.sidebar} material`}>
+    <nav aria-label={label} className={`${styles.sidebar}`}>
       {children}
     </nav>
   );

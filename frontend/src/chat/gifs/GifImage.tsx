@@ -21,7 +21,7 @@ export function GifImage({ gif }: { gif: GifResult }) {
   }
 
   return (
-    <picture className={styles.picture}>
+    <picture className={styles.tile}>
       <source media="(prefers-reduced-motion: reduce)" srcSet={gif.still_url} />
       {/* referrerPolicy before src: React sets attributes in this order, and a cached image
           can start loading as soon as src is set, with the default policy (NFR-1). */}

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import materialsRaw from "./materials.css?raw";
-import motionRaw from "./motion.css?raw";
+import motionRaw from "../styles/motion.css?raw";
+import tokensRaw from "../styles/tokens.css?raw";
 
 const strip = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
+const tokens = strip(tokensRaw);
 const motion = strip(motionRaw);
-const materials = strip(materialsRaw);
 
 /** The body of the first `@media`/`@supports` block whose prelude matches, braces balanced. */
 function atRule(css: string, prelude: RegExp): string {
@@ -29,10 +29,10 @@ function keyframes(css: string): Map<string, string> {
   return found;
 }
 
-describe("motion.css", () => {
+describe("motion (styles/motion.css, spec 015 retarget)", () => {
   it("defines the motion tokens", () => {
-    expect(motion).toMatch(/--motion-fast:\s*150ms/);
-    expect(motion).toMatch(/--motion-base:\s*250ms/);
+    expect(tokens).toMatch(/--dur-fast:\s*150ms/);
+    expect(tokens).toMatch(/--dur-base:\s*250ms/);
   });
 
   // NFR-5
@@ -61,32 +61,5 @@ describe("motion.css", () => {
 
   it("never blocks input during animation", () => {
     expect(motion).not.toMatch(/pointer-events\s*:\s*none/);
-  });
-});
-
-describe("materials.css", () => {
-  it("blurs the material where supported", () => {
-    expect(materials).toMatch(/background:\s*var\(--material-bg\)/);
-    expect(materials).toMatch(/backdrop-filter:\s*blur\(20px\)\s*saturate\(180%\)/);
-  });
-
-  // AC-22 (static part)
-  for (const [name, prelude] of [
-    ["@supports not", /@supports\s+not\s*\(+\s*backdrop-filter/],
-    ["reduced transparency", /@media\s*\(\s*prefers-reduced-transparency:\s*reduce\s*\)/],
-  ] as const) {
-    it(`is opaque under ${name}`, () => {
-      const body = atRule(materials, prelude);
-      expect(body).toMatch(/backdrop-filter:\s*none/);
-      expect(body).toMatch(/background:\s*var\(--material-bg-opaque\)/);
-    });
-  }
-
-  it("defines both material colours for light and dark", () => {
-    for (const token of ["--material-bg", "--material-bg-opaque"]) {
-      const defs = materials.match(new RegExp(`${token}:`, "g")) ?? [];
-      expect(defs.length, token).toBe(2);
-    }
-    expect(materials).toMatch(/:root\[data-appearance="dark"\]/);
   });
 });

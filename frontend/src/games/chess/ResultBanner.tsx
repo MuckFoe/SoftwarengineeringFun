@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import type { ClosedReason, Color, Reason } from "./chessTypes";
+import styles from "./ResultBanner.module.css";
 
 const REASON_TEXT: Record<Reason, string> = {
   checkmate: "checkmate",
@@ -19,7 +20,11 @@ export function resultText(result: Color | "draw", reason: Reason): string {
 
 /** The result line shown when a game ends (FR-26). */
 export function ResultBanner({ result, reason }: { result: Color | "draw"; reason: Reason }) {
-  return <div role="status">{resultText(result, reason)}</div>;
+  return (
+    <div role="status" className={styles.result}>
+      {resultText(result, reason)}
+    </div>
+  );
 }
 
 /** The "session closed" sheet (FR-34, FR-35), with a link back to Games. */
@@ -30,7 +35,7 @@ export function ClosedSheet({
 }) {
   const deleted = closed.reason === "starter" || closed.reason === "admin";
   return (
-    <div role="dialog" aria-label="Session closed">
+    <div role="dialog" aria-label="Session closed" className={styles.closed}>
       {!deleted && closed.result ? (
         <p>{resultText(closed.result, closed.reason as Reason)}</p>
       ) : null}

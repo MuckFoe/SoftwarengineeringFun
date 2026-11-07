@@ -150,7 +150,7 @@ export function Board({ game, seat, bottom, selected, onSelect, onMove }: BoardP
               const index = r * 8 + c;
               const file = s.square.charCodeAt(0) - 97;
               const rank = Number(s.square[1]);
-              const light = (file + rank) % 2 === 1;
+              const light = (file + rank) % 2 === 0; // a1 (0 + 1) is a dark square
               const legal = destinations.includes(s.square);
               const last = game.last_move?.from === s.square || game.last_move?.to === s.square;
               const check = game.check_square === s.square;

@@ -1,0 +1,61 @@
+/* Audi Dialog: centred tile, radius 0, elevation 4, scrim (plan 1.7). */
+
+.ui-dialog {
+  position: relative;
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - var(--space-32)));
+  max-width: none;
+  max-height: calc(100vh - var(--space-64));
+  margin: auto;
+  padding: var(--space-16);
+  border: none;
+  border-radius: 0;
+  background: var(--canvas);
+  color: var(--text);
+  box-shadow: var(--elev-4);
+  overflow: auto;
+}
+
+.ui-dialog::backdrop {
+  background: var(--scrim);
+}
+
+.ui-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.ui-dialog__title {
+  margin: 0;
+  padding-right: var(--space-48);
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+  font-weight: 700;
+}
+
+/* Specificity beats the IconButton module rule, which sets its own 32 px size. */
+.ui-dialog .ui-dialog__close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--space-48);
+  height: var(--space-48);
+}
+
+.ui-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-8);
+}
+
+@media (max-width: 767px) {
+  .ui-dialog {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+  }
+}

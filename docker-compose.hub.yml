@@ -80,6 +80,9 @@ services:
       # Spec 007: GIF search. Unset key -> GIF search answers gif_unavailable.
       GIPHY_API_KEY: ${GIPHY_API_KEY:-}
       GIPHY_BASE_URL: ${GIPHY_BASE_URL:-https://api.giphy.com}
+    volumes:
+      # Spec 015: brand assets (fonts, icons, logo, brand.css), served unauthenticated at /brand/.
+      - ${BRAND_DIR:-./brand-assets}:/app/brand-assets:ro
     networks:
       app: {}
       hub:

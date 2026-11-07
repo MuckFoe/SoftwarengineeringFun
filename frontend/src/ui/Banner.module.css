@@ -1,11 +1,11 @@
 .banner {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--separator);
-  font: var(--type-body) var(--font-text);
-  color: var(--label);
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-16);
+  border-bottom: 1px solid var(--divider);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  color: var(--text-interactive);
 }
 
 .banner > svg {
@@ -13,15 +13,15 @@
 }
 
 .info {
-  background: var(--content-bg);
+  background: var(--surface-1);
 }
 
 .warning {
-  background: var(--status-warning-bg);
+  background: var(--neutral-700);
 }
 
 .warning > svg {
-  color: var(--status-warning);
+  color: var(--notice);
 }
 
 .text {
@@ -31,5 +31,5 @@
 
 .actions {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-8);
 }

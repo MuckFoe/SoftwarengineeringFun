@@ -1,12 +1,13 @@
 /// <reference types="vitest/config" />
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
+import { brandPlugin } from "./scripts/brand-plugin";
 
 export default defineConfig(({ mode }) => ({
   // Spec 005: "/collab/" on the project hub, passed in as a build arg; "/" everywhere else.
   // loadEnv also picks APP_-prefixed variables up from the process environment.
   base: loadEnv(mode, ".", "APP_").APP_BASE_PATH || "/",
-  plugins: [react()],
+  plugins: [react(), brandPlugin()],
   server: {
     proxy: {
       "/api": { target: "http://127.0.0.1:8000", ws: true },
@@ -16,6 +17,8 @@ export default defineConfig(({ mode }) => ({
     environment: "jsdom",
     globals: true,
     // Real CSS for theme tokens and ui modules, so tests can read their source with ?raw.
-    css: { include: [/\/theme\/.*\.css/, /\/ui\/.*\.css/] },
+    css: {
+      include: [/\/theme\/.*\.css/, /\/ui\/.*\.css/, /\/styles\/.*\.css/, /\/brand\/.*\.css/],
+    },
   },
 }));

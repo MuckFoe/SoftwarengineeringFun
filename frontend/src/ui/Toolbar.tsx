@@ -5,11 +5,20 @@ const ITEMS = "button:not([disabled]), input, select, a[href]";
 const TEXT_ENTRY = "input, select, textarea";
 
 /**
- * The window toolbar (FR-10) on the translucent material, following the WAI-ARIA toolbar
+ * The window toolbar (FR-10), following the WAI-ARIA toolbar
  * pattern (FR-21): one tab stop, arrow keys and Home/End move between items, the last
  * focused item is the stop. Popover panels opened from it are not items.
  */
-export function Toolbar({ label, children }: { label: string; children: ReactNode }) {
+export function Toolbar({
+  label,
+  children,
+  variant,
+}: {
+  label: string;
+  children: ReactNode;
+  /** "bare": no toolbar chrome of its own, for a host (the app header) that supplies it. */
+  variant?: "bare";
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const active = useRef(0);
 
@@ -59,7 +68,7 @@ export function Toolbar({ label, children }: { label: string; children: ReactNod
       role="toolbar"
       aria-label={label}
       tabIndex={-1}
-      className={`${styles.toolbar} material`}
+      className={variant === "bare" ? "app-header-controls" : styles.toolbar}
       onFocus={onFocus}
       onKeyDown={onKeyDown}
     >

@@ -5,6 +5,7 @@ import type { StaleSession } from "../api/types";
 import { Button } from "../ui/Button";
 import { Hud } from "../ui/Hud";
 import { InlineMessage } from "../ui/InlineMessage";
+import { ListItem } from "../ui/ListItem";
 import { SidebarSection } from "../ui/Sidebar";
 import styles from "./StaleSessionsList.module.css";
 
@@ -94,7 +95,7 @@ export function StaleSessionsList({
         {sessions?.map((s) => {
           const isLeaving = leaving.has(s.invite_id);
           return (
-            <li
+            <ListItem
               key={s.invite_id}
               className={`${styles.row} ${isLeaving ? "anim-row-out" : "anim-row-in"}`}
               aria-hidden={isLeaving || undefined}
@@ -112,7 +113,7 @@ export function StaleSessionsList({
               >
                 Reactivate
               </Button>
-            </li>
+            </ListItem>
           );
         })}
       </ul>

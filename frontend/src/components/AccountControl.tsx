@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router";
 import { useMe } from "../auth/useMe";
-import { Icon } from "../ui/Icon";
+import { Icon } from "../brand/Icon";
 import styles from "./AccountControl.module.css";
 
 /**
@@ -17,7 +17,7 @@ export function AccountControl() {
 
   return (
     <Link className={styles.entry} to={`/profile?${from}`}>
-      <Icon name="person" />
+      <Icon name="person" size={16} />
       {text}
     </Link>
   );

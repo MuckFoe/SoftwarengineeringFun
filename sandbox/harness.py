@@ -20,6 +20,7 @@ import select
 import signal
 import subprocess
 import sys
+import threading
 import time
 import traceback
 
@@ -29,6 +30,9 @@ CPU_LIMIT_S = 2
 MEMORY_LIMIT_B = 256 * 1024 * 1024
 FILE_SIZE_LIMIT_B = 1024 * 1024
 MAX_RESULT_B = 1024 * 1024
+
+TIME_LIMIT_EXIT = 124  # scratch mode: the wall limit (or CPU limit) ended the run
+USER_EXIT_CLASH = 1  # a program's own exit 124 is reported as this, so 124 stays unambiguous
 
 MEMORY_RESULT = b'{"status": "memory"}'
 PR_SET_DUMPABLE = 4
@@ -177,12 +181,77 @@ def run_case(code: str, function_name: str, args: list) -> dict:
     }
 
 
+def _scratch_child(code_fd: int) -> None:
+    """`harness.py --scratch <fd>`: runs the code read from `code_fd`. fd 0 is the user's input."""
+    with os.fdopen(code_fd, "rb") as f:
+        code = f.read().decode()
+    if os.path.isdir("/scratch"):
+        os.chdir("/scratch")
+    _limit(resource.RLIMIT_CPU, CPU_LIMIT_S, CPU_LIMIT_S + 1)
+    _limit(resource.RLIMIT_AS, MEMORY_LIMIT_B)
+    _limit(resource.RLIMIT_FSIZE, FILE_SIZE_LIMIT_B)
+    _limit(resource.RLIMIT_NPROC, 0)
+    linecache.cache[FILENAME] = (len(code), None, code.splitlines(keepends=True), FILENAME)
+    try:
+        exec(compile(code, FILENAME, "exec"), {"__name__": "__main__", "__file__": FILENAME})  # noqa: S102
+    except SystemExit as exc:
+        sys.stdout.flush()
+        os._exit(exc.code if isinstance(exc.code, int) else (0 if exc.code is None else 1))
+    except BaseException as exc:  # noqa: BLE001 - user code may raise anything
+        sys.stdout.flush()
+        sys.stderr.write(_error(exc)["traceback"])
+        sys.stderr.flush()
+        os._exit(1)
+    sys.stdout.flush()
+    os._exit(0)
+
+
+def _feed(fd: int, data: bytes) -> None:
+    try:
+        _write_all(fd, data)
+    except OSError:
+        pass  # the program exited or closed its input without reading it all
+    finally:
+        os.close(fd)
+
+
+def run_scratch(code: str, stdin_text: str) -> int:
+    """Runs `code` with `stdin_text` then EOF as its input. Its stdout and stderr are this
+    process's own, unmerged and unbuffered. Returns the exit code for the container."""
+    code_r, code_w = os.pipe()
+    proc = subprocess.Popen(  # noqa: S603
+        [sys.executable, "-I", "-u", os.path.abspath(__file__), "--scratch", str(code_r)],
+        stdin=subprocess.PIPE,
+        pass_fds=(code_r,),
+    )
+    os.close(code_r)
+    threading.Thread(target=_feed, args=(code_w, code.encode()), daemon=True).start()
+    threading.Thread(
+        target=_feed, args=(os.dup(proc.stdin.fileno()), stdin_text.encode()), daemon=True
+    ).start()
+    proc.stdin.close()
+    try:
+        returncode = proc.wait(timeout=WALL_LIMIT_S)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+        return TIME_LIMIT_EXIT
+    if returncode < 0:
+        return TIME_LIMIT_EXIT if -returncode == signal.SIGXCPU else 128 - returncode
+    return USER_EXIT_CLASH if returncode == TIME_LIMIT_EXIT else returncode
+
+
 def main() -> None:
+    if sys.argv[1:2] == ["--scratch"]:
+        _scratch_child(int(sys.argv[2]))
+        return
     if sys.argv[1:] == ["--case"]:
         _case_main()
         return
     _make_undumpable()
     request = json.load(sys.stdin)
+    if request.get("mode") == "scratch":
+        sys.exit(run_scratch(request["code"], request["stdin"]))
     code = request["code"]
     function_name = request["function_name"]
     for args in request["cases"]:

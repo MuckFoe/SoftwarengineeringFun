@@ -1,0 +1,117 @@
+/* Spec 015 task 3: type scale from the kit. Sizes and line heights are tokens (responsive ones
+   are defined in tokens.css). Headlines Extended, copy Wide, never uppercase. */
+
+.type-display-1 {
+  font-family: var(--font-display);
+  font-stretch: calc(var(--wdth-display) * 1%);
+  font-size: var(--fs-display-1);
+  line-height: var(--lh-display-1);
+  font-weight: 700;
+  text-transform: none;
+}
+
+.type-display-2 {
+  font-family: var(--font-display);
+  font-stretch: calc(var(--wdth-display) * 1%);
+  font-size: var(--fs-display-2);
+  line-height: var(--lh-display-2);
+  font-weight: 700;
+  text-transform: none;
+}
+
+.type-h1 {
+  font-family: var(--font-display);
+  font-stretch: calc(var(--wdth-display) * 1%);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  font-weight: 700;
+  text-transform: none;
+}
+
+.type-h2 {
+  font-family: var(--font-display);
+  font-stretch: calc(var(--wdth-display) * 1%);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: 700;
+  text-transform: none;
+}
+
+.type-h3 {
+  font-family: var(--font-display);
+  font-stretch: calc(var(--wdth-display) * 1%);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+  font-weight: 700;
+  text-transform: none;
+}
+
+.type-h4 {
+  font-family: var(--font-display);
+  font-stretch: calc(var(--wdth-display) * 1%);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+  text-transform: none;
+}
+
+.type-copy-1 {
+  font-family: var(--font-copy);
+  font-stretch: calc(var(--wdth-copy) * 1%);
+  font-size: var(--fs-copy-1);
+  line-height: var(--lh-copy-1);
+  font-weight: 400;
+  text-transform: none;
+}
+
+.type-copy-2 {
+  font-family: var(--font-copy);
+  font-stretch: calc(var(--wdth-copy) * 1%);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+  font-weight: 400;
+  text-transform: none;
+}
+
+.type-copy-3 {
+  font-family: var(--font-copy);
+  font-stretch: calc(var(--wdth-copy) * 1%);
+  font-size: var(--fs-copy-3);
+  line-height: var(--lh-copy-3);
+  font-weight: 400;
+  text-transform: none;
+}
+
+.type-label-1 {
+  font-family: var(--font-copy);
+  font-stretch: calc(var(--wdth-copy) * 1%);
+  font-size: var(--fs-label-1);
+  line-height: var(--lh-label-1);
+  font-weight: 500;
+  text-transform: none;
+}
+
+.type-label-2 {
+  font-family: var(--font-copy);
+  font-stretch: calc(var(--wdth-copy) * 1%);
+  font-size: var(--fs-label-2);
+  line-height: var(--lh-label-2);
+  font-weight: 500;
+  text-transform: none;
+}
+
+.type-label-3 {
+  font-family: var(--font-copy);
+  font-stretch: calc(var(--wdth-copy) * 1%);
+  font-size: var(--fs-label-3);
+  line-height: var(--lh-label-3);
+  font-weight: 500;
+  text-transform: none;
+}
+
+/* Monospace exception (plan 1.4): code and run output; the kit defines no monospace face. */
+.type-code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+}

@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router";
 import { SidebarSection } from "../ui/Sidebar";
 import styles from "./AreaNav.module.css";
 
-const AREAS = [
+export const AREAS = [
   { to: "/", title: "Problems" },
   { to: "/learn", title: "Learn" },
   { to: "/present", title: "Present" },
@@ -16,7 +16,7 @@ const under = (pathname: string, area: string) =>
  * Under /learn is Learn, under /present is Present (spec 013); everything else (problems,
  * coding sessions) is Problems.
  */
-function currentArea(pathname: string): string {
+export function currentArea(pathname: string): string {
   return AREAS.find((a) => a.to !== "/" && under(pathname, a.to))?.to ?? "/";
 }
 

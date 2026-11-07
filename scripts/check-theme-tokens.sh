@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Spec 003 FR-18: the Keycloak login theme copies the app's design tokens (a different
 # origin, so nothing is shared at runtime). Fails when any custom property in
-# frontend/src/theme/tokens.css (light :root and dark blocks) differs from the copy between
+# frontend/src/styles/tokens.css (:root and dark blocks) differs from the copy between
 # "tokens:begin" and "tokens:end" in keycloak-theme/collab/login/resources/css/collab.css.
 #
 # Usage: scripts/check-theme-tokens.sh [tokens.css collab.css]
@@ -9,7 +9,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TOKENS="$ROOT/frontend/src/theme/tokens.css"
+TOKENS="$ROOT/frontend/src/styles/tokens.css"
 COLLAB="$ROOT/keycloak-theme/collab/login/resources/css/collab.css"
 
 compare() {
@@ -59,10 +59,10 @@ self_test() {
     return 1
   }
   # Change one colour in tokens.css only.
-  perl -pe 's/--accent: #[0-9a-fA-F]+;/--accent: #123456;/ if !$done && /--accent: #/ && ($done = 1)' \
+  perl -pe 's/--canvas: #[0-9a-fA-F]+;/--canvas: #123456;/ if !$done && /--canvas: #/ && ($done = 1)' \
     "$tmp/tokens.css" >"$tmp/changed.css"
   if cmp -s "$tmp/tokens.css" "$tmp/changed.css"; then
-    echo "self-test: could not change --accent in the copy"
+    echo "self-test: could not change --canvas in the copy"
     return 1
   fi
   if compare "$tmp/changed.css" "$tmp/collab.css" >/dev/null; then

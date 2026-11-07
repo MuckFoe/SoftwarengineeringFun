@@ -15,11 +15,9 @@ import { useParams } from "react-router";
 import type { ChatMessage } from "../api/types";
 import { useMe } from "../auth/useMe";
 import { type SendResult, useChat } from "../chat/useChat";
-import { AccountControl } from "../components/AccountControl";
-import { AppearanceControl } from "../components/AppearanceControl";
-import { AreaNav } from "../components/AreaNav";
 import { ChatPane } from "../components/ChatPane";
 import { NotFound } from "../pages/NotFound";
+import { AppHeader } from "../ui/AppHeader";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
@@ -28,9 +26,7 @@ import { SignedInMark } from "../ui/Icon";
 import { InlineMessage } from "../ui/InlineMessage";
 import { Inspector } from "../ui/Panels";
 import { Popover } from "../ui/Popover";
-import { Sidebar } from "../ui/Sidebar";
 import { TextField } from "../ui/TextField";
-import { Toolbar } from "../ui/Toolbar";
 import { Window } from "../ui/Window";
 import type { FrameLink } from "./frameLink";
 import { PresentationFrame, type StrokeStart } from "./PresentationFrame";
@@ -283,8 +279,6 @@ export function PresentSessionWindow({ createSocket, createLink }: Props) {
   const toolbarEnd = (
     <>
       <span className={styles.spacer} />
-      <AppearanceControl />
-      <AccountControl />
     </>
   );
 
@@ -406,14 +400,7 @@ export function PresentSessionWindow({ createSocket, createLink }: Props) {
 
   return (
     <>
-      <Window
-        sidebar={
-          <Sidebar label="Sidebar">
-            <AreaNav />
-          </Sidebar>
-        }
-        toolbar={<Toolbar label="Presentation session">{toolbarEnd}</Toolbar>}
-      >
+      <Window toolbar={<AppHeader label="Presentation session">{toolbarEnd}</AppHeader>}>
         {body}
       </Window>
       {hud && <Hud key={hud.key} message={hud.message} />}
@@ -601,13 +588,8 @@ function SessionView(props: SessionViewProps) {
 
   return (
     <Window
-      sidebar={
-        <Sidebar label="Sidebar">
-          <AreaNav />
-        </Sidebar>
-      }
       toolbar={
-        <Toolbar label="Presentation session">
+        <AppHeader label="Presentation session">
           <h1 className={styles.title}>{title}</h1>
           {kind === "slides" && (
             <div className={styles.stepper}>
@@ -667,7 +649,7 @@ function SessionView(props: SessionViewProps) {
             </Popover>
           )}
           {props.toolbarEnd}
-        </Toolbar>
+        </AppHeader>
       }
       banner={props.banner}
       inspector={

@@ -56,6 +56,8 @@ class Settings:
     present_host_grace_seconds: float = 60.0
     # Chess (spec 014): how long an opponent must be away before a claim is possible (FR-33).
     chess_abandon_seconds: float = 120.0
+    # Spec 015: where the brand assets (fonts, icons, logo, brand.css) are mounted.
+    brand_assets_dir: str = "/app/brand-assets"
 
 
 def load_settings(env: Mapping[str, str] | None = None) -> Settings:
@@ -85,6 +87,7 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         giphy_base_url=env.get("GIPHY_BASE_URL") or "https://api.giphy.com",
         present_host_grace_seconds=_positive_float(env, "PRESENT_HOST_GRACE_SECONDS", default=60.0),
         chess_abandon_seconds=_positive_float(env, "CHESS_ABANDON_SECONDS", default=120.0),
+        brand_assets_dir=env.get("BRAND_ASSETS_DIR") or "/app/brand-assets",
     )
 
 

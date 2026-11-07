@@ -9,8 +9,6 @@ import { useMe } from "../auth/useMe";
 import { BASE } from "../base";
 import { useChat } from "../chat/useChat";
 import { type ClosedEvent, CollabProvider, type SocketFactory } from "../collab/provider";
-import { AccountControl } from "../components/AccountControl";
-import { AppearanceControl } from "../components/AppearanceControl";
 import type { ChatGifs } from "../components/ChatPane";
 import { CodeEditor } from "../components/CodeEditor";
 import { useChatVisible } from "../components/chatVisibility";
@@ -19,7 +17,15 @@ import { PresenceList } from "../components/PresenceList";
 import { ProblemSourceList } from "../components/ProblemSourceList";
 import { RunPanel } from "../components/RunPanel";
 import { type ChatPaneProps, SessionInspector } from "../components/SessionInspector";
+import { ScratchPanel } from "../scratch/ScratchPanel";
+import {
+  initialScratchState,
+  type ScratchAction,
+  type ScratchState,
+  scratchReducer,
+} from "../scratch/scratchReducer";
 import { ShortcutScope, useShortcut } from "../shortcuts/useShortcut";
+import { AppHeader } from "../ui/AppHeader";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
@@ -28,7 +34,6 @@ import { InlineMessage } from "../ui/InlineMessage";
 import { BottomPanel, Inspector } from "../ui/Panels";
 import { Sidebar, SidebarSection } from "../ui/Sidebar";
 import { TextField } from "../ui/TextField";
-import { Toolbar } from "../ui/Toolbar";
 import { Window } from "../ui/Window";
 import { NotFound } from "./NotFound";
 import styles from "./SessionWindow.module.css";
@@ -68,6 +73,8 @@ interface Joined {
   progress: Record<string, ProblemProgress>;
   running: boolean;
   notice: string | null;
+  /** The run with the session's own input (spec 011). */
+  scratch: ScratchState;
 }
 
 function nameProblem(raw: string): string | null {
@@ -105,6 +112,7 @@ export function SessionWindow({ createSocket }: Props) {
   /** Why a signed-in connection ended; null while connecting or joined. */
   const [ended, setEnded] = useState<ClosedEvent["error"] | null>(null);
   const autoJoined = useRef(false);
+  const lastName = useRef<string | undefined>(undefined);
   const providerRef = useRef<CollabProvider | null>(null);
   // State as well as the ref, so useChat subscribes before the welcome (and its history) arrives.
   const [provider, setProvider] = useState<CollabProvider | null>(null);
@@ -149,6 +157,15 @@ export function SessionWindow({ createSocket }: Props) {
     connect();
   }, [page.kind, signedIn]);
 
+  // The scratch output skipped ahead of what we hold: join again for a fresh welcome (spec 011).
+  const needsSnapshot = joined?.scratch.needsSnapshot ?? false;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-joins once per gap.
+  useEffect(() => {
+    if (!needsSnapshot) return;
+    providerRef.current?.destroy();
+    connect(lastName.current);
+  }, [needsSnapshot]);
+
   async function reactivate() {
     if (!invite) return;
     setReactivateError(null);
@@ -180,6 +197,7 @@ export function SessionWindow({ createSocket }: Props) {
   /** Opens the socket; without a name when signed in (spec 012 FR-1). Never reconnects by itself. */
   function connect(displayName?: string) {
     if (!invite) return;
+    lastName.current = displayName;
     setEnded(null);
     const provider = new CollabProvider({ inviteId: invite, name: displayName, createSocket });
     providerRef.current = provider;
@@ -193,8 +211,25 @@ export function SessionWindow({ createSocket }: Props) {
         progress: msg.problems,
         running: msg.run_in_progress,
         notice: null,
+        scratch: { ...initialScratchState, run: msg.scratch_run ?? null },
       });
     });
+    const scratch = (action: ScratchAction) =>
+      update((prev) => ({ scratch: scratchReducer(prev.scratch, action) }));
+    provider.on("scratch_run_started", (msg) => scratch({ type: "started", run: msg.run }));
+    provider.on("scratch_run_output", (msg) =>
+      scratch({ type: "output", seq: msg.seq, s: msg.s, t: msg.t }),
+    );
+    provider.on("scratch_run_end", (msg) =>
+      scratch({ type: "end", status: msg.status, exit_code: msg.exit_code }),
+    );
+    provider.on("scratch_run_refused", (msg) =>
+      scratch(
+        msg.reason === "in_progress"
+          ? { type: "refused", reason: "in_progress", by: msg.by }
+          : { type: "refused", reason: "stale" },
+      ),
+    );
     provider.on("presence", (msg) => update(() => ({ participants: msg.participants })));
     provider.on("problem_switched", (msg) =>
       update((prev) => ({
@@ -229,6 +264,8 @@ export function SessionWindow({ createSocket }: Props) {
       })),
     );
     provider.on("closed", (ev) => {
+      // A provider replaced by a re-join (spec 011) closing late is not the session ending.
+      if (providerRef.current !== provider) return;
       providerRef.current = null;
       setProvider(null);
       setJoined(null);
@@ -334,11 +371,9 @@ export function SessionWindow({ createSocket }: Props) {
     <>
       <Window
         toolbar={
-          <Toolbar label="Session">
+          <AppHeader label="Session">
             <span className={styles.spacer} />
-            <AppearanceControl />
-            <AccountControl />
-          </Toolbar>
+          </AppHeader>
         }
       >
         {body}
@@ -396,7 +431,7 @@ function StaleWindow({ canReactivate, problemId, error, chat, onReactivate }: St
         </Inspector>
       }
       toolbar={
-        <Toolbar label="Session">
+        <AppHeader label="Session">
           <h1 className={styles.title}>Stale session</h1>
           <span className={styles.spacer} />
           <Button variant="primary" icon="play" disabled>
@@ -410,9 +445,7 @@ function StaleWindow({ canReactivate, problemId, error, chat, onReactivate }: St
             aria-pressed={chatVisible}
             onClick={() => setChatVisible(!chatVisible)}
           />
-          <AppearanceControl />
-          <AccountControl />
-        </Toolbar>
+        </AppHeader>
       }
       banner={
         <Banner
@@ -484,6 +517,7 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
   const { problem } = joined;
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [runPanelOpen, setRunPanelOpen] = useState(true);
+  const [scratchOpen, setScratchOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [chatVisible, setChatVisible] = useChatVisible();
   const chatOnScreen = inspectorOpen && chatVisible;
@@ -533,7 +567,7 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
           </Sidebar>
         }
         toolbar={
-          <Toolbar label="Session">
+          <AppHeader label="Session">
             <Button
               variant="plain"
               icon="sidebar"
@@ -565,6 +599,13 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
             />
             <Button
               variant="plain"
+              icon="play"
+              label={scratchOpen ? "Hide own-input run" : "Show own-input run"}
+              aria-pressed={scratchOpen}
+              onClick={() => setScratchOpen((open) => !open)}
+            />
+            <Button
+              variant="plain"
               icon="inspector"
               label={inspectorOpen ? "Hide inspector" : "Show inspector"}
               aria-pressed={inspectorOpen}
@@ -577,9 +618,7 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
               aria-pressed={chatOnScreen}
               onClick={toggleChat}
             />
-            <AppearanceControl />
-            <AccountControl />
-          </Toolbar>
+          </AppHeader>
         }
         inspector={
           <Inspector open={inspectorOpen} label="Inspector">
@@ -600,6 +639,13 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
               onRun={run}
               showRunButton={false}
             />
+            {scratchOpen && (
+              <ScratchPanel
+                state={joined.scratch}
+                stale={false}
+                onRun={(input) => provider.send({ type: "scratch_run", input })}
+              />
+            )}
           </BottomPanel>
         }
       >

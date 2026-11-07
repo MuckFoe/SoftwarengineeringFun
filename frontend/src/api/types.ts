@@ -1,6 +1,8 @@
 // Wire types for spec 001, mirroring plan.md "Contracts" exactly.
 // Ids are uuids (plan data model), so they travel as strings.
 
+import type { Run, RunStatus } from "../scratch/scratchReducer";
+
 // ---- HTTP ----
 
 /** An account's stored preferences (spec 012 FR-15). */
@@ -247,6 +249,8 @@ export interface WelcomeMessage {
   run_in_progress: boolean;
   /** The session's chat history, in id order (spec 002). */
   chat: ChatMessage[];
+  /** The session's latest run with its own input, or null (spec 011). Absent from older servers. */
+  scratch_run?: Run | null;
 }
 
 export interface PresenceMessage {
@@ -319,6 +323,33 @@ export interface GifResultsMessage {
   results: GifResult[];
 }
 
+export type { Run, RunStatus, Segment } from "../scratch/scratchReducer";
+
+/** A run with its own input began (spec 011); `run` is the snapshot so far. */
+export interface ScratchRunStartedMessage {
+  type: "scratch_run_started";
+  run: Run;
+}
+
+/** Output of the run, `seq` being the byte offset of `t` in the output so far (spec 011). */
+export interface ScratchRunOutputMessage {
+  type: "scratch_run_output";
+  seq: number;
+  s: "out" | "err";
+  t: string;
+}
+
+export interface ScratchRunEndMessage {
+  type: "scratch_run_end";
+  status: RunStatus;
+  exit_code: number | null;
+}
+
+/** A `scratch_run` that did not start, to the sender only (spec 011 FR-9, FR-12). */
+export type ScratchRunRefusedMessage =
+  | { type: "scratch_run_refused"; reason: "in_progress"; by: string }
+  | { type: "scratch_run_refused"; reason: "stale" };
+
 export type ServerMessage =
   | WelcomeMessage
   | PresenceMessage
@@ -330,7 +361,11 @@ export type ServerMessage =
   | ErrorMessage
   | ChatMessageFrame
   | ChatRemovedMessage
-  | GifResultsMessage;
+  | GifResultsMessage
+  | ScratchRunStartedMessage
+  | ScratchRunOutputMessage
+  | ScratchRunEndMessage
+  | ScratchRunRefusedMessage;
 
 export interface RunMessage {
   type: "run";
@@ -361,7 +396,14 @@ export interface ChatSendGifMessage {
   gif_id: string;
 }
 
+/** Run the code with this text as standard input (spec 011). */
+export interface ScratchRunMessage {
+  type: "scratch_run";
+  input: string;
+}
+
 export type ClientMessage =
+  | ScratchRunMessage
   | RunMessage
   | SwitchProblemMessage
   | ChatSendMessage

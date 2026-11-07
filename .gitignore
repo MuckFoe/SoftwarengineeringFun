@@ -12,3 +12,6 @@ dist/
 .env.hub
 e2e/test-results/
 *.tsbuildinfo
+brand-assets/
+261030_Audi_Figma_UI-Kit_and_Icons/
+.DS_Store

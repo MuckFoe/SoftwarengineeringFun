@@ -115,15 +115,15 @@ test("FR3: another app's editor and admin roles, and a realm role, grant nothing
   expect(stale.status()).toBe(403);
 });
 
-/** `--window-bg` for dark from tokens.css, as getComputedStyle reports it (as in signin.spec.ts). */
+/** `--canvas` for dark from tokens.css, as getComputedStyle reports it (as in signin.spec.ts). */
 function darkWindowBg(): string {
   const tokens = readFileSync(
-    path.join(import.meta.dirname, "..", "frontend", "src", "theme", "tokens.css"),
+    path.join(import.meta.dirname, "..", "frontend", "src", "styles", "tokens.css"),
     "utf-8",
   );
   const block = /:root\[data-appearance="dark"\]\s*\{([^}]*)\}/.exec(tokens)?.[1] ?? "";
-  const hex = /--window-bg:\s*#([0-9a-f]{6})/i.exec(block)?.[1];
-  if (!hex) throw new Error("no dark --window-bg in tokens.css");
+  const hex = /--canvas:\s*#([0-9a-f]{6})/i.exec(block)?.[1];
+  if (!hex) throw new Error("no dark --canvas in tokens.css");
   const [r, g, b] = [0, 2, 4].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
   return `rgb(${r}, ${g}, ${b})`;
 }

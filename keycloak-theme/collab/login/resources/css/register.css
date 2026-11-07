@@ -1,0 +1,97 @@
+/*
+ * Spec 015 task 31: the hub self-registration (sign-up) page in the Audi look.
+ * Registration-only rules; the shared base (tokens, canvas, card, buttons) lives in collab.css
+ * and uses the kit custom properties copied there. Fields are the Audi underline input, an
+ * invalid one gets the negative underline and message (FR-4). Radius 0, no backdrop blur.
+ */
+
+#kc-register-form .pf-v5-c-form__label-text,
+#kc-register-form .pf-v5-c-form__label {
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+  color: var(--form-caption);
+}
+
+#kc-register-form .pf-v5-c-form-control {
+  --pf-v5-c-form-control--BorderRadius: 0;
+  box-sizing: border-box;
+  min-height: 56px;
+  border: 0;
+  border-bottom: var(--bw-1) solid var(--form-underline);
+  border-radius: var(--radius-0);
+  background: transparent;
+  color: var(--form-text);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-1);
+  line-height: var(--lh-copy-1);
+}
+
+#kc-register-form .pf-v5-c-form-control::before,
+#kc-register-form .pf-v5-c-form-control::after {
+  display: none;
+}
+
+#kc-register-form .pf-v5-c-form-control input {
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  border-radius: var(--radius-0);
+}
+
+#kc-register-form .pf-v5-c-form-control:hover {
+  border-bottom-color: var(--form-underline-active);
+}
+
+#kc-register-form .pf-v5-c-form-control:focus-within {
+  border-bottom: var(--bw-2) solid var(--form-underline-active);
+  outline: none;
+  color: var(--form-text-active);
+}
+
+/* Invalid entry: negative underline (and message below). */
+#kc-register-form .pf-v5-c-form-control:has(input[aria-invalid="true"]),
+#kc-register-form .pf-v5-c-form-control:has(input[aria-invalid="true"]):hover,
+#kc-register-form .pf-v5-c-form-control:has(input[aria-invalid="true"]):focus-within {
+  border-bottom: var(--bw-2) solid var(--form-underline-error);
+}
+
+#kc-register-form [id^="input-error"],
+#kc-register-form .pf-v5-c-helper-text__item.pf-m-error,
+#kc-register-form .pf-v5-c-helper-text__item.pf-m-error .pf-v5-c-helper-text__item-text {
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+  color: var(--form-text-error);
+}
+
+#kc-register-form input:focus-visible {
+  outline: none;
+}
+
+/* Submit and the back-to-login link follow the kit button and text-link look. */
+#kc-register-form .pf-v5-c-button.pf-m-primary {
+  border-radius: var(--radius-0);
+  background: var(--action-primary-fill);
+  color: var(--action-primary-text);
+  font-family: var(--font-copy);
+  font-size: var(--fs-label-1);
+  line-height: var(--lh-label-1);
+}
+
+#kc-register-form .pf-v5-c-button.pf-m-primary:hover {
+  background: var(--action-primary-fill-hover);
+}
+
+#kc-register-form .pf-v5-c-button:focus-visible,
+#kc-register-form a:focus-visible,
+#kc-form-buttons a:focus-visible {
+  outline: var(--bw-focus) solid var(--focus);
+  outline-offset: 1px;
+}
+
+#kc-form-options a,
+#kc-register-form a {
+  color: var(--action-text);
+  text-decoration: underline;
+}

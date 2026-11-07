@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><title>Fake styleguide</title></head>
+<body><div id="root"></div>
+<script>
+// SPA-like: the header only exists after a delayed client-side render.
+setTimeout(() => {
+  document.getElementById("root").innerHTML = '<header class="header"><img class="brand-logo" alt="Fake logo" src="logo-valid.svg"></header><main>content</main>';
+}, 150);
+</script></body></html>

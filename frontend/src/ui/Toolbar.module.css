@@ -1,12 +1,9 @@
 .toolbar {
+  background: var(--surface-1);
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-8);
   min-height: 44px;
-  padding: 0 var(--space-3);
-  border-bottom: 1px solid var(--separator);
-}
-
-.toolbar:focus {
-  outline: none;
+  padding: 0 var(--space-12);
+  border-bottom: 1px solid var(--divider);
 }

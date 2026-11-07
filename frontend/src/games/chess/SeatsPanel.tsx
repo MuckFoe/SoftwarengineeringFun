@@ -1,4 +1,6 @@
+import { Button } from "../../ui/Button";
 import type { ChessClientMessage, Color, Seat, Snapshot } from "./chessTypes";
+import styles from "./SeatsPanel.module.css";
 
 interface Props {
   snapshot: Snapshot;
@@ -10,7 +12,7 @@ const LABEL: Record<Color, string> = { white: "White", black: "Black" };
 
 function SeatCard({ color, seat }: { color: Color; seat: Seat | null }) {
   return (
-    <li>
+    <li className={styles.seat}>
       <strong>{LABEL[color]}</strong>{" "}
       {seat ? (
         <>
@@ -41,38 +43,40 @@ export function SeatsPanel({ snapshot, youId, send }: Props) {
   const other: Color | null = mine === "white" ? "black" : mine === "black" ? "white" : null;
 
   return (
-    <section aria-label="Seats">
-      <ul>
+    <section aria-label="Seats" className={styles.panel}>
+      <ul className={styles.list}>
         <SeatCard color="white" seat={seats.white} />
         <SeatCard color="black" seat={seats.black} />
       </ul>
       {!inProgress && (
-        <div>
+        <div className={styles.actions}>
           {mine === null &&
             (["white", "black"] as Color[])
               .filter((c) => seats[c] === null)
               .map((c) => (
-                <button key={c} type="button" onClick={() => send({ type: "take_seat", color: c })}>
+                <Button
+                  key={c}
+                  variant="primary"
+                  onClick={() => send({ type: "take_seat", color: c })}
+                >
                   Take seat
                   {seats.white === null && seats.black === null ? ` (${LABEL[c]})` : ""}
-                </button>
+                </Button>
               ))}
           {mine && (
             <>
-              <button type="button" onClick={() => send({ type: "leave_seat" })}>
-                Leave seat
-              </button>
+              <Button onClick={() => send({ type: "leave_seat" })}>Leave seat</Button>
               {other && seats[other] === null && (
-                <button type="button" onClick={() => send({ type: "take_seat", color: other })}>
+                <Button onClick={() => send({ type: "take_seat", color: other })}>
                   Switch to {LABEL[other]}
-                </button>
+                </Button>
               )}
             </>
           )}
         </div>
       )}
-      <h3>Viewers</h3>
-      <ul aria-label="Viewers">
+      <h3 className={styles.heading}>Viewers</h3>
+      <ul aria-label="Viewers" className={styles.list}>
         {viewers.map((v) => (
           <li key={v.participant_id}>{v.name}</li>
         ))}

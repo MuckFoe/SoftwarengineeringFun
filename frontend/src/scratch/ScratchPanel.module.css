@@ -1,0 +1,65 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  color: var(--text);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--form-caption);
+}
+
+.input {
+  font:
+    var(--fs-copy-3) / var(--lh-copy-3) ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  color: var(--text);
+  padding: var(--space-8);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-0);
+  resize: vertical;
+}
+
+.status {
+  margin: 0;
+  color: var(--form-caption);
+}
+
+.notice {
+  margin: 0;
+  color: var(--text);
+}
+
+.output {
+  margin: 0;
+  padding: var(--space-8);
+  border-radius: var(--radius-0);
+  background: var(--surface-1);
+  font:
+    var(--fs-copy-3) / var(--lh-copy-3) ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+}
+
+.out {
+  color: var(--text);
+}
+
+.err {
+  color: var(--negative);
+  background: var(--surface-1);
+}
+
+.marker {
+  font-weight: 600;
+}

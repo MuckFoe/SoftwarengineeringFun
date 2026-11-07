@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import fallbackCss from "../brand/icons-fallback.css?raw";
 import { ICON_NAMES, Icon } from "./Icon";
 
 afterEach(cleanup);
@@ -28,35 +29,36 @@ describe("Icon", () => {
     }
   });
 
-  // NFR-1: hand-drawn inline SVG only, tinted by the surrounding text colour.
+  // Decision 9 / FR-2: every icon is the brand mask span, so supplied Audi icons show everywhere.
   for (const name of ICON_NAMES) {
-    it(`${name} is one inline svg drawn in currentColor`, () => {
+    it(`${name} renders the brand mask span with a fallback rule`, () => {
       const { container } = render(<Icon name={name} />);
-      const svgs = container.querySelectorAll("svg");
-      expect(svgs).toHaveLength(1);
-      const svg = svgs[0] as SVGSVGElement;
+      expect(container.querySelector("svg")).toBeNull();
       expect(container.children).toHaveLength(1);
-      expect(svg.querySelectorAll("image, use, foreignObject")).toHaveLength(0);
-      const all = [svg, ...svg.querySelectorAll("*")];
-      for (const el of all) {
-        expect(el.hasAttribute("href"), el.tagName).toBe(false);
-        expect(el.hasAttribute("xlink:href"), el.tagName).toBe(false);
-        for (const attr of ["fill", "stroke"]) {
-          const value = el.getAttribute(attr);
-          if (value !== null)
-            expect(["currentColor", "none"], `${el.tagName} ${attr}`).toContain(value);
-        }
-      }
-      expect([svg.getAttribute("fill"), svg.getAttribute("stroke")]).toContain("currentColor");
-      expect(svg.querySelectorAll("path, circle, rect, line, polyline").length).toBeGreaterThan(0);
-      expect(svg.getAttribute("aria-hidden")).toBe("true");
+      const el = container.children[0] as HTMLElement;
+      expect(el.className).toBe("icon");
+      expect(el.getAttribute("data-icon")).toBe(name);
+      expect(el.getAttribute("aria-hidden")).toBe("true");
+      expect(fallbackCss).toContain(`.icon[data-icon="${name}"]`);
     });
   }
+
+  it("keeps the size prop (default 16)", () => {
+    const { container } = render(
+      <>
+        <Icon name="play" />
+        <Icon name="play" size={40} />
+      </>,
+    );
+    const [a, b] = Array.from(container.children) as HTMLElement[];
+    expect([a?.style.width, a?.style.height]).toEqual(["16px", "16px"]);
+    expect([b?.style.width, b?.style.height]).toEqual(["40px", "40px"]);
+  });
 
   it("exposes a label as its accessible name", () => {
     render(<Icon name="play" label="Run" />);
     const img = screen.getByRole("img", { name: "Run" });
-    expect(img.tagName.toLowerCase()).toBe("svg");
+    expect(img.getAttribute("data-icon")).toBe("play");
     expect(img.hasAttribute("aria-hidden")).toBe(false);
   });
 });

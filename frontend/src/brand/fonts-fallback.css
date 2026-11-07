@@ -1,0 +1,10 @@
+/* In-repo fallback typeface (SIL OFL 1.1, see ../assets/fonts/OFL.txt): Roboto Flex, latin subset,
+   wght + wdth axes. Second entry of --font-copy, after the user-supplied "Audi Type". */
+@font-face {
+  font-family: "Roboto Flex";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 1000;
+  font-stretch: 25% 151%;
+  src: url("../assets/fonts/roboto-flex-latin-wdth.woff2") format("woff2");
+}

@@ -1,79 +1,118 @@
 .title {
   margin: 0;
-  font: var(--type-headline) var(--font-text);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+  font-stretch: calc(var(--wdth-display) * 1%);
 }
 
 .spacer {
   flex: 1;
 }
 
+/* Spec 015 task 24: Back is a tertiary link, Sign in / Register are an Audi primary and a
+   secondary link-button (radius 0, tokens only). */
 .back,
 .action {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  min-height: 24px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius-control);
-  background: var(--control-bg);
-  color: var(--label);
-  font: var(--type-body) var(--font-text);
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 0 var(--space-16);
+  border: var(--bw-1) solid var(--action-secondary-stroke);
+  border-radius: var(--radius-0);
+  background: transparent;
+  color: var(--action-text);
+  font-family: var(--font-copy);
+  font-size: 16px;
+  line-height: 24px;
   text-decoration: none;
-  box-shadow: var(--shadow-control);
+  transition:
+    background-color var(--dur-fast) var(--ease-audi),
+    border-color var(--dur-fast) var(--ease-audi);
+}
+
+.back {
+  min-height: 32px;
+  padding: 0 var(--space-12);
+  border-color: transparent;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.action:first-child {
+  min-width: 144px;
+  background: var(--action-primary-fill);
+  border-color: var(--action-primary-fill);
+  color: var(--action-primary-text);
+}
+
+.action:first-child:hover {
+  background: var(--action-primary-fill-hover);
+  border-color: var(--action-primary-fill-hover);
+}
+
+.action:not(:first-child) {
+  min-width: 144px;
 }
 
 .back:hover,
-.action:hover {
-  background: var(--control-bg-hover);
+.action:not(:first-child):hover {
+  border-color: var(--action-secondary-stroke-hover);
+  color: var(--action-text-hover);
 }
 
 .back:focus-visible,
 .action:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 1px;
+  outline: var(--bw-focus) solid var(--focus);
+  outline-offset: var(--bw-2);
 }
 
 .content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-24);
   max-width: 640px;
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-16) var(--space-24);
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-12);
 }
 
 .heading {
   margin: 0;
-  font: var(--type-headline) var(--font-text);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+  font-stretch: calc(var(--wdth-display) * 1%);
 }
 
 .text {
   margin: 0;
-  color: var(--label-secondary);
+  color: var(--form-caption);
 }
 
 .actions {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-8);
 }
 
 .fields {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-8) var(--space-16);
   margin: 0;
 }
 
 .fields dt {
-  color: var(--label-secondary);
+  color: var(--form-caption);
 }
 
 .fields dd {
@@ -87,21 +126,21 @@
 .prefRow {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-16);
 }
 
 .prefRow > span {
-  color: var(--label-secondary);
+  color: var(--form-caption);
 }
 
 .check {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-8);
   align-self: flex-start;
 }
 
 .check input:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 1px;
+  outline: var(--bw-focus) solid var(--focus);
+  outline-offset: var(--bw-2);
 }

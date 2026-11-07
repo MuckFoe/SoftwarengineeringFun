@@ -7,25 +7,25 @@
 .row {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-8);
   min-height: 24px;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-control);
-  color: var(--label);
-  font: var(--type-body) var(--font-text);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-0);
+  color: var(--text-interactive);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
   cursor: default;
 }
 
 .row:hover {
-  background: var(--row-hover-bg);
+  background: var(--neutral-700);
 }
 
 .row[aria-selected="true"] {
-  background: var(--accent);
-  color: var(--accent-label);
+  background: var(--action-primary-fill);
+  color: var(--action-primary-text);
 }
 
 .row:focus-visible {
-  outline: 3px solid var(--focus-ring);
+  outline: 3px solid var(--focus);
   outline-offset: -1px;
 }

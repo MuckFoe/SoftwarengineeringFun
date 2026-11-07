@@ -1,0 +1,43 @@
+/* Spec 015 task 37 (FR-12): invite link field with its copy button beside it. */
+.invite {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-8);
+  width: 100%;
+  box-sizing: border-box;
+}
+.field {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.label {
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+  color: var(--form-caption);
+}
+.input {
+  min-width: 0;
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--form-stroke);
+  border-radius: var(--radius-0);
+  background: var(--form-readonly-fill);
+  color: var(--form-text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+}
+.input:focus-visible {
+  outline: 2px solid var(--focus);
+}
+.toast {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: var(--space-8);
+  z-index: 1;
+}

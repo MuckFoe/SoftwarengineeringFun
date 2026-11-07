@@ -1,75 +1,137 @@
-/* HIG push buttons (FR-1): rounded 6 px, 13 px label, one accent colour. */
+/* Spec 015 task 13 (plan 1.7): Audi button. Radius 0, tokens only. Replaces the spec-003 push button in place. */
 
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
-  min-height: 24px;
-  padding: 0 var(--space-3);
-  border: 1px solid transparent;
-  border-radius: var(--radius-control);
-  font: var(--type-body) var(--font-text);
+  gap: var(--space-8);
+  box-sizing: border-box;
+  padding: 0 var(--space-16);
+  border: var(--bw-1) solid transparent;
+  border-radius: var(--radius-0);
+  font-family: var(--font-copy);
+  font-size: 16px;
+  line-height: 24px;
   white-space: nowrap;
-  cursor: default;
+  cursor: pointer;
   user-select: none;
-  transition: background-color var(--motion-fast, 150ms) ease-out;
+  transition:
+    background-color var(--dur-fast) var(--ease-audi),
+    border-color var(--dur-fast) var(--ease-audi),
+    color var(--dur-fast) var(--ease-audi);
 }
 
 .button:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 1px;
+  box-shadow:
+    0 0 0 var(--bw-2) var(--canvas),
+    0 0 0 var(--bw-focus) var(--focus);
 }
 
 .button:disabled {
-  opacity: 0.45;
+  pointer-events: none;
+  cursor: default;
+}
+
+/* Sizes: XS 32, SM 48, MD 56. */
+.xs {
+  min-height: 32px;
+  padding: 0 var(--space-12);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.sm {
+  min-height: 48px;
+}
+
+.md {
+  min-height: 56px;
+  padding: 0 var(--space-24);
+}
+
+/* Min width 144 for primary and secondary buttons that carry a text label. */
+.labelled.primary {
+  min-width: 144px;
+}
+
+.labelled.secondary {
+  min-width: 144px;
 }
 
 .primary {
-  background: var(--accent);
-  color: var(--accent-label);
+  background: var(--action-primary-fill);
+  border-color: var(--action-primary-fill);
+  color: var(--action-primary-text);
 }
 
 .primary:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: var(--action-primary-fill-hover);
+  border-color: var(--action-primary-fill-hover);
 }
 
 .primary:active:not(:disabled) {
-  background: var(--accent-pressed);
+  background: var(--action-secondary-fill-pressed);
+  border-color: var(--action-secondary-stroke);
+  color: var(--action-text);
 }
 
+.primary:disabled {
+  background: var(--action-primary-fill-disabled);
+  border-color: var(--action-primary-fill-disabled);
+  color: var(--action-primary-text);
+}
+
+.secondary {
+  background: transparent;
+  border-color: var(--action-secondary-stroke);
+  color: var(--action-text);
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--action-secondary-stroke-hover);
+  color: var(--action-text-hover);
+}
+
+.secondary:active:not(:disabled) {
+  background: var(--action-secondary-fill-pressed);
+}
+
+.secondary:disabled {
+  border-color: var(--action-secondary-stroke-disabled);
+  color: var(--action-text-disabled);
+}
+
+.tertiary {
+  background: transparent;
+  color: var(--action-text);
+  padding: 0 var(--space-8);
+}
+
+.tertiary:hover:not(:disabled) {
+  color: var(--action-text-hover);
+  text-decoration: underline;
+}
+
+.tertiary:active:not(:disabled) {
+  background: var(--action-secondary-fill-pressed);
+}
+
+.tertiary:disabled {
+  color: var(--action-text-disabled);
+}
+
+/* Destructive: a secondary button in the negative signal colour. */
+.destructive,
+.destructive:hover:not(:disabled) {
+  border-color: var(--negative);
+  color: var(--negative);
+}
+
+/* Spec-003 names, applied beside their Audi kind (bordered = secondary, plain = tertiary). */
 .bordered {
-  background: var(--control-bg);
-  border-color: var(--control-border);
-  color: var(--label);
-  box-shadow: var(--shadow-control);
-}
-
-.bordered:hover:not(:disabled) {
-  background: var(--control-bg-hover);
-}
-
-.bordered:active:not(:disabled) {
-  background: var(--control-bg-pressed);
+  background: transparent;
 }
 
 .plain {
   background: transparent;
-  color: var(--label);
-  padding: 0 var(--space-2);
-}
-
-.plain:hover:not(:disabled) {
-  background: var(--row-hover-bg);
-}
-
-.destructive {
-  background: var(--control-bg);
-  border-color: var(--control-border);
-  color: var(--status-error);
-  box-shadow: var(--shadow-control);
-}
-
-.destructive:hover:not(:disabled) {
-  background: var(--control-bg-hover);
 }

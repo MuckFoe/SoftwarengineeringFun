@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from pathlib import Path
 
+import asyncpg
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from starlette.middleware.sessions import SessionMiddleware
@@ -38,6 +39,7 @@ from app.present.ws import router as present_ws_router
 from app.problems.api import router as problems_router
 from app.problems.images_api import router as images_router
 from app.problems.service import register_on_problem_deleted, unregister_on_problem_deleted
+from app.scratch import repo as scratch_repo
 from app.sessions.api import router as sessions_router
 from app.sessions.service import on_problem_deleted
 from app.sessions.stale import run_periodically
@@ -52,6 +54,13 @@ def _limiter_now() -> float:
     return clock.now().timestamp()
 
 
+async def reconcile_scratch_runs(pool: asyncpg.Pool) -> int:
+    """Spec 011 FR-9/FR-10: a run left `running` by a restart becomes `interrupted`,
+    keeping its saved output. Called once at startup, before connections are accepted."""
+    async with pool.acquire() as conn:
+        return await scratch_repo.interrupt_running(conn)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Opens the DB pool and starts the hourly stale-session jobs (task 26; specs 006,
@@ -64,6 +73,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     pool = await db.create_pool(app.state.settings.database_url)
     app.state.pool = pool
+    await reconcile_scratch_runs(pool)
     settings = app.state.settings
     app.state.giphy = GiphyClient(settings.giphy_base_url, settings.giphy_api_key)
     app.state.gif_search_limiter = SlidingWindowLimiter(SEARCHES_PER_MINUTE, 60, _limiter_now)
@@ -205,6 +215,20 @@ def create_app(settings: Settings) -> FastAPI:
 
     if (FRONTEND_DIST / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
+    # Spec 015 FR-3/FR-11: brand assets, unauthenticated so guests get them. No mount (or no
+    # generated brand.css) answers an empty stylesheet so the unconditional <link> never errors.
+    brand_root = Path(settings.brand_assets_dir)
+
+    @app.get("/brand/{asset_path:path}", include_in_schema=False)
+    def brand_asset(asset_path: str) -> Response:
+        root = brand_root.resolve()
+        target = (root / asset_path).resolve()
+        if target.is_file() and target.is_relative_to(root):
+            return FileResponse(target)
+        if asset_path == "brand.css":
+            return Response("", media_type="text/css")
+        return JSONResponse({"error": "not_found"}, status_code=404)
 
     async def _spa_fallback(scope: Scope, receive: Receive, send: Send) -> None:
         # Reached only once every route (including any added after create_app() returns,

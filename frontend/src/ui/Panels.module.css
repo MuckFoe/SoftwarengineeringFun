@@ -2,8 +2,8 @@
   flex: none;
   width: 320px;
   overflow: hidden;
-  border-left: 1px solid var(--separator);
-  background: var(--content-bg);
+  border-left: 1px solid var(--divider);
+  background: var(--surface-1);
 }
 
 .inspector[data-open="false"] {
@@ -19,15 +19,15 @@
   width: 320px;
   height: 100%;
   overflow-y: auto;
-  padding: var(--space-4);
+  padding: var(--space-16);
 }
 
 .bottom {
   flex: none;
   height: 220px;
   overflow: hidden;
-  border-top: 1px solid var(--separator);
-  background: var(--content-bg);
+  border-top: 1px solid var(--divider);
+  background: var(--surface-1);
 }
 
 .bottom[data-open="false"] {
@@ -39,5 +39,5 @@
   box-sizing: border-box;
   height: 220px;
   overflow-y: auto;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-12) var(--space-16);
 }

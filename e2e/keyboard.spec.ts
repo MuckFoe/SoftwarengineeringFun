@@ -98,7 +98,7 @@ test.describe("Linux in Chromium", () => {
     await expect(sheet).toBeHidden();
 
     await page.keyboard.press("Control+Comma");
-    const appearance = page.getByRole("radiogroup", { name: "Appearance" });
+    const appearance = page.getByRole("menu", { name: "Appearance" });
     await expect(appearance).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(appearance).toBeHidden();
@@ -213,7 +213,7 @@ test.describe("keyboard only, Windows/Linux keys", () => {
       },
       "Appearance setting": async () => {
         await press("Appearance setting");
-        await expect(page.getByRole("radiogroup", { name: "Appearance" })).toBeVisible();
+        await expect(page.getByRole("menu", { name: "Appearance" })).toBeVisible();
         await page.keyboard.press("Escape");
       },
       "Focus search": async () => {
@@ -445,13 +445,15 @@ test.describe("keyboard only, Windows/Linux keys", () => {
     // Appearance.
     await toolbarItem(page, "Session", button("Appearance"));
     await page.keyboard.press("Enter");
-    const appearance = page.getByRole("radiogroup", { name: "Appearance" });
+    const appearance = page.getByRole("menu", { name: "Appearance" });
     await expect(appearance).toBeVisible();
     // Opening it moves focus to the current choice (ui/Popover). Waiting for that, rather
     // than pressing Tab meanwhile, keeps a Tab from racing it out of the popover, which
     // closes it.
     await expect.poll(() => focused(appearance)).toBe(true);
-    await pressUntil(page, appearance.getByRole("radio", { name: "Dark" }), "ArrowLeft", 4);
+    // The appearance menu is a menu of radio items: arrow to Dark, Enter picks it.
+    await pressUntil(page, appearance.getByRole("menuitemradio", { name: "Dark" }), "ArrowDown", 4);
+    await page.keyboard.press("Enter");
     await expect.poll(() => page.evaluate(() => document.documentElement.dataset.appearance)).toBe(
       "dark",
     );

@@ -1,136 +1,225 @@
 /*
- * Spec 003 FR-18: the sign-in page in the app's visual language.
- * The custom properties below are copied from frontend/src/theme/tokens.css (a different
- * origin, so nothing is shared at runtime). Keep them identical; task 21 adds the check.
- * Fonts are referenced by family name only (NFR-1).
+ * Spec 015 task 24 (was spec 003 FR-18): the sign-in page in the Audi look.
+ * The custom properties between tokens:begin and tokens:end are copied from
+ * frontend/src/styles/tokens.css (a different origin, so nothing is shared at runtime): the
+ * :root block and the dark block, identical, checked by scripts/check-theme-tokens.sh.
+ * The brand fonts and brand.css are not reachable from this origin, so "Audi Type" leads the
+ * stack and the fallbacks behind it render (NFR-1: no font files here).
  */
 
 /* tokens:begin */
 :root {
-  --font-text: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --type-large-title: 26px / 32px;
-  --type-title1: 22px / 26px;
-  --type-title2: 17px / 22px;
-  --type-title3: 15px / 20px;
-  --type-headline: 13px / 16px;
-  --type-body: 13px / 16px;
-  --type-callout: 12px / 15px;
-  --type-subheadline: 11px / 14px;
-  --type-footnote: 10px / 13px;
-  --type-caption: 10px / 13px;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --radius-control: 6px;
-  --radius-sheet: 10px;
-  --window-bg: #ececec;
-  --content-bg: #ffffff;
-  --control-bg: #ffffff;
-  --control-bg-hover: #f5f5f5;
-  --control-bg-pressed: #e5e5e5;
-  --control-border: rgba(0, 0, 0, 0.15);
-  --label: rgba(0, 0, 0, 0.85);
-  --label-secondary: rgba(0, 0, 0, 0.58);
-  --label-tertiary: rgba(0, 0, 0, 0.26);
-  --separator: rgba(0, 0, 0, 0.1);
-  --row-alt-bg: #f4f5f5;
-  --row-hover-bg: rgba(0, 0, 0, 0.05);
-  --selection-bg: rgba(0, 100, 210, 0.2);
-  --backdrop: rgba(0, 0, 0, 0.2);
-  --accent: #0064d2;
-  --accent-hover: #0058b8;
-  --accent-pressed: #004c9e;
-  --accent-label: #ffffff;
-  --focus-ring: rgba(0, 100, 210, 0.5);
-  --status-error: #d70015;
-  --status-error-bg: rgba(255, 59, 48, 0.1);
-  --status-success: #248a3d;
-  --status-success-bg: rgba(52, 199, 89, 0.12);
-  --status-warning: #a05a00;
-  --status-warning-bg: rgba(255, 204, 0, 0.18);
-  --syntax-keyword: #a3238f;
-  --syntax-string: #b8251c;
-  --syntax-number: #2a3ac7;
-  --syntax-comment: #64707c;
-  --syntax-function: #2f6b72;
-  --syntax-type: #145a82;
-  --presence-1: #d9480f;
-  --presence-2: #2b8a3e;
-  --presence-3: #1971c2;
-  --presence-4: #9c36b5;
-  --presence-5: #c2255c;
-  --presence-6: #0c8599;
-  --shadow-control: 0 0.5px 1px rgba(0, 0, 0, 0.15);
-  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 0.5px rgba(0, 0, 0, 0.12);
-  --shadow-sheet: 0 12px 40px rgba(0, 0, 0, 0.25), 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+  --radius-0: 0;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-max: 999px;
+  --bw-1: 1px;
+  --bw-2: 2px;
+  --bw-3: 3px;
+  --bw-focus: 4px;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-28: 28px;
+  --space-32: 32px;
+  --space-36: 36px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-56: 56px;
+  --space-64: 64px;
+  --space-72: 72px;
+  --space-80: 80px;
+  --space-96: 96px;
+  --space-128: 128px;
+  --elev-1: 0 2px 4px 0 rgba(0, 0, 0, 0.14), 0 0 2px 0 rgba(0, 0, 0, 0.12);
+  --elev-2: 0 4px 8px 0 rgba(0, 0, 0, 0.14), 0 0 2px 0 rgba(0, 0, 0, 0.12);
+  --elev-3: 0 8px 16px 0 rgba(0, 0, 0, 0.14), 0 0 2px 0 rgba(0, 0, 0, 0.12);
+  --elev-4: 0 12px 24px 0 rgba(0, 0, 0, 0.16), 0 0 6px 0 rgba(0, 0, 0, 0.12);
+  --elev-card: 0 1px 2px 0 rgba(0, 0, 0, 0.1), 0 2px 6px 0 rgba(0, 0, 0, 0.2);
+  --font-copy: "Audi Type", "Roboto Flex", Verdana, system-ui, sans-serif;
+  --font-display: "Audi Type", "Roboto Flex", Verdana, system-ui, sans-serif;
+  --wdth-copy: 108;
+  --wdth-display: 130;
+  --fs-copy-1: 16px;
+  --lh-copy-1: 24px;
+  --fs-copy-2: 12px;
+  --lh-copy-2: 20px;
+  --fs-copy-3: 10px;
+  --lh-copy-3: 16px;
+  --fs-label-1: 16px;
+  --lh-label-1: 20px;
+  --fs-label-2: 12px;
+  --lh-label-2: 16px;
+  --fs-label-3: 10px;
+  --lh-label-3: 12px;
+  --ease-audi: cubic-bezier(0.75, 0.02, 0.5, 1);
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --fs-display-1: 40px;
+  --lh-display-1: 60px;
+  --fs-display-2: 36px;
+  --lh-display-2: 52px;
+  --fs-h1: 28px;
+  --lh-h1: 40px;
+  --fs-h2: 24px;
+  --lh-h2: 36px;
+  --fs-h3: 20px;
+  --lh-h3: 32px;
+  --fs-h4: 16px;
+  --lh-h4: 24px;
+  --page-margin: 16px;
+  --canvas: #ffffff;
+  --canvas-inverted: #000000;
+  --surface-1: #ffffff;
+  --surface-2: #ffffff;
+  --surface-3: #ffffff;
+  --surface-4: #f2f2f2;
+  --highlight: #eb0d3f;
+  --on-highlight: #ffffff;
+  --neutral-100: #000000;
+  --neutral-200: #333333;
+  --neutral-300: #666666;
+  --neutral-400: #b3b3b3;
+  --neutral-500: #d9d9d9;
+  --neutral-600: #e6e6e6;
+  --neutral-700: #0000000d;
+  --neutral-800: #ffffff;
+  --action-primary-fill: #000000;
+  --action-primary-fill-hover: #4d4d4d;
+  --action-primary-fill-disabled: #b3b3b3;
+  --action-primary-text: #ffffff;
+  --action-secondary-stroke: #000000;
+  --action-secondary-stroke-hover: #4d4d4d;
+  --action-secondary-stroke-disabled: #b3b3b3;
+  --action-secondary-fill-pressed: #d9d9d9;
+  --action-text: #000000;
+  --action-text-hover: #4d4d4d;
+  --action-text-disabled: #b3b3b3;
+  --form-stroke: #666666;
+  --form-stroke-active: #000000;
+  --form-stroke-error: #eb0d3f;
+  --form-stroke-disabled: #b3b3b3;
+  --form-stroke-readonly: #d9d9d9;
+  --form-underline: #333333;
+  --form-underline-active: #000000;
+  --form-underline-error: #eb0d3f;
+  --form-underline-disabled: #b3b3b3;
+  --form-text: #333333;
+  --form-caption: #666666;
+  --form-text-active: #000000;
+  --form-text-error: #eb0d3f;
+  --form-text-disabled: #b3b3b3;
+  --form-readonly-fill: #d9d9d9;
+  --nav-active: #000000;
+  --nav-idle: #666666;
+  --nav-disabled: #b3b3b3;
+  --nav-pressed: #0000001a;
+  --divider: #d9d9d9;
+  --ui-stroke: #666666;
+  --ui-stroke-hover: #000000;
+  --ui-stroke-disabled: #b3b3b3;
+  --text: #333333;
+  --text-interactive: #000000;
+  --text-disabled: #b3b3b3;
+  --scrim: #000000b2;
+  --focus: #0989ff;
+  --negative: #eb0d3f;
+  --success: #0da20d;
+  --notice: #ffaa00;
+  --intelligent: #007579;
+  --neon-blue: #2526fe;
+  --board-light: #e6e6e6;
+  --board-dark: #808080;
 }
 
 :root[data-appearance="dark"] {
-  --window-bg: #1e1e1e;
-  --content-bg: #232323;
-  --control-bg: #3a3a3c;
-  --control-bg-hover: #454547;
-  --control-bg-pressed: #505052;
-  --control-border: rgba(255, 255, 255, 0.12);
-  --label: rgba(255, 255, 255, 0.85);
-  --label-secondary: rgba(255, 255, 255, 0.55);
-  --label-tertiary: rgba(255, 255, 255, 0.25);
-  --separator: rgba(255, 255, 255, 0.1);
-  --row-alt-bg: #2a2a2a;
-  --row-hover-bg: rgba(255, 255, 255, 0.06);
-  --selection-bg: rgba(74, 160, 255, 0.35);
-  --backdrop: rgba(0, 0, 0, 0.45);
-  --accent: #4aa0ff;
-  --accent-hover: #6ab1ff;
-  --accent-pressed: #3a95f5;
-  --accent-label: #1c1c1e;
-  --focus-ring: rgba(74, 160, 255, 0.6);
-  --status-error: #ff6961;
-  --status-error-bg: rgba(255, 69, 58, 0.16);
-  --status-success: #4cd964;
-  --status-success-bg: rgba(48, 209, 88, 0.16);
-  --status-warning: #ffd60a;
-  --status-warning-bg: rgba(255, 214, 10, 0.16);
-  --syntax-keyword: #f47fb4;
-  --syntax-string: #f58c7c;
-  --syntax-number: #d6c97e;
-  --syntax-comment: #8a96a3;
-  --syntax-function: #70bba8;
-  --syntax-type: #6fcff2;
-  --presence-1: #ff8a4c;
-  --presence-2: #69db7c;
-  --presence-3: #74c0fc;
-  --presence-4: #da77f2;
-  --presence-5: #f783ac;
-  --presence-6: #66d9e8;
-  --shadow-control: 0 0.5px 1px rgba(0, 0, 0, 0.4);
-  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
-  --shadow-sheet: 0 12px 40px rgba(0, 0, 0, 0.55), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  --canvas: #000000;
+  --canvas-inverted: #ffffff;
+  --surface-1: #1a1a1a;
+  --surface-2: #333333;
+  --surface-3: #4d4d4d;
+  --surface-4: #666666;
+  --highlight: #fd2c4e;
+  --on-highlight: #000000;
+  --neutral-100: #ffffff;
+  --neutral-200: #e6e6e6;
+  --neutral-300: #b3b3b3;
+  --neutral-400: #666666;
+  --neutral-500: #4d4d4d;
+  --neutral-600: #333333;
+  --neutral-700: #ffffff26;
+  --neutral-800: #000000;
+  --action-primary-fill: #ffffff;
+  --action-primary-fill-hover: #b3b3b3;
+  --action-primary-fill-disabled: #666666;
+  --action-primary-text: #000000;
+  --action-secondary-stroke: #ffffff;
+  --action-secondary-stroke-hover: #b3b3b3;
+  --action-secondary-stroke-disabled: #666666;
+  --action-secondary-fill-pressed: #4d4d4d;
+  --action-text: #ffffff;
+  --action-text-hover: #b3b3b3;
+  --action-text-disabled: #666666;
+  --form-stroke: #b3b3b3;
+  --form-stroke-active: #ffffff;
+  --form-stroke-error: #fd2c4e;
+  --form-stroke-disabled: #666666;
+  --form-stroke-readonly: #4d4d4d;
+  --form-underline: #e6e6e6;
+  --form-underline-active: #ffffff;
+  --form-underline-error: #fd2c4e;
+  --form-underline-disabled: #666666;
+  --form-text: #e6e6e6;
+  --form-caption: #b3b3b3;
+  --form-text-active: #ffffff;
+  --form-text-error: #fd2c4e;
+  --form-text-disabled: #666666;
+  --form-readonly-fill: #4d4d4d;
+  --nav-active: #ffffff;
+  --nav-idle: #b3b3b3;
+  --nav-disabled: #666666;
+  --nav-pressed: #ffffff33;
+  --divider: #4d4d4d;
+  --ui-stroke: #b3b3b3;
+  --ui-stroke-hover: #ffffff;
+  --ui-stroke-disabled: #666666;
+  --text: #e6e6e6;
+  --text-interactive: #ffffff;
+  --text-disabled: #666666;
+  --scrim: #000000b2;
+  --focus: #0989ff;
+  --negative: #fd2c4e;
+  --success: #15da15;
+  --notice: #ffaa00;
+  --intelligent: #13e0c1;
+  --neon-blue: #556efe;
+  --board-light: #b3b3b3;
+  --board-dark: #4d4d4d;
 }
 /* tokens:end */
 
 :root {
   color-scheme: light;
-  accent-color: var(--accent);
-  --pf-v5-global--FontFamily--text: var(--font-text);
-  --pf-v5-global--FontFamily--heading: var(--font-text);
-  --pf-v5-global--FontFamily--monospace: var(--font-mono);
-  --pf-v5-global--FontSize--md: 13px;
-  --pf-v5-global--primary-color--100: var(--accent);
-  --pf-v5-global--primary-color--200: var(--accent-pressed);
-  --pf-v5-global--link--Color: var(--accent);
-  --pf-v5-global--link--Color--hover: var(--accent-hover);
-  --pf-v5-global--BackgroundColor--100: var(--content-bg);
-  --pf-v5-global--Color--100: var(--label);
-  --pf-v5-global--Color--200: var(--label-secondary);
-  --pf-v5-global--BorderColor--100: var(--control-border);
-  --pf-v5-global--danger-color--100: var(--status-error);
-  --pf-v5-global--BorderRadius--sm: var(--radius-control);
+  accent-color: var(--action-primary-fill);
+  --pf-v5-global--FontFamily--text: var(--font-copy);
+  --pf-v5-global--FontFamily--heading: var(--font-display);
+  --pf-v5-global--FontSize--md: var(--fs-copy-2);
+  --pf-v5-global--primary-color--100: var(--action-primary-fill);
+  --pf-v5-global--primary-color--200: var(--action-primary-fill-hover);
+  --pf-v5-global--link--Color: var(--action-text);
+  --pf-v5-global--link--Color--hover: var(--action-text-hover);
+  --pf-v5-global--BackgroundColor--100: var(--surface-1);
+  --pf-v5-global--Color--100: var(--text);
+  --pf-v5-global--Color--200: var(--form-caption);
+  --pf-v5-global--BorderColor--100: var(--divider);
+  --pf-v5-global--danger-color--100: var(--negative);
+  --pf-v5-global--BorderRadius--sm: var(--radius-0);
+  --pf-v5-global--BorderRadius--lg: var(--radius-0);
 }
 
 :root[data-appearance="dark"] {
@@ -140,78 +229,163 @@
 html,
 body#keycloak-bg,
 .login-pf body {
-  background: var(--window-bg);
-  color: var(--label);
-  font: var(--type-body) var(--font-text);
+  background: var(--canvas);
+  color: var(--text);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+  font-stretch: calc(var(--wdth-copy) * 1%);
 }
 
-/* The Keycloak logo and background image give way to the app's plain window. */
+/* The Keycloak logo and background image give way to the plain canvas. */
 div.kc-logo-text {
   display: none;
+}
+
+.pf-v5-c-login {
+  background: transparent;
 }
 
 /* Keycloak's own stylesheet paints the realm name white with !important, which only an
    !important rule can outrank (AC-21). */
 #kc-header #kc-header-wrapper {
-  font: var(--type-title2) var(--font-text);
-  font-weight: 600;
-  color: var(--label) !important;
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+  font-stretch: calc(var(--wdth-display) * 1%);
+  color: var(--text-interactive) !important;
   text-transform: none;
   letter-spacing: normal;
 }
 
 .pf-v5-c-login__main {
-  background: var(--content-bg);
-  border-radius: var(--radius-sheet);
-  box-shadow: var(--shadow-sheet);
-  color: var(--label);
+  background: var(--surface-1);
+  border: var(--bw-1) solid var(--divider);
+  border-radius: var(--radius-0);
+  box-shadow: none;
+  color: var(--text);
 }
 
 .pf-v5-c-login__main-header,
 .pf-v5-c-login__main-body,
 .pf-v5-c-login__main-footer {
-  padding-inline: var(--space-6);
+  padding-inline: var(--space-24);
 }
 
 .pf-v5-c-title,
-#kc-page-title {
-  font: var(--type-title3) var(--font-text);
-  font-weight: 600;
-  color: var(--label);
+#kc-page-title,
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+  font-stretch: calc(var(--wdth-display) * 1%);
+  color: var(--text-interactive);
 }
 
+/* Fields: square, 1 px stroke, 2 px when active, errors in --form-stroke-error. */
 .pf-v5-c-form-control {
-  --pf-v5-c-form-control--BackgroundColor: var(--control-bg);
-  --pf-v5-c-form-control--Color: var(--label);
-  --pf-v5-c-form-control--before--BorderColor: var(--control-border);
+  --pf-v5-c-form-control--BackgroundColor: var(--canvas);
+  --pf-v5-c-form-control--Color: var(--form-text);
+  --pf-v5-c-form-control--BorderRadius: var(--radius-0);
+  --pf-v5-c-form-control--before--BorderColor: var(--form-stroke);
   --pf-v5-c-form-control--after--BorderColor: transparent;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-0) !important;
 }
 
 .pf-v5-c-form-control:focus-within {
-  outline: 3px solid var(--focus-ring);
+  --pf-v5-c-form-control--before--BorderColor: var(--form-stroke-active);
+  outline: var(--bw-2) solid var(--focus);
   outline-offset: 0;
 }
 
+.pf-v5-c-form-control input,
+.pf-v5-c-form-control select,
+.pf-v5-c-form-control textarea,
+input,
+select,
+textarea,
+button {
+  border-radius: var(--radius-0) !important;
+  font-family: var(--font-copy);
+}
+
+.pf-v5-c-form__label-text {
+  color: var(--form-text);
+  font-weight: 400;
+}
+
+.pf-v5-c-form__helper-text,
+.pf-v5-c-helper-text__item-text {
+  color: var(--form-caption);
+}
+
+.pf-v5-c-form__helper-text.pf-m-error,
+.pf-m-error .pf-v5-c-helper-text__item-text {
+  color: var(--form-text-error);
+}
+
+/* Buttons: primary is the black (white in dark) fill; secondary is a 1 px stroke. */
+.pf-v5-c-button {
+  --pf-v5-c-button--BorderRadius: var(--radius-0);
+  border-radius: var(--radius-0) !important;
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-1);
+  line-height: var(--lh-copy-1);
+  font-weight: 400;
+}
+
+.pf-v5-c-button::after {
+  border-radius: var(--radius-0);
+}
+
 .pf-v5-c-button.pf-m-primary {
-  --pf-v5-c-button--m-primary--BackgroundColor: var(--accent);
-  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--accent-hover);
-  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--accent-pressed);
-  --pf-v5-c-button--m-primary--Color: var(--accent-label);
-  border-radius: var(--radius-control);
-  font: var(--type-body) var(--font-text);
-  font-weight: 500;
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--action-primary-fill);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--action-primary-fill-hover);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--action-secondary-fill-pressed);
+  --pf-v5-c-button--m-primary--Color: var(--action-primary-text);
+  min-height: 48px;
+  border: var(--bw-1) solid var(--action-primary-fill);
+}
+
+.pf-v5-c-button.pf-m-control,
+.pf-v5-c-button.pf-m-secondary {
+  --pf-v5-c-button--m-control--BackgroundColor: transparent;
+  --pf-v5-c-button--m-control--Color: var(--action-text);
+  border-color: var(--action-secondary-stroke);
+  color: var(--action-text);
+}
+
+.pf-v5-c-button.pf-m-link,
+a {
+  color: var(--action-text);
+}
+
+a:hover {
+  color: var(--action-text-hover);
 }
 
 .pf-v5-c-button:focus-visible,
 a:focus-visible,
 input:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 1px;
+  outline: var(--bw-focus) solid var(--focus);
+  outline-offset: var(--bw-2);
 }
 
 .pf-v5-c-alert {
-  border-radius: var(--radius-control);
-  background: var(--status-error-bg);
-  color: var(--label);
+  border-radius: var(--radius-0);
+  background: var(--surface-4);
+  border: var(--bw-1) solid var(--negative);
+  color: var(--text);
+}
+
+.pf-v5-c-check__label,
+.pf-v5-c-form__group-label {
+  color: var(--form-text);
+}
+
+* {
+  backdrop-filter: none !important;
 }

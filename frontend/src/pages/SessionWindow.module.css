@@ -7,41 +7,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: var(--type-headline) var(--font-text);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+  font-stretch: calc(var(--wdth-display) * 1%);
 }
 
 .main {
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.tabs {
-  flex: none;
-  display: flex;
-  gap: var(--space-1);
-  margin-bottom: var(--space-3);
-}
-
-.tab {
-  padding: var(--space-1) var(--space-2);
-  border: none;
-  border-radius: var(--radius-control);
-  background: none;
-  color: var(--label-secondary);
-  font: var(--type-subheadline) var(--font-text);
-  cursor: pointer;
-}
-
-.tab[aria-selected="true"] {
-  background: var(--control-bg);
-  color: var(--label);
-  font-weight: 600;
-}
-
-.tab:focus-visible {
-  outline: 3px solid var(--focus-ring);
 }
 
 /* Takes the inspector's remaining height; the description scrolls in it, the chat fills it. */
@@ -60,32 +36,36 @@
 }
 
 .loading {
-  padding: var(--space-6);
-  color: var(--label-secondary);
+  padding: var(--space-24);
+  color: var(--form-caption);
 }
 
 .joinCard {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  width: min(360px, calc(100% - 2 * var(--space-4)));
-  margin: var(--space-8) auto;
-  padding: var(--space-6);
-  border-radius: var(--radius-sheet);
-  background: var(--content-bg);
-  box-shadow: var(--shadow-sheet);
+  gap: var(--space-24);
+  width: min(360px, calc(100% - 2 * var(--space-24)));
+  margin: var(--space-48) auto;
+  padding: var(--space-24);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-0);
+  background: var(--surface-1);
 }
 
 .joinTitle {
   margin: 0;
-  font: var(--type-title3) var(--font-text);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+  font-weight: 700;
+  color: var(--text);
+  font-stretch: calc(var(--wdth-display) * 1%);
 }
 
 .joinForm {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-12);
 }
 
 .joinActions {
@@ -96,23 +76,27 @@
 .invite {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-4);
 }
 
 .inviteLabel {
-  font: var(--type-subheadline) var(--font-text);
-  color: var(--label-secondary);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+  color: var(--form-caption);
 }
 
 .inviteInput {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius-control);
-  background: var(--window-bg);
-  color: var(--label);
-  font: var(--type-callout) var(--font-mono);
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--form-stroke);
+  border-radius: var(--radius-0);
+  background: var(--form-readonly-fill);
+  color: var(--form-text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
 }
 
 .inviteInput:focus-visible {
-  outline: 3px solid var(--focus-ring);
+  outline: 2px solid var(--focus);
 }

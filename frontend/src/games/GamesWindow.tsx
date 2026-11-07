@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { AccountControl } from "../components/AccountControl";
-import { AppearanceControl } from "../components/AppearanceControl";
-import { AreaNav } from "../components/AreaNav";
+import { AppHeader } from "../ui/AppHeader";
 import { Button } from "../ui/Button";
+import { Card } from "../ui/Card";
 import { InlineMessage } from "../ui/InlineMessage";
-import { Sidebar } from "../ui/Sidebar";
-import { Toolbar } from "../ui/Toolbar";
 import { Window } from "../ui/Window";
 import styles from "./GamesWindow.module.css";
 import { createChessSession, type GameInfo, listGames } from "./gamesApi";
@@ -18,7 +15,6 @@ import { createChessSession, type GameInfo, listGames } from "./gamesApi";
 export function GamesWindow() {
   const navigate = useNavigate();
   const [games, setGames] = useState<GameInfo[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,40 +44,26 @@ export function GamesWindow() {
 
   return (
     <Window
-      sidebarOpen={sidebarOpen}
-      sidebar={
-        <Sidebar label="Sidebar">
-          <AreaNav />
-        </Sidebar>
-      }
       toolbar={
-        <Toolbar label="Games">
-          <Button
-            variant="plain"
-            icon="sidebar"
-            label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-            aria-pressed={sidebarOpen}
-            onClick={() => setSidebarOpen((open) => !open)}
-          />
+        <AppHeader label="Games">
           <h1 className={styles.title}>Games</h1>
-          <span className={styles.spacer} />
-          <AppearanceControl />
-          <AccountControl />
-        </Toolbar>
+        </AppHeader>
       }
     >
       <div className={styles.content}>
         {error && <InlineMessage id="games-error">{error}</InlineMessage>}
         <ul className={styles.list}>
           {games.map((g) => (
-            <li key={g.id} className={styles.game}>
-              <div className={styles.text}>
-                <h2 className={styles.name}>{g.name}</h2>
-                <p className={styles.description}>{g.description}</p>
-              </div>
-              <Button variant="bordered" label={`Start ${g.name}`} onClick={() => void start(g)}>
-                Start
-              </Button>
+            <li key={g.id}>
+              <Card className={styles.game}>
+                <div className={styles.text}>
+                  <h2 className={styles.name}>{g.name}</h2>
+                  <p className={styles.description}>{g.description}</p>
+                </div>
+                <Button variant="bordered" label={`Start ${g.name}`} onClick={() => void start(g)}>
+                  Start
+                </Button>
+              </Card>
             </li>
           ))}
         </ul>

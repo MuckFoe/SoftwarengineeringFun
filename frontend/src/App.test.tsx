@@ -169,13 +169,15 @@ describe("App shell (spec 003)", () => {
     renderRoute("/");
     await screen.findByRole("toolbar", { name: "Problems" });
 
-    fireEvent.click(screen.getByRole("radio", { name: "Light", hidden: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Appearance" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Light" }));
     expect(appearance()).toBe("light");
     setOs(false);
     setOs(true);
     expect(appearance()).toBe("light");
 
-    fireEvent.click(screen.getByRole("radio", { name: "System", hidden: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Appearance" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "System" }));
     expect(appearance()).toBe("dark");
   });
 });

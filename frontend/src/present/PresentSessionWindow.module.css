@@ -8,22 +8,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: var(--type-headline) var(--font-text);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+  font-stretch: calc(var(--wdth-display) * 1%);
 }
 
 .stepper {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-4);
 }
 
 .position {
   min-width: 4em;
   text-align: center;
-  font: var(--type-body) var(--font-text);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
   font-variant-numeric: tabular-nums;
-  color: var(--label-secondary);
+  color: var(--text);
 }
 
 /* The frame fills the main area. */
@@ -50,23 +55,25 @@
 .menuItem {
   width: 100%;
   min-height: 24px;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-8) var(--space-12);
   border: none;
-  border-radius: var(--radius-control);
+  border-radius: 0;
   background: none;
-  color: var(--label);
-  font: var(--type-body) var(--font-text);
+  color: var(--text-interactive);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
   text-align: left;
   cursor: default;
 }
 
 .menuItem:hover {
-  background: var(--accent);
-  color: var(--accent-label);
+  background: var(--action-primary-fill);
+  color: var(--action-primary-text);
 }
 
 .menuItem:focus-visible {
-  outline: 3px solid var(--focus-ring);
+  outline: 2px solid var(--focus);
   outline-offset: -1px;
 }
 
@@ -80,16 +87,18 @@
 
 .people {
   flex: none;
-  padding: var(--space-2) var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--separator);
+  padding: var(--space-12);
+  border-bottom: 1px solid var(--divider);
 }
 
 .sectionTitle {
-  margin: 0 0 var(--space-1);
-  padding: 0 var(--space-2);
-  font: var(--type-caption) var(--font-text);
-  font-weight: 600;
-  color: var(--label-secondary);
+  margin: 0 0 var(--space-8);
+  padding: 0 var(--space-12);
+  font-family: var(--font-copy);
+  font-size: var(--fs-label-2);
+  font-weight: 700;
+  color: var(--text-interactive);
+  font-stretch: calc(var(--wdth-display) * 1%);
 }
 
 .presence {
@@ -101,11 +110,13 @@
 .person {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-8);
   min-height: 24px;
-  padding: var(--space-1) var(--space-2);
-  color: var(--label);
-  font: var(--type-body) var(--font-text);
+  padding: var(--space-4) var(--space-12);
+  color: var(--text-interactive);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
 }
 
 .swatch {
@@ -116,7 +127,7 @@
 }
 
 .tag {
-  color: var(--label-secondary);
+  color: var(--text);
 }
 
 /* ChatPane fills it: its messages scroll above an input pinned to the bottom. */
@@ -128,38 +139,43 @@
 }
 
 .loading {
-  padding: var(--space-6);
-  color: var(--label-secondary);
+  padding: var(--space-24);
+  color: var(--text);
 }
 
 .joinCard {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  width: min(360px, calc(100% - 2 * var(--space-4)));
-  margin: var(--space-8) auto;
-  padding: var(--space-6);
-  border-radius: var(--radius-sheet);
-  background: var(--content-bg);
-  box-shadow: var(--shadow-sheet);
+  gap: var(--space-16);
+  width: min(360px, calc(100% - 2 * var(--space-16)));
+  margin: var(--space-48) auto;
+  padding: var(--space-24);
+  border-radius: 0;
+  background: var(--surface-1);
+  border: 1px solid var(--divider);
 }
 
 .joinTitle {
   margin: 0;
-  font: var(--type-title3) var(--font-text);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+  font-stretch: calc(var(--wdth-display) * 1%);
 }
 
 .joinSubtitle {
   margin: 0;
-  color: var(--label-secondary);
-  font: var(--type-body) var(--font-text);
+  color: var(--text);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
 }
 
 .joinForm {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-8);
 }
 
 .joinActions {

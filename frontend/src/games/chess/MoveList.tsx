@@ -1,4 +1,5 @@
 import type { MoveRecord } from "./chessTypes";
+import styles from "./MoveList.module.css";
 
 /** Numbered SAN pairs (FR-18): `1. e4 e5`. */
 export function MoveList({ moves }: { moves: MoveRecord[] }) {
@@ -8,7 +9,7 @@ export function MoveList({ moves }: { moves: MoveRecord[] }) {
     lines.push(`${i / 2 + 1}. ${moves[i]?.san}${black ? ` ${black.san}` : ""}`);
   }
   return (
-    <ol aria-label="Moves" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+    <ol aria-label="Moves" className={styles.moves}>
       {lines.map((line) => (
         <li key={line}>{line}</li>
       ))}

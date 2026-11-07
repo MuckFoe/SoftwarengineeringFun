@@ -1,0 +1,52 @@
+/* Spec 015 task 21: chat bubble (no kit equivalent, plan 1.7) and list row. Tokens only. */
+.chat-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-12);
+  border-radius: var(--radius-0);
+  background: var(--neutral-700);
+  color: var(--text);
+}
+
+.chat-bubble[data-own="true"] {
+  background: var(--action-primary-fill);
+  color: var(--action-primary-text);
+}
+
+.chat-bubble__author {
+  font-family: var(--font-copy);
+  font-size: var(--fs-label-1);
+  line-height: var(--lh-label-1);
+  font-weight: 500;
+}
+
+.chat-bubble__time {
+  font-size: var(--fs-label-1);
+  line-height: var(--lh-label-1);
+  color: var(--form-caption);
+}
+
+.chat-bubble[data-own="true"] .chat-bubble__time {
+  color: inherit;
+}
+
+.chat-bubble__body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-16);
+  border-bottom: 1px solid var(--divider);
+  border-radius: var(--radius-0);
+  color: var(--text);
+  list-style: none;
+}
+
+.list-item:hover {
+  background: var(--neutral-700);
+}

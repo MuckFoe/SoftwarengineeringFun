@@ -1,5 +1,7 @@
 import { useId } from "react";
-import styles from "./TextField.module.css";
+import { Icon } from "./Icon";
+import { TextArea } from "./TextArea";
+import "./field.css";
 
 interface Props {
   label: string;
@@ -18,6 +20,7 @@ interface Props {
   counter?: boolean;
   placeholder?: string;
   disabled?: boolean;
+  readOnly?: boolean;
   required?: boolean;
   monospace?: boolean;
   id?: string;
@@ -36,44 +39,66 @@ export function TextField({
   counter = false,
   placeholder,
   disabled,
+  readOnly,
   required,
   monospace = false,
   id,
 }: Props) {
   const ownId = useId();
+  if (multiline) {
+    return (
+      <TextArea
+        label={label}
+        value={value}
+        onChange={onChange}
+        error={error}
+        describedBy={describedBy}
+        invalid={invalid}
+        rows={rows}
+        maxLength={maxLength}
+        counter={counter}
+        placeholder={placeholder}
+        disabled={disabled}
+        readOnly={readOnly}
+        required={required}
+        monospace={monospace}
+        id={id}
+      />
+    );
+  }
   const inputId = id ?? `${ownId}-input`;
   const errorId = `${ownId}-error`;
   const describedByIds = [error ? errorId : "", describedBy ?? ""].filter(Boolean).join(" ");
-  const common = {
-    id: inputId,
-    value,
-    placeholder,
-    disabled,
-    required,
-    maxLength,
-    className: [styles.input, monospace ? styles.mono : ""].filter(Boolean).join(" "),
-    "aria-invalid": error || invalid ? true : undefined,
-    "aria-describedby": describedByIds || undefined,
-  };
+  const bad = Boolean(error) || invalid;
   return (
-    <div className={styles.field}>
-      <label className={styles.label} htmlFor={inputId}>
+    <div className={bad ? "field field--error" : "field"}>
+      <label className="field__label" htmlFor={inputId}>
         {label}
       </label>
-      {multiline ? (
-        <textarea {...common} rows={rows} onChange={(e) => onChange(e.target.value)} />
-      ) : (
-        <input {...common} type="text" onChange={(e) => onChange(e.target.value)} />
-      )}
+      <input
+        id={inputId}
+        type="text"
+        className={monospace ? "field__control field__mono" : "field__control"}
+        value={value}
+        placeholder={placeholder}
+        disabled={disabled}
+        readOnly={readOnly}
+        required={required}
+        maxLength={maxLength}
+        aria-invalid={bad ? true : undefined}
+        aria-describedby={describedByIds || undefined}
+        onChange={(e) => onChange(e.target.value)}
+      />
       {(error || (counter && maxLength !== undefined)) && (
-        <div className={styles.footer}>
+        <div className="field__footer">
           {error && (
-            <span id={errorId} className={styles.error}>
-              {error}
+            <span className="field__error">
+              <Icon name="exclamation" size={16} />
+              <span id={errorId}>{error}</span>
             </span>
           )}
           {counter && maxLength !== undefined && (
-            <span className={styles.counter}>
+            <span className="field__counter">
               {value.length}/{maxLength}
             </span>
           )}

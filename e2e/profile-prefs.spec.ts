@@ -50,7 +50,7 @@ async function accountSynced(page: Page): Promise<void> {
 /** The toolbar's appearance setting, as a user changes it where it is used. */
 async function chooseAppearance(page: Page, choice: "Light" | "Dark" | "System"): Promise<void> {
   await page.getByRole("button", { name: "Appearance" }).first().click();
-  await page.getByRole("radio", { name: choice }).click();
+  await page.getByRole("menuitemradio", { name: choice }).click();
   await page.keyboard.press("Escape");
 }
 

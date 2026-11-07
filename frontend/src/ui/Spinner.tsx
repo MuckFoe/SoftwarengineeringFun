@@ -6,14 +6,14 @@ interface Props {
   size?: number;
 }
 
-/** An indeterminate progress indicator (FR-3). */
+/** An indeterminate progress indicator (FR-3); stroke 1/2/3 px by size (Audi progress indicator). */
 export function Spinner({ label, size = 14 }: Props) {
   return (
     <span
       role="progressbar"
       aria-label={label}
       className={styles.spinner}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, borderWidth: size <= 16 ? 1 : size <= 32 ? 2 : 3 }}
     />
   );
 }

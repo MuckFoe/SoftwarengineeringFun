@@ -1,0 +1,150 @@
+/* Spec 015 task 3: colour and opacity transitions only; overlays translate vertically. */
+:where(a, button, input, select, textarea, [role="tab"], [role="menuitem"]) {
+  transition:
+    color var(--dur-fast) var(--ease-audi),
+    background-color var(--dur-fast) var(--ease-audi),
+    border-color var(--dur-fast) var(--ease-audi),
+    opacity var(--dur-fast) var(--ease-audi);
+}
+
+/*
+ * Overlay and panel motion (FR-4, NFR-4, NFR-5). Nothing lasts longer than 300 ms and nothing
+ * blocks input. Each movement keyframe has a fade-only `*-reduced` twin that replaces it under
+ * prefers-reduced-motion. Components opt in with the `.anim-*` / `.motion-collapse` classes.
+ * Overlays move vertically only (no scale).
+ */
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes row-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes sheet-in-reduced {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popover-in-reduced {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes row-in-reduced {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes row-out-reduced {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.anim-sheet-in {
+  animation: sheet-in var(--dur-base) var(--ease-audi) both;
+}
+
+.anim-popover-in {
+  animation: popover-in var(--dur-fast) var(--ease-audi) both;
+}
+
+.anim-row-in {
+  animation: row-in var(--dur-base) var(--ease-audi) both;
+}
+
+.anim-row-out {
+  animation: row-out var(--dur-fast) var(--ease-audi) both;
+}
+
+/* Panels (sidebar, inspector, run panel) collapse by width or height. */
+.motion-collapse {
+  transition:
+    width var(--dur-base) var(--ease-audi),
+    height var(--dur-base) var(--ease-audi),
+    opacity var(--dur-fast) var(--ease-audi);
+}
+
+/* Last in the file, so the fade-only twins win over the base .anim-* rules at equal specificity. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+
+  .anim-sheet-in {
+    animation-name: sheet-in-reduced;
+  }
+  .anim-popover-in {
+    animation-name: popover-in-reduced;
+  }
+  .anim-row-in {
+    animation-name: row-in-reduced;
+  }
+  .anim-row-out {
+    animation-name: row-out-reduced;
+  }
+  .motion-collapse {
+    transition: opacity var(--dur-fast) var(--ease-audi);
+  }
+}

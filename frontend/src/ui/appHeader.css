@@ -1,0 +1,76 @@
+/* Spec 015 task 23: the app header (plan 1.7). Tokens only. */
+.app-header {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+  height: 56px;
+  padding: 0 var(--page-margin);
+  background: var(--canvas);
+  color: var(--text-interactive);
+  border-bottom: 1px solid var(--divider);
+}
+
+.app-header-controls {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.app-header-spacer {
+  flex: 1;
+}
+
+.app-header .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  font-family: var(--font-copy);
+  font-size: 24px;
+  white-space: nowrap;
+}
+
+.app-header .brand-logo {
+  font-size: 24px;
+}
+
+.app-header .brand-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.app-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-32);
+  height: var(--space-32);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-interactive);
+  cursor: pointer;
+}
+
+.app-header-icon:hover {
+  background: var(--neutral-700);
+}
+
+.app-header-icon:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 0;
+}
+
+.app-header-menu {
+  right: 0;
+  left: auto;
+}
+
+/* Header buttons size to their label: the kit's 144px minimum would push the account
+   control off narrow screens (FR-7). */
+.app-header-controls button[class*="labelled"] {
+  min-width: 0;
+}

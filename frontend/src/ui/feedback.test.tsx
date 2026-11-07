@@ -93,7 +93,7 @@ describe("Banner", () => {
     const banner = screen.getByRole("status");
     expect(banner.textContent).toMatch("This session is stale.");
     expect(screen.getByRole("button", { name: "Reactivate" })).toBeTruthy();
-    expect(banner.querySelector("svg")).not.toBeNull();
+    expect(banner.querySelector(".icon[data-icon]")).not.toBeNull();
   });
 });
 

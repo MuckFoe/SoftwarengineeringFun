@@ -1,50 +1,54 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-16);
 }
 
 .heading {
   margin: 0;
-  font: var(--type-headline) var(--font-text);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+  font-stretch: 130%;
+  color: var(--text);
 }
 
 .empty {
   margin: 0;
-  color: var(--label-secondary);
+  color: var(--form-caption);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  font: var(--type-body) var(--font-text);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-1);
+  line-height: var(--lh-copy-1);
+  color: var(--text);
 }
 
 .table th {
-  padding: var(--space-1) var(--space-2);
-  border-bottom: 1px solid var(--separator);
+  padding: var(--space-8) var(--space-16);
+  border-bottom: 1px solid var(--divider);
   text-align: left;
-  font-weight: 600;
-  color: var(--label-secondary);
+  font-weight: 500;
+  color: var(--form-caption);
   white-space: nowrap;
 }
 
 .table td {
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-8) var(--space-16);
+  border-bottom: 1px solid var(--divider);
   vertical-align: middle;
 }
 
-.table tbody tr:nth-child(even) {
-  background: var(--row-alt-bg);
-}
-
 .table tbody tr:hover {
-  background: var(--row-hover-bg);
+  background: var(--neutral-700);
 }
 
 .secondary {
-  color: var(--label-secondary);
+  color: var(--form-caption);
   white-space: nowrap;
 }
 
@@ -53,7 +57,7 @@
 }
 
 .link {
-  color: var(--label);
+  color: var(--text-interactive);
   text-decoration: none;
 }
 
@@ -62,33 +66,14 @@
 }
 
 .link:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 1px;
-  border-radius: var(--radius-control);
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .badges {
+  display: flex;
+  gap: var(--space-8);
   white-space: nowrap;
-}
-
-.badge {
-  display: inline-block;
-  margin-right: var(--space-1);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius-control);
-  background: var(--control-bg);
-  color: var(--label);
-  font: var(--type-caption) var(--font-text);
-}
-
-.badge:last-child {
-  margin-right: 0;
-}
-
-.stale {
-  border-color: var(--status-warning);
-  background: var(--status-warning-bg);
 }
 
 .actions {

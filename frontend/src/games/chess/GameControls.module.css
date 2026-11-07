@@ -1,0 +1,26 @@
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--fs-copy-3);
+  line-height: var(--lh-copy-3);
+  color: var(--form-caption);
+}
+
+.confirm {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+}

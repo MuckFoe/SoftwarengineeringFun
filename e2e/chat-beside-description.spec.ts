@@ -64,8 +64,9 @@ test("FR-1: the description and the chat are both visible, the description above
   const top = await box(description(page));
   const bottom = await box(chat(page));
   expect(top.y + top.height).toBeLessThanOrEqual(bottom.y + 1);
-  await expect(page.getByRole("tablist")).toHaveCount(0);
-  await expect(page.getByRole("tab")).toHaveCount(0);
+  // The header's Areas tabs are navigation; the description and chat have no tabs of their own.
+  await expect(page.locator('[role=tablist]:not([aria-label="Areas"])')).toHaveCount(0);
+  await expect(page.locator('[role=tablist]:not([aria-label="Areas"]) [role=tab]')).toHaveCount(0);
 });
 
 test("FR-8: the description and the chat scroll independently, and the chat input stays pinned", async ({

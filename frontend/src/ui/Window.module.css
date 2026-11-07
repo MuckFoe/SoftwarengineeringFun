@@ -7,8 +7,8 @@
     "sidebar center inspector";
   height: 100vh;
   overflow: hidden;
-  background: var(--window-bg);
-  color: var(--label);
+  background: var(--canvas);
+  color: var(--text-interactive);
 }
 
 .top {
@@ -20,7 +20,7 @@
   width: 220px;
   min-height: 0;
   overflow: hidden;
-  border-right: 1px solid var(--separator);
+  border-right: 1px solid var(--divider);
 }
 
 .sidebar[data-open="false"] {
@@ -46,7 +46,7 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  background: var(--content-bg);
+  background: var(--surface-1);
 }
 
 /* NFR-2: narrower than 1200 px, the sidebar floats over the main area. */
@@ -59,6 +59,6 @@
   .sidebar {
     justify-self: start;
     z-index: 2;
-    box-shadow: var(--shadow-popover);
+    box-shadow: var(--elev-3);
   }
 }

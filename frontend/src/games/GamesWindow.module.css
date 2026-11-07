@@ -1,42 +1,53 @@
 .title {
   margin: 0;
-  font: var(--type-headline) var(--font-text);
-  font-weight: 600;
-}
-
-.spacer {
-  flex: 1;
+  font-family: var(--font-display);
+  font-stretch: calc(var(--wdth-display) * 1%);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+  color: var(--text-interactive);
 }
 
 .content {
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-24) var(--page-margin);
+  max-width: 960px;
+  box-sizing: border-box;
 }
 
 .list {
   margin: 0;
   padding: 0;
   list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
 }
 
 .game {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--separator);
+  gap: var(--space-16);
+  flex-wrap: wrap;
 }
 
 .text {
   flex: 1;
+  min-width: 0;
 }
 
 .name {
-  margin: 0;
-  font: var(--type-body) var(--font-text);
-  font-weight: 600;
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-display);
+  font-stretch: calc(var(--wdth-display) * 1%);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+  font-weight: 700;
+  color: var(--text-interactive);
 }
 
 .description {
   margin: 0;
-  color: var(--label-secondary);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+  color: var(--text);
 }

@@ -48,9 +48,8 @@ test("AC-29: a move reaches the other two participants within 1 second", async (
     await join(black, invite, "Boris");
     await join(viewer, invite, "Vera");
 
-    await white.getByRole("button", { name: /^Take seat/ }).first().click();
+    // FR-5: joiners are seated automatically (White, then Black).
     await expect(white.getByRole("button", { name: "Leave seat" })).toBeVisible();
-    await black.getByRole("button", { name: /^Take seat/ }).click();
     await expect(black.getByRole("button", { name: "Leave seat" })).toBeVisible();
     await white.getByRole("button", { name: "Start", exact: true }).click();
     for (const page of [white, black, viewer]) {

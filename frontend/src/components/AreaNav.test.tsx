@@ -87,8 +87,6 @@ describe("ProblemsWindow's sidebar", () => {
         </MemoryRouter>
       </ShortcutsProvider>,
     );
-    const sidebar = screen.getByRole("navigation", { name: "Sidebar" });
-    const learn = await within(sidebar).findByRole("link", { name: "Learn" });
-    expect(learn.getAttribute("href")).toBe("/learn");
+    expect(await screen.findByRole("tab", { name: "Learn" })).toBeTruthy();
   });
 });

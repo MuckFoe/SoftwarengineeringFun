@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useMe } from "../auth/useMe";
-import { AccountControl } from "../components/AccountControl";
-import { AppearanceControl } from "../components/AppearanceControl";
-import { AreaNav } from "../components/AreaNav";
+import { AppHeader } from "../ui/AppHeader";
 import { Button } from "../ui/Button";
 import { InlineMessage } from "../ui/InlineMessage";
 import { Sidebar, SidebarSection } from "../ui/Sidebar";
 import { SourceList } from "../ui/SourceList";
-import { Toolbar } from "../ui/Toolbar";
 import { Window } from "../ui/Window";
 import { PresentationEditorSheet } from "./PresentationEditorSheet";
 import styles from "./PresentWindow.module.css";
@@ -101,7 +98,6 @@ export function PresentWindow() {
       sidebarOpen={sidebarOpen}
       sidebar={
         <Sidebar label="Sidebar">
-          <AreaNav />
           <SidebarSection title="Topics">
             <SourceList
               label="Topics"
@@ -114,7 +110,7 @@ export function PresentWindow() {
         </Sidebar>
       }
       toolbar={
-        <Toolbar label="Present">
+        <AppHeader label="Present">
           <Button
             variant="plain"
             icon="sidebar"
@@ -129,9 +125,7 @@ export function PresentWindow() {
               Add presentation
             </Button>
           )}
-          <AppearanceControl />
-          <AccountControl />
-        </Toolbar>
+        </AppHeader>
       }
     >
       <div className={styles.content}>

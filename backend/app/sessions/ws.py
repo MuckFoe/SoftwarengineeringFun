@@ -21,7 +21,7 @@ from datetime import timedelta
 import anyio
 import asyncpg
 import pycrdt
-from fastapi import APIRouter, WebSocket
+from fastapi import APIRouter, FastAPI, WebSocket
 
 from app import clock
 from app.accounts.identity import identity_for
@@ -33,6 +33,7 @@ from app.problems.markdown import render_description
 from app.runs import repo as runs_repo
 from app.runs.repo import Run, RunInProgress
 from app.runs.service import RunResult
+from app.scratch import manager as scratch_manager
 from app.sessions import collab, service
 from app.sessions import hub as hub_module
 from app.sessions import repo as sessions_repo
@@ -59,6 +60,53 @@ _RUNNING: set[uuid.UUID] = set()
 _RUN_TASKS: set[asyncio.Task] = set()
 # Spec 007: each GIF call to GIPHY is its own task, so a slow one never blocks edits (NFR-4).
 _GIF_TASKS: set[asyncio.Task] = set()
+
+
+def get_scratch_manager(app: FastAPI) -> scratch_manager.RunManager:
+    """Spec 011: the app's one `RunManager`, built on first use from its pool and settings.
+
+    Kept on `app.state` (not module-level) so each app instance, and so each event loop and
+    pool, has its own. Broadcasts go to the session's hub; the code is the session document's
+    text for the session's current problem."""
+    existing = getattr(app.state, "scratch_manager", None)
+    if existing is not None:
+        return existing
+    pool = app.state.pool
+
+    async def broadcast(session_id: uuid.UUID, message: dict) -> None:
+        await hub_module.broadcast(hub_module.get_hub(session_id), message)
+
+    async def code_for(session_id: uuid.UUID) -> str:
+        async with pool.acquire() as conn:
+            problem_id = await conn.fetchval(
+                "select current_problem_id from session where id = $1", session_id
+            )
+            session_doc = await collab.get_or_load(conn, session_id)
+        return session_doc.get_code(str(problem_id))
+
+    created = scratch_manager.RunManager(pool, app.state.settings.runner_url, broadcast, code_for)
+    app.state.scratch_manager = created
+    return created
+
+
+async def _handle_scratch_run(
+    websocket: WebSocket,
+    conn: asyncpg.Connection,
+    session: Session,
+    actor: str,
+    input_text: str,
+) -> None:
+    """FR-1, FR-9, FR-12: a stale session or a run already in progress is refused to the
+    sender only; otherwise the manager broadcasts the run's messages."""
+    current = await sessions_repo.get_by_invite(conn, session.invite_id)
+    if current is None or current.stale_at is not None:
+        await websocket.send_json({"type": "scratch_run_refused", "reason": "stale"})
+        return
+    outcome = await get_scratch_manager(websocket.app).start(session.id, actor, input_text)
+    if isinstance(outcome, scratch_manager.Refused):
+        await websocket.send_json(
+            {"type": "scratch_run_refused", "reason": "in_progress", "by": outcome.by}
+        )
 
 
 async def drain_runs() -> None:
@@ -369,6 +417,11 @@ async def _handle_text(
         _spawn_gif_task(
             _handle_gif_post(websocket, hub, session.id, participant_id, actor, client_id, gif_id)
         )
+    elif msg_type == "scratch_run":
+        input_text = payload.get("input")
+        if not isinstance(input_text, str):
+            return
+        await _handle_scratch_run(websocket, conn, session, actor, input_text)
     elif msg_type == "run":
         if session.id in _RUNNING:
             await websocket.send_json({"type": "error", "code": "run_in_progress"})
@@ -496,6 +549,11 @@ async def session_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
         session_doc = await collab.get_or_load(conn, session.id)
         await session_doc.ensure_problem_text(conn, str(problem.id), problem.signature)
 
+        problems = await _problems_progress(conn, session.id, problem.id)
+        chat = [chat_service.message_dict(m) for m in await chat_service.history(conn, session.id)]
+        # Last await before the send, so the snapshot and the live messages that follow it
+        # leave no gap (FR-10; the client dedupes by `seq`).
+        scratch = await get_scratch_manager(websocket.app).snapshot(session.id)
         await websocket.send_json(
             {
                 "type": "welcome",
@@ -506,13 +564,11 @@ async def session_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
                     "signed_in": signed_in,
                 },
                 "current_problem": _problem_dict(problem, websocket.app.state.settings.base_path),
-                "problems": await _problems_progress(conn, session.id, problem.id),
+                "problems": problems,
                 "presence": session_hub.presence(),
                 "run_in_progress": session.id in _RUNNING,
-                "chat": [
-                    chat_service.message_dict(m)
-                    for m in await chat_service.history(conn, session.id)
-                ],
+                "chat": chat,
+                "scratch_run": scratch_manager.run_payload(scratch) if scratch else None,
             }
         )
         # `welcome` already carries the current presence list, so the new participant

@@ -4,6 +4,7 @@ import { getMySessions, hideMySession } from "../api/client";
 import type { RecentSession } from "../api/types";
 import { Button } from "../ui/Button";
 import { InlineMessage } from "../ui/InlineMessage";
+import { Tag } from "../ui/Tag";
 import styles from "./ProfileSessions.module.css";
 
 const KIND_LABEL: Record<RecentSession["kind"], string> = {
@@ -117,8 +118,8 @@ export function ProfileSessions({ now = Date.now }: Props) {
                   </time>
                 </td>
                 <td className={styles.badges}>
-                  {s.stale && <span className={`${styles.badge} ${styles.stale}`}>Stale</span>}
-                  {s.hosted_by_me && <span className={styles.badge}>Hosted by you</span>}
+                  {s.stale && <Tag label="Stale" />}
+                  {s.hosted_by_me && <Tag label="Hosted by you" />}
                 </td>
                 <td className={styles.actions}>
                   <Button

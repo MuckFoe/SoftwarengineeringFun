@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Spec 003 NFR-1 / AC-19: the built app and the sign-in theme ship no Apple-licensed
 # assets and don't present themselves as Apple's. Fails on:
-#   - any font file (.otf .ttf .woff .woff2): fonts are referenced by family name only
+#   - any font file (.otf .ttf .woff .woff2) except the vendored Roboto Flex fallback
+#     (spec 015, SIL OFL): the user-supplied brand fonts are never in the repository
 #   - anything named or referring to apple-touch-icon
 #   - the words "Apple", "macOS" or "SF Pro" in shipped text
 # Allowed: "Apple Computer", the navigator.vendor string bundled code uses to detect
@@ -18,7 +19,8 @@ scan() {
   for dir in "$@"; do
     [[ -d "$dir" ]] || continue
     hits="$(find "$dir" -type f \( -iname '*.otf' -o -iname '*.ttf' -o -iname '*.woff' \
-      -o -iname '*.woff2' -o -iname '*apple-touch-icon*' \) -print)"
+      -o -iname '*.woff2' -o -iname '*apple-touch-icon*' \) -print |
+      grep -vE '/roboto-flex-[A-Za-z0-9_-]+\.woff2$' || true)"
     if [[ -n "$hits" ]]; then
       printf 'font or apple-touch-icon file:\n%s\n' "$hits"
       found=1
@@ -37,11 +39,13 @@ self_test() {
   local tmp
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' RETURN
-  mkdir -p "$tmp/font" "$tmp/text" "$tmp/clean"
+  mkdir -p "$tmp/font" "$tmp/allowed" "$tmp/text" "$tmp/clean"
   : >"$tmp/font/display.woff2"
+  : >"$tmp/allowed/roboto-flex-latin-wdth-abc123.woff2"
   printf '<p>Set in SF Pro</p>\n' >"$tmp/text/index.html"
   printf 'const safari = /Apple Computer/.test(navigator.vendor);\n' >"$tmp/clean/app.js"
   if scan "$tmp/font" >/dev/null; then echo "self-test: a .woff2 was not caught"; return 1; fi
+  if ! scan "$tmp/allowed" >/dev/null; then echo "self-test: vendored Roboto Flex was rejected"; return 1; fi
   if scan "$tmp/text" >/dev/null; then echo "self-test: \"SF Pro\" was not caught"; return 1; fi
   if ! scan "$tmp/clean"; then echo "self-test: a clean directory failed"; return 1; fi
   echo "self-test passed"

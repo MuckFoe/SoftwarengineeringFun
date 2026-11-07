@@ -1,13 +1,16 @@
-.picture {
+/* The GIF's tile (spec 015 FR-10): a --neutral-700 placeholder behind the image, so a slow or
+   transparent GIF is visible in both appearances. The image's pixels are never filtered. */
+.tile {
   display: inline-block;
   line-height: 0;
+  background: var(--neutral-700);
 }
 
 .img {
   display: block;
   max-width: 100%;
   height: auto;
-  border-radius: var(--radius-control);
+  border-radius: 0;
 }
 
 /* Same box as the GIF it replaces, so the row keeps its place (FR-12). */
@@ -17,10 +20,13 @@
   justify-content: center;
   box-sizing: border-box;
   max-width: 100%;
-  padding: var(--space-2);
-  border: 1px dashed var(--separator);
-  border-radius: var(--radius-control);
-  color: var(--label-secondary);
-  font: var(--type-subheadline) var(--font-text);
+  padding: var(--space-8);
+  border: 1px dashed var(--divider);
+  border-radius: 0;
+  background: var(--neutral-700);
+  color: var(--text);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
   text-align: center;
 }

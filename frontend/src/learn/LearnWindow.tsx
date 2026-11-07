@@ -2,14 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useMe } from "../auth/useMe";
 import { apiPath } from "../base";
-import { AccountControl } from "../components/AccountControl";
-import { AppearanceControl } from "../components/AppearanceControl";
-import { AreaNav } from "../components/AreaNav";
 import { StaleSessionsList } from "../components/StaleSessionsList";
+import { AppHeader } from "../ui/AppHeader";
 import { Button } from "../ui/Button";
 import { InlineMessage } from "../ui/InlineMessage";
 import { Sidebar } from "../ui/Sidebar";
-import { Toolbar } from "../ui/Toolbar";
 import { Window } from "../ui/Window";
 import styles from "./LearnWindow.module.css";
 
@@ -87,14 +84,13 @@ export function LearnWindow() {
       sidebarOpen={sidebarOpen}
       sidebar={
         <Sidebar label="Sidebar">
-          <AreaNav />
           {isAdmin && (
             <StaleSessionsList endpoint="/api/learn/sessions/stale" sessionPath="/learn/s/" />
           )}
         </Sidebar>
       }
       toolbar={
-        <Toolbar label="Learn">
+        <AppHeader label="Learn">
           <Button
             variant="plain"
             icon="sidebar"
@@ -104,9 +100,7 @@ export function LearnWindow() {
           />
           <h1 className={styles.title}>Learn</h1>
           <span className={styles.spacer} />
-          <AppearanceControl />
-          <AccountControl />
-        </Toolbar>
+        </AppHeader>
       }
     >
       <div className={styles.content}>
@@ -130,7 +124,7 @@ export function LearnWindow() {
                       </p>
                     </div>
                     <Button
-                      variant="bordered"
+                      variant="secondary"
                       label={`Start session: ${lesson.title}`}
                       onClick={() => void start(lesson.key)}
                     >

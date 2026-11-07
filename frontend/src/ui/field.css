@@ -1,0 +1,119 @@
+/* Audi text input (underline) and text area (boxed), plan 1.7. Static label above. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.field__label {
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+  color: var(--form-caption);
+}
+
+.field__control {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-bottom: 1px solid var(--form-underline);
+  border-radius: var(--radius-0);
+  background: transparent;
+  color: var(--form-text);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-1);
+  line-height: var(--lh-copy-1);
+}
+
+.field__control:hover {
+  border-bottom-color: var(--form-underline-active);
+}
+
+.field__control:focus,
+.field__control:active {
+  border-bottom: 2px solid var(--form-underline-active);
+  color: var(--form-text-active);
+}
+
+.field__control:disabled {
+  border-bottom-color: var(--form-underline-disabled);
+  color: var(--form-text-disabled);
+}
+
+.field__control[readonly] {
+  background: var(--form-readonly-fill);
+}
+
+.field__area {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-12);
+  border: 1px solid var(--form-stroke);
+  border-radius: var(--radius-0);
+  background: transparent;
+  color: var(--form-text);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-1);
+  line-height: var(--lh-copy-1);
+  resize: vertical;
+}
+
+.field__area:hover {
+  border-color: var(--form-stroke-active);
+}
+
+.field__area:focus {
+  border: 2px solid var(--form-stroke-active);
+  padding: calc(var(--space-12) - 1px);
+  color: var(--form-text-active);
+}
+
+.field__area:disabled {
+  border-color: var(--form-stroke-disabled);
+  color: var(--form-text-disabled);
+}
+
+.field__area[readonly] {
+  background: var(--form-readonly-fill);
+  border-color: var(--form-stroke-readonly);
+}
+
+.field__mono {
+  font-family: var(--font-mono);
+}
+
+.field--error .field__control {
+  border-bottom-color: var(--form-underline-error);
+}
+
+.field--error .field__area {
+  border-color: var(--form-stroke-error);
+}
+
+.field--error .field__label {
+  color: var(--form-text-error);
+}
+
+.field__footer {
+  display: flex;
+  gap: var(--space-8);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+}
+
+.field__error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--form-text-error);
+}
+
+.field__counter {
+  margin-left: auto;
+  color: var(--form-caption);
+  font-variant-numeric: tabular-nums;
+}

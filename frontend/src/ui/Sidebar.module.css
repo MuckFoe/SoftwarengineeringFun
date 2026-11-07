@@ -3,17 +3,20 @@
   width: 220px;
   height: 100%;
   overflow-y: auto;
-  padding: var(--space-2) var(--space-2) var(--space-4);
+  padding: var(--space-8) var(--space-8) var(--space-16);
+  background: var(--surface-1);
 }
 
 .section + .section {
-  margin-top: var(--space-4);
+  margin-top: var(--space-16);
 }
 
 .title {
-  margin: 0 0 var(--space-1);
-  padding: 0 var(--space-2);
-  font: var(--type-subheadline) var(--font-text);
-  font-weight: 600;
-  color: var(--label-secondary);
+  margin: 0 0 var(--space-4);
+  padding: 0 var(--space-8);
+  font: var(--fs-copy-3) / var(--lh-copy-3) var(--font-copy);
+  font-family: var(--font-display);
+  font-stretch: calc(var(--wdth-display) * 1%);
+  font-weight: 700;
+  color: var(--form-caption);
 }

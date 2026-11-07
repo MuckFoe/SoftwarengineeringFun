@@ -1,0 +1,97 @@
+/* Spec 015 task 14: IconButton, Badge, Tag. Tokens only. */
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-32);
+  height: var(--space-32);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-0);
+  background: transparent;
+  color: var(--action-text);
+  cursor: pointer;
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--neutral-700);
+  color: var(--action-text-hover);
+}
+
+.iconButton:active:not(:disabled) {
+  background: var(--nav-pressed);
+  color: var(--action-text);
+}
+
+.iconButton[aria-pressed="true"] {
+  background: var(--neutral-600);
+  color: var(--nav-active);
+}
+
+.iconButton:disabled {
+  background: transparent;
+  color: var(--action-text-disabled);
+  cursor: not-allowed;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-max);
+  font-family: var(--font-copy);
+  font-size: var(--fs-small, 12px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dot {
+  width: var(--space-8);
+  height: var(--space-8);
+  background: var(--highlight);
+}
+
+.count {
+  min-width: var(--space-20);
+  height: var(--space-20);
+  padding: 0 var(--space-4);
+  background: var(--highlight);
+  color: var(--on-highlight);
+}
+
+.alert {
+  min-width: var(--space-20);
+  height: var(--space-20);
+  padding: 0 var(--space-4);
+  background: var(--negative);
+  color: var(--canvas);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: var(--space-32);
+  padding: 0 var(--space-12);
+  border: var(--bw-1) solid var(--ui-stroke);
+  border-radius: var(--radius-0);
+  background: transparent;
+  color: var(--text-interactive);
+  font-family: var(--font-copy);
+  font-size: var(--fs-small, 12px);
+}
+
+button.tag {
+  cursor: pointer;
+}
+
+button.tag:hover {
+  border-color: var(--ui-stroke-hover);
+  background: var(--neutral-700);
+}
+
+.tag[aria-pressed="true"] {
+  border-color: var(--action-primary-fill);
+  background: var(--action-primary-fill);
+  color: var(--action-primary-text);
+}

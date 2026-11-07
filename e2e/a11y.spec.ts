@@ -183,7 +183,13 @@ async function tabStops(page: Page) {
         element: `${el.tagName.toLowerCase()}#${el.id}[${name.slice(0, 20)}]@${Array.from(
           el.parentElement?.children ?? [],
         ).indexOf(el)}`,
-        outline: s.outlineStyle === "none" || s.outlineWidth === "0px" ? "none" : s.outlineStyle,
+        // The Audi focus indicator is a double box-shadow ring (outline stays none).
+        outline:
+          s.outlineStyle !== "none" && s.outlineWidth !== "0px"
+            ? s.outlineStyle
+            : s.boxShadow !== "none"
+              ? "box-shadow"
+              : "none",
       };
     });
     if (!stop) continue;

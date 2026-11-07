@@ -170,7 +170,7 @@ describe("SessionWindow, stale (spec 003 FR-12)", () => {
     const banner = (await screen.findByText(/gone stale/i)).closest("[role=status]");
     expect(banner).not.toBeNull();
     const toolbar = screen.getByRole("toolbar", { name: "Session" });
-    expect(toolbar.nextElementSibling).toBe(banner);
+    expect(toolbar.closest(".app-header")?.nextElementSibling).toBe(banner);
     expect(within(banner as HTMLElement).queryByRole("button")).toBeNull();
     expect(screen.queryByRole("button", { name: /reactivate/i })).toBeNull();
     expect((screen.getByRole("button", { name: "Run" }) as HTMLButtonElement).disabled).toBe(true);
@@ -572,17 +572,20 @@ describe("SessionWindow, description inspector (spec 003 FR-14)", () => {
     expect(
       description.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(screen.queryByRole("tablist")).toBeNull();
-    expect(screen.queryByRole("tab")).toBeNull();
-    expect(screen.queryByRole("tabpanel")).toBeNull();
+    expect(within(inspector).queryByRole("tablist")).toBeNull();
+    expect(within(inspector).queryByRole("tab")).toBeNull();
+    expect(within(inspector).queryByRole("tabpanel")).toBeNull();
   });
 
   it("F4: each panel toggle has its own icon, so you can tell which hides which", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
     const toolbar = screen.getByRole("toolbar", { name: "Session" });
-    const icons = ["Hide sidebar", "Hide run results", "Hide inspector"].map(
-      (name) => within(toolbar).getByRole("button", { name }).querySelector("svg")?.innerHTML,
+    const icons = ["Hide sidebar", "Hide run results", "Hide inspector"].map((name) =>
+      within(toolbar)
+        .getByRole("button", { name })
+        .querySelector(".icon")
+        ?.getAttribute("data-icon"),
     );
     expect(new Set(icons).size).toBe(3);
   });
@@ -593,7 +596,10 @@ describe("SessionWindow, chat toggle (spec 008 FR-2, FR-3, FR-4, FR-6, FR-7)", (
   const chatRegion = () => screen.queryByRole("region", { name: "Chat" });
   const descriptionRegion = () => screen.queryByRole("region", { name: "Description" });
   const iconOf = (name: string) =>
-    within(toolbar()).getByRole("button", { name }).querySelector("svg")?.innerHTML;
+    within(toolbar())
+      .getByRole("button", { name })
+      .querySelector(".icon")
+      ?.getAttribute("data-icon");
 
   it("FR-7: the chat button has its own icon, and is named Hide chat, then Show chat", async () => {
     const socket = await joinAsAda();
@@ -1062,5 +1068,97 @@ describe("SessionWindow, accounts (spec 012)", () => {
       welcome({ you: { participant_id: "me", name: "newuser", signed_in: true } }),
     );
     await screen.findByRole("heading", { name: "Sum two" });
+  });
+});
+
+describe("SessionWindow, run with your own input (spec 011)", () => {
+  const RUN = {
+    status: "finished" as const,
+    started_by: "A",
+    started_at: "2026-01-01T00:00:00Z",
+    input: "3",
+    output: [{ s: "out" as const, t: "9" }],
+    seq: 1,
+    exit_code: 0,
+  };
+  // Hidden until asked for, so the existing Run lookups stay unambiguous.
+  const panel = () => {
+    if (!screen.queryByRole("region", { name: "Run with your own input" }))
+      fireEvent.click(screen.getByRole("button", { name: "Show own-input run" }));
+    return screen.getByRole("region", { name: "Run with your own input" });
+  };
+
+  it("FR-10: a welcome's scratch run shows its input, output, status and starter", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ scratch_run: RUN }));
+    const p = within(panel());
+    expect((p.getByLabelText("Input") as HTMLTextAreaElement).value).toBe("3");
+    expect(p.getByTestId("scratch-output").textContent).toBe("9");
+    expect(p.getByRole("status").textContent).toMatch(/finished.*started by A/);
+  });
+
+  it("FR-5: a started run and its output show as they arrive", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ scratch_run: null }));
+    serverSends(socket, {
+      type: "scratch_run_started",
+      run: { ...RUN, status: "running", output: [], seq: 0, exit_code: null },
+    });
+    serverSends(socket, { type: "scratch_run_output", seq: 0, s: "out", t: "hi" });
+    expect(within(panel()).getByTestId("scratch-output").textContent).toBe("hi");
+    expect(within(panel()).getByRole("status").textContent).toMatch(/running/);
+    serverSends(socket, { type: "scratch_run_end", status: "finished", exit_code: 0 });
+    expect(within(panel()).getByRole("status").textContent).toMatch(/finished/);
+  });
+
+  it("sends scratch_run with the typed input", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ scratch_run: null }));
+    fireEvent.change(within(panel()).getByLabelText("Input"), { target: { value: "5" } });
+    fireEvent.click(within(panel()).getByRole("button", { name: "Run" }));
+    expect(socket.sent).toContain(JSON.stringify({ type: "scratch_run", input: "5" }));
+  });
+
+  it("FR-9: a refusal as in progress names who started the run", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    serverSends(socket, { type: "scratch_run_refused", reason: "in_progress", by: "A" });
+    expect(within(panel()).getByRole("alert").textContent).toContain("A");
+  });
+
+  it("toggles the panel from the toolbar, apart from the run results", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    panel();
+    fireEvent.click(screen.getByRole("button", { name: "Hide own-input run" }));
+    expect(screen.queryByRole("region", { name: "Run with your own input" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Run results" })).toBeTruthy();
+  });
+
+  it("a gap in the output re-joins to fetch a fresh welcome", async () => {
+    const { factory, sockets } = fakeSocketFactory();
+    stubServer([json(200, { state: "active" })]);
+    renderPage(factory);
+    fireEvent.change(await screen.findByLabelText("Your name"), { target: { value: "Ada" } });
+    fireEvent.click(screen.getByRole("button", { name: /join/i }));
+    act(() => sockets[0]?.onopen?.(new Event("open")));
+    serverSends(sockets[0] as FakeSocket, welcome({ scratch_run: { ...RUN, status: "running" } }));
+    serverSends(sockets[0] as FakeSocket, {
+      type: "scratch_run_output",
+      seq: 50,
+      s: "out",
+      t: "x",
+    });
+    expect(sockets).toHaveLength(2);
+    act(() => sockets[1]?.onopen?.(new Event("open")));
+    serverSends(sockets[1] as FakeSocket, welcome({ scratch_run: RUN }));
+    expect(within(panel()).getByTestId("scratch-output").textContent).toBe("9");
+  });
+
+  it("FR-12: a stale session has no own-input Run", async () => {
+    stubServer([json(423, { error: "stale", can_reactivate: false })]);
+    renderPage();
+    await screen.findByText(/gone stale/);
+    expect(screen.queryByRole("region", { name: "Run with your own input" })).toBeNull();
   });
 });

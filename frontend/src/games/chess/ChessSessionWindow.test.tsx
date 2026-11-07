@@ -139,6 +139,20 @@ afterEach(() => {
 });
 
 describe("ChessSessionWindow", () => {
+  // Spec 015 FR-12
+  it("shows the invite link with a copy button on the join form and once joined", async () => {
+    stub({});
+    renderWindow();
+    await screen.findByLabelText("Your name");
+    const link = `${window.location.origin}/games/chess/s/abc`;
+    expect((screen.getByLabelText("Invite link") as HTMLInputElement).value).toBe(link);
+    expect(screen.getByRole("button", { name: "Copy invite link" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Your name"), { target: { value: "Zed" } });
+    fireEvent.click(screen.getByRole("button", { name: "Join" }));
+    await joined();
+    expect(screen.getByRole("button", { name: "Copy invite link" })).toBeTruthy();
+  });
+
   // AC-3 (FR-4)
   it("asks a visitor for a name, then joins with it", async () => {
     stub({});
@@ -223,6 +237,41 @@ describe("ChessSessionWindow", () => {
     await joined(snap({ stale: true }));
     fireEvent.click(await screen.findByRole("button", { name: "Reactivate" }));
     await waitFor(() => expect(calls).toContain("POST /api/games/chess/sessions/abc/reactivate"));
+  });
+
+  // AC-2 (FR-3): the starting position shows, inert, before the game starts
+  it("shows the starting position, not playable, before the game starts", async () => {
+    stub({ signedIn: true });
+    renderWindow();
+    await joined(snap({ game: null }));
+    expect(await screen.findByRole("gridcell", { name: /e1/i })).toBeTruthy();
+    expect(screen.getByRole("gridcell", { name: /e1.*king/i })).toBeTruthy();
+    expect(screen.getByRole("gridcell", { name: /d8.*queen/i })).toBeTruthy();
+    fireEvent.click(screen.getByRole("gridcell", { name: /e2/i }));
+    expect(screen.getByRole("gridcell", { name: /e2/i }).getAttribute("aria-selected")).not.toBe(
+      "true",
+    );
+  });
+
+  // AC-19, AC-25 (FR-21, FR-28): a guest who reloads rejoins with the stored token, no prompt
+  it("does not ask a returning guest for a name", async () => {
+    stub({ signedIn: false });
+    localStorage.setItem("chess:abc", "tok");
+    renderWindow();
+    await joined();
+    expect(screen.queryByRole("textbox", { name: /your name/i })).toBeNull();
+    expect(await screen.findByRole("grid", { name: /chess board/i })).toBeTruthy();
+  });
+
+  // AC-22, AC-34 (FR-34): the result sheet is shown even though the server then deletes the session
+  it("keeps the session-closed sheet when the socket then closes as deleted", async () => {
+    stub({ signedIn: true });
+    renderWindow();
+    await joined();
+    sock().receive({ type: "session_closed", result: "white", reason: "resignation" });
+    sock().closeWith(4411);
+    expect(await screen.findByRole("dialog", { name: "Session closed" })).toBeTruthy();
+    expect(screen.queryByText("This session no longer exists")).toBeNull();
   });
 
   // AC-27 (FR-30)

@@ -175,6 +175,8 @@ SANDBOX_IMAGE=collab-sandbox:hub-e2e
 SANDBOX_RUNTIME=
 EOF
 chmod 600 "$work/env.hub"
+BRAND_DIR="$work/brand-assets" "$ROOT/frontend/scripts/brand.sh" || true
+export BRAND_DIR="$work/brand-assets"
 collab build sandbox
 if ! collab up -d --build --wait; then
   collab logs --no-color --tail 50

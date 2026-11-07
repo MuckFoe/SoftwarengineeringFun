@@ -28,7 +28,8 @@ export function SessionInspector({ descriptionHtml, chatVisible, chat }: Session
   return (
     <SplitPane
       top={
-        <section aria-label="Description" className={styles.description}>
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be reachable by keyboard.
+        <section aria-label="Description" tabIndex={0} className={styles.description}>
           <DescriptionPane html={descriptionHtml} />
         </section>
       }

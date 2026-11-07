@@ -48,7 +48,9 @@ describe("Button", () => {
 
   it("renders an icon next to the label", () => {
     render(<Button icon="play">Run</Button>);
-    expect(screen.getByRole("button", { name: "Run" }).querySelector("svg")).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Run" }).querySelector(".icon[data-icon]"),
+    ).not.toBeNull();
   });
 
   it("names an icon-only button by its label", () => {
@@ -65,9 +67,9 @@ describe("Button", () => {
   });
 
   // NFR-4 (static part; rendered check in task 38)
-  it("draws a :focus-visible ring from --focus-ring", () => {
+  it("draws a :focus-visible ring from --focus", () => {
     const rule = /:focus-visible\s*\{([^}]*)\}/.exec(buttonCss.replace(/\/\*[\s\S]*?\*\//g, ""));
-    expect(rule?.[1]).toMatch(/var\(--focus-ring\)/);
+    expect(rule?.[1]).toMatch(/var\(--focus\)/);
   });
 });
 

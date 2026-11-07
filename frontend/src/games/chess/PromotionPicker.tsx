@@ -1,6 +1,7 @@
 import { type KeyboardEvent, useEffect, useRef } from "react";
 import { Button } from "../../ui/Button";
 import type { PromotionPiece } from "./chessTypes";
+import styles from "./PromotionPicker.module.css";
 
 const CHOICES: { letter: PromotionPiece; name: string }[] = [
   { letter: "q", name: "Queen" },
@@ -43,7 +44,7 @@ export function PromotionPicker({ onChoose, onCancel }: Props) {
       role="group"
       aria-label="Promote pawn to"
       onKeyDown={onKeyDown}
-      style={{ display: "flex", gap: 8 }}
+      className={styles.picker}
     >
       {CHOICES.map(({ letter, name }) => (
         <Button key={letter} onClick={() => onChoose(letter)}>

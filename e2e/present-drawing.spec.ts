@@ -356,7 +356,10 @@ test("AC-18–AC-23: drawing on slides, live for everyone, cleared, and never ke
       .toBe("rgb(255, 0, 0)");
     await ben.mouse.click(...centre(linkBox));
     await expect.poll(() => benFrame.evaluate("document.body.dataset.clicks ?? null")).toBe("1");
-    await drag(ben, across(await boxOf(ben, "[data-sdd-current] .text")));
+    // Along the first line of the paragraph (its vertical middle can fall exactly between two
+    // wrapped lines, where Chrome starts no selection).
+    const textBox = await boxOf(ben, "[data-sdd-current] .text");
+    await drag(ben, across({ ...textBox, height: textBox.height / 2 }));
     expect(
       ((await benFrame.evaluate("getSelection().toString()")) as string).length,
     ).toBeGreaterThan(10);

@@ -13,12 +13,10 @@ import type { ChatMessage } from "../api/types";
 import { useMe } from "../auth/useMe";
 import { apiPath } from "../base";
 import { type SendResult, useChat } from "../chat/useChat";
-import { AccountControl } from "../components/AccountControl";
-import { AppearanceControl } from "../components/AppearanceControl";
-import { AreaNav } from "../components/AreaNav";
 import { ChatPane } from "../components/ChatPane";
 import { PresenceList } from "../components/PresenceList";
 import { NotFound } from "../pages/NotFound";
+import { AppHeader } from "../ui/AppHeader";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
@@ -27,7 +25,6 @@ import { InlineMessage } from "../ui/InlineMessage";
 import { Inspector } from "../ui/Panels";
 import { Sidebar, SidebarSection } from "../ui/Sidebar";
 import { TextField } from "../ui/TextField";
-import { Toolbar } from "../ui/Toolbar";
 import { Window } from "../ui/Window";
 import { CompletionSummary } from "./CompletionSummary";
 import styles from "./LearningSessionWindow.module.css";
@@ -262,8 +259,6 @@ export function LearningSessionWindow({ createSocket }: Props) {
   const toolbarEnd = (
     <>
       <span className={styles.spacer} />
-      <AppearanceControl />
-      <AccountControl />
     </>
   );
 
@@ -313,7 +308,7 @@ export function LearningSessionWindow({ createSocket }: Props) {
             tone="warning"
             actions={
               page.canReactivate && (
-                <Button variant="bordered" onClick={() => void reactivate()}>
+                <Button variant="secondary" onClick={() => void reactivate()}>
                   Reactivate
                 </Button>
               )
@@ -378,16 +373,7 @@ export function LearningSessionWindow({ createSocket }: Props) {
 
   return (
     <>
-      <Window
-        sidebar={
-          <Sidebar label="Sidebar">
-            <AreaNav />
-          </Sidebar>
-        }
-        toolbar={<Toolbar label="Learning session">{toolbarEnd}</Toolbar>}
-      >
-        {body}
-      </Window>
+      <Window toolbar={<AppHeader label="Learning session">{toolbarEnd}</AppHeader>}>{body}</Window>
       {hud && <Hud key={hud.key} message={hud.message} />}
     </>
   );
@@ -427,7 +413,6 @@ function SessionView({
       sidebarOpen={sidebarOpen}
       sidebar={
         <Sidebar label="Sidebar">
-          <AreaNav />
           <SidebarSection title="Steps">
             <StepList state={state} dispatch={dispatch} />
           </SidebarSection>
@@ -437,7 +422,7 @@ function SessionView({
         </Sidebar>
       }
       toolbar={
-        <Toolbar label="Learning session">
+        <AppHeader label="Learning session">
           <Button
             variant="plain"
             icon="sidebar"
@@ -447,7 +432,7 @@ function SessionView({
           />
           <h1 className={styles.title}>{state.lesson?.title ?? "Learning session"}</h1>
           {toolbarEnd}
-        </Toolbar>
+        </AppHeader>
       }
       banner={banner}
       inspector={

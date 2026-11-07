@@ -80,8 +80,10 @@ def test_ac23_refusals(client: TestClient) -> None:  # noqa: F811
         assert _error(white) == "own_draw_offer"
         viewer.send(type="answer_draw", accept=True)
         assert _error(viewer) == "not_a_player"
-        # Nothing changed: the offer still stands.
-        assert _game(viewer)["draw_offer_by"] == "white"
+        # Nothing changed: the offer still stands, so black can still accept it.
+        black.send(type="answer_draw", accept=True)
+        game = _game(viewer, lambda g: g["status"] == "ended")
+        assert (game["result"], game["reason"]) == ("draw", "agreement")
 
 
 def test_offer_without_a_game_is_refused(client: TestClient) -> None:  # noqa: F811

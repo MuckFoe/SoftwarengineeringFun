@@ -8,18 +8,18 @@ import type { APIRequestContext, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 
 const TOKENS = readFileSync(
-  path.join(import.meta.dirname, "..", "frontend", "src", "theme", "tokens.css"),
+  path.join(import.meta.dirname, "..", "frontend", "src", "styles", "tokens.css"),
   "utf-8",
 );
 
-/** `--window-bg` from tokens.css, as the rgb() string getComputedStyle reports. */
+/** `--canvas` from tokens.css, as the rgb() string getComputedStyle reports. */
 function windowBg(appearance: "light" | "dark"): string {
   const block =
     appearance === "light"
       ? /:root\s*\{([^}]*)\}/.exec(TOKENS)
       : /:root\[data-appearance="dark"\]\s*\{([^}]*)\}/.exec(TOKENS);
-  const hex = /--window-bg:\s*#([0-9a-f]{6})/i.exec(block?.[1] ?? "")?.[1];
-  if (!hex) throw new Error(`no --window-bg for ${appearance} in tokens.css`);
+  const hex = /--canvas:\s*#([0-9a-f]{6})/i.exec(block?.[1] ?? "")?.[1];
+  if (!hex) throw new Error(`no --canvas for ${appearance} in tokens.css`);
   const [r, g, b] = [0, 2, 4].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
   return `rgb(${r}, ${g}, ${b})`;
 }
@@ -72,10 +72,10 @@ test("AC-18d: the app's Light under a dark OS wins, also on the failed-login pag
   }
 });
 
-test("AC-18d: the page shows no Keycloak logo and uses the system typeface", async ({ page }) => {
+test("AC-18d: the page shows no Keycloak logo and uses the Audi typeface", async ({ page }) => {
   await openSignIn(page);
   const font = (await page.evaluate("getComputedStyle(document.body).fontFamily")) as string;
-  expect(font).toMatch(/^system-ui/);
+  expect(font).toMatch(/^"?Audi Type"?/);
   await expect(page.locator("div.kc-logo-text")).toBeHidden();
 });
 

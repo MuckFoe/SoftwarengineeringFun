@@ -147,7 +147,7 @@ class Server(ThreadingHTTPServer):
 
 
 def main():
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8777
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8779
     try:
         server = Server(("127.0.0.1", port), Handler)
     except OSError:

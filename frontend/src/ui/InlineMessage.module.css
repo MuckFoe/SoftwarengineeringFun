@@ -1,8 +1,8 @@
 .message {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-1);
-  font: var(--type-callout) var(--font-text);
+  gap: var(--space-4);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
 }
 
 .message > svg {
@@ -10,9 +10,9 @@
 }
 
 .error {
-  color: var(--status-error);
+  color: var(--negative);
 }
 
 .info {
-  color: var(--label-secondary);
+  color: var(--form-caption);
 }

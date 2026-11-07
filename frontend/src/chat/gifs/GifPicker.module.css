@@ -1,12 +1,14 @@
-/* The picker's panel; 003's tokens throughout. Width fits COLUMNS cells (GifPicker.tsx). */
+/* The picker's panel in the Audi look. Width fits COLUMNS cells (GifPicker.tsx). */
 .picker {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-8);
   width: 320px;
   max-width: 100%;
-  font: var(--type-body) var(--font-text);
-  color: var(--label);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+  color: var(--text);
 }
 
 .notice {
@@ -17,15 +19,17 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-1);
+  gap: var(--space-4);
   max-height: 280px;
   overflow-y: auto;
-  border-radius: var(--radius-control);
+  border-radius: 0;
 }
 
 .grid:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 1px;
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--canvas),
+    0 0 0 4px var(--focus);
 }
 
 .cell {
@@ -33,37 +37,40 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: var(--radius-control);
-  background: var(--control-bg);
+  border-radius: 0;
+  background: var(--neutral-700);
   cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-audi);
 }
 
 .cell:hover {
-  background: var(--row-hover-bg);
+  background: var(--surface-4);
 }
 
 .cell[aria-selected="true"] {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: -3px;
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
 }
 
 .footer {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--space-8);
 }
 
 .status {
   margin: 0;
   min-height: 1lh;
-  color: var(--label-secondary);
-  font: var(--type-subheadline) var(--font-text);
+  color: var(--form-caption);
+  font-size: var(--fs-copy-3);
+  line-height: var(--lh-copy-3);
 }
 
 .attribution {
   margin: 0;
   flex: none;
-  color: var(--label-secondary);
-  font: var(--type-subheadline) var(--font-text);
+  color: var(--form-caption);
+  font-size: var(--fs-copy-3);
+  line-height: var(--lh-copy-3);
 }

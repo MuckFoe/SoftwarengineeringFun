@@ -64,8 +64,7 @@ describe("Sidebar", () => {
   // AC-11 (component part)
   it("is a navigation landmark whose sections are labelled regions", () => {
     render(<Layout />);
-    const nav = screen.getByRole("navigation", { name: "Session sidebar" });
-    expect(nav.className).toMatch(/material/);
+    screen.getByRole("navigation", { name: "Session sidebar" });
     expect(screen.getByRole("region", { name: "Problems" }).textContent).toContain("p1");
     expect(screen.getByRole("region", { name: "Participants" }).textContent).toContain("Ada");
   });

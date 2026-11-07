@@ -2,27 +2,28 @@
   display: inline-flex;
   padding: 2px;
   gap: 2px;
-  border-radius: var(--radius-control);
-  background: var(--row-hover-bg);
+  border-radius: var(--radius-0);
+  background: var(--neutral-700);
 }
 
 .segment {
   min-height: 20px;
-  padding: 0 var(--space-3);
+  padding: 0 var(--space-12);
   border: none;
-  border-radius: calc(var(--radius-control) - 2px);
+  border-radius: var(--radius-0);
   background: transparent;
-  color: var(--label);
-  font: var(--type-body) var(--font-text);
-  transition: background-color var(--motion-fast, 150ms) ease-out;
+  color: var(--text-interactive);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  font-family: var(--font-copy);
+  transition: background-color var(--dur-fast, 150ms) ease-out;
 }
 
 .segment[aria-checked="true"] {
-  background: var(--control-bg);
-  box-shadow: var(--shadow-control);
+  background: var(--canvas);
+  box-shadow: var(--elev-1);
 }
 
 .segment:focus-visible {
-  outline: 3px solid var(--focus-ring);
+  outline: 3px solid var(--focus);
   outline-offset: 0;
 }

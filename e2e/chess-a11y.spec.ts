@@ -58,12 +58,13 @@ test("AC-31: a keyboard-only White plays to a promotion; squares and the last mo
     await join(black, invite_id, "Bob");
 
     // Seats and Start, by keyboard.
-    await press(white, "Take seat (White)");
+    // FR-5: joiners are seated automatically (White, then Black).
     await expect(white.getByRole("region", { name: "Seats" })).toContainText("Ada");
-    await black.getByRole("button", { name: "Take seat" }).click();
     await expect(black.getByRole("region", { name: "Seats" })).toContainText("Bob");
     await expect(white.getByRole("button", { name: "Start" })).toBeEnabled();
     await press(white, "Start");
+    // The starting position shows before Start (FR-3); wait for the game itself.
+    await expect(white.getByRole("button", { name: "Resign" })).toBeVisible();
 
     // Each square's piece is in its accessible name.
     await expect(square(white, "e2")).toHaveAttribute("aria-label", "e2, white pawn");

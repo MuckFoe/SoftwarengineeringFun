@@ -1,6 +1,15 @@
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import {
+  cloneElement,
+  type ReactElement,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { Icon, type IconName } from "./Icon";
 import styles from "./Popover.module.css";
+import "./overlay.css";
 
 interface Props {
   /** Names the trigger button and the panel. */
@@ -86,5 +95,34 @@ export function Popover({ label, icon, text, children, open, onOpenChange }: Pro
         {children}
       </div>
     </>
+  );
+}
+
+/**
+ * Audi tooltip (spec 015 FR-4): a short inverted label shown on hover and keyboard focus,
+ * hidden on Esc. The existing `Popover` above stays the click-to-open panel.
+ */
+export function Tooltip({ content, children }: { content: ReactNode; children: ReactElement }) {
+  const id = useId();
+  const [shown, setShown] = useState(false);
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: wrapper only forwards hover/focus/Esc from the child control
+    <span
+      className="tooltip-wrap"
+      onMouseEnter={() => setShown(true)}
+      onMouseLeave={() => setShown(false)}
+      onFocus={() => setShown(true)}
+      onBlur={() => setShown(false)}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setShown(false);
+      }}
+    >
+      {cloneElement(children, { "aria-describedby": shown ? id : undefined } as object)}
+      {shown && (
+        <span role="tooltip" id={id} className="tooltip">
+          {content}
+        </span>
+      )}
+    </span>
   );
 }

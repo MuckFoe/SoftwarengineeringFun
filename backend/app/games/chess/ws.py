@@ -372,6 +372,8 @@ HANDLERS: dict[str, Handler] = {
     "offer_draw": _offer_draw,
     "answer_draw": _answer_draw,
     "claim_win": _claim_win,
+    "resign": _resign,
+    "delete_session": _delete_session,
 }
 
 

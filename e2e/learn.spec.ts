@@ -63,17 +63,17 @@ test("AC-1: from the home page, the Learn entry in the main navigation opens the
   page,
 }) => {
   await page.goto(appUrl("/"));
-  const areas = page.getByRole("region", { name: "Areas" });
-  await expect(areas.getByRole("link", { name: "Problems" })).toHaveAttribute(
-    "aria-current",
-    "page",
+  const areas = page.getByRole("tablist", { name: "Areas" });
+  await expect(areas.getByRole("tab", { name: "Problems" })).toHaveAttribute(
+    "aria-selected",
+    "true",
   );
 
-  await areas.getByRole("link", { name: "Learn" }).click();
+  await areas.getByRole("tab", { name: "Learn" }).click();
 
   await page.waitForURL((url) => appPathname(url) === "/learn");
   await expect(page.getByRole("heading", { level: 1, name: "Learn" })).toBeVisible();
-  await expect(areas.getByRole("link", { name: "Learn" })).toHaveAttribute("aria-current", "page");
+  await expect(areas.getByRole("tab", { name: "Learn" })).toHaveAttribute("aria-selected", "true");
   // The Learn area lists the topics and their lessons, each startable.
   await expect(page.getByRole("heading", { level: 2, name: "Docker" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Start session: Basics" }).first()).toBeVisible();

@@ -1,5 +1,5 @@
 /**
- * The editor's look, written against theme tokens only (FR-7): switching appearance
+ * The editor's look, written against theme tokens only (FR-1, FR-10): switching appearance
  * swaps the CSS variables and needs no editor reconfiguration. Remote cursors keep
  * y-codemirror.next's own per-participant colours.
  */
@@ -9,80 +9,86 @@ import { tags as t } from "@lezer/highlight";
 
 export const themeSpec = {
   "&": {
-    color: "var(--label)",
-    backgroundColor: "var(--content-bg)",
+    color: "var(--text)",
+    backgroundColor: "var(--surface-1)",
     fontSize: "13px",
     height: "100%",
   },
   // Like any text field, the focused editor shows the focus ring (NFR-4, AC-21).
-  "&.cm-focused": { outline: "3px solid var(--focus-ring)", outlineOffset: "-3px" },
-  ".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.5" },
-  ".cm-content": { caretColor: "var(--label)" },
-  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--label)" },
+  "&.cm-focused": { outline: "3px solid var(--focus)", outlineOffset: "-3px" },
+  ".cm-scroller": { fontFamily: "ui-monospace, Menlo, Consolas, monospace", lineHeight: "1.5" },
+  ".cm-content": { caretColor: "var(--focus)" },
+  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--focus)" },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
-    { backgroundColor: "var(--selection-bg)" },
-  ".cm-activeLine": { backgroundColor: "var(--row-hover-bg)" },
+    { backgroundColor: "color-mix(in srgb, var(--focus) 30%, transparent)" },
+  ".cm-activeLine": { backgroundColor: "var(--neutral-700)" },
   ".cm-gutters": {
-    backgroundColor: "var(--content-bg)",
-    color: "var(--label-tertiary)",
-    borderRight: "1px solid var(--separator)",
+    backgroundColor: "var(--surface-1)",
+    color: "var(--form-caption)",
+    borderRight: "1px solid var(--divider)",
   },
   ".cm-activeLineGutter": {
-    backgroundColor: "var(--row-hover-bg)",
-    color: "var(--label-secondary)",
+    backgroundColor: "var(--neutral-700)",
+    color: "var(--text)",
   },
   ".cm-foldPlaceholder": {
-    backgroundColor: "var(--control-bg)",
-    border: "1px solid var(--control-border)",
-    color: "var(--label-secondary)",
+    backgroundColor: "var(--canvas)",
+    border: "1px solid var(--ui-stroke)",
+    color: "var(--text)",
   },
   "&.cm-focused .cm-matchingBracket": {
-    backgroundColor: "var(--selection-bg)",
-    outline: "1px solid var(--accent)",
+    backgroundColor: "color-mix(in srgb, var(--focus) 30%, transparent)",
+    outline: "1px solid var(--focus)",
   },
-  "&.cm-focused .cm-nonmatchingBracket": { color: "var(--status-error)" },
+  "&.cm-focused .cm-nonmatchingBracket": { color: "var(--negative)" },
   ".cm-searchMatch": {
-    backgroundColor: "var(--status-warning-bg)",
-    outline: "1px solid var(--status-warning)",
+    backgroundColor: "color-mix(in srgb, var(--notice) 30%, transparent)",
+    outline: "1px solid var(--notice)",
   },
-  ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "var(--selection-bg)" },
-  ".cm-selectionMatch": { backgroundColor: "var(--row-hover-bg)" },
-  ".cm-panels": { backgroundColor: "var(--window-bg)", color: "var(--label)" },
-  ".cm-panels.cm-panels-top": { borderBottom: "1px solid var(--separator)" },
-  ".cm-panels.cm-panels-bottom": { borderTop: "1px solid var(--separator)" },
+  ".cm-searchMatch.cm-searchMatch-selected": {
+    backgroundColor: "color-mix(in srgb, var(--focus) 30%, transparent)",
+  },
+  ".cm-selectionMatch": { backgroundColor: "var(--neutral-700)" },
+  ".cm-panels": { backgroundColor: "var(--canvas)", color: "var(--text)" },
+  ".cm-panels.cm-panels-top": { borderBottom: "1px solid var(--divider)" },
+  ".cm-panels.cm-panels-bottom": { borderTop: "1px solid var(--divider)" },
   ".cm-textfield": {
-    backgroundColor: "var(--control-bg)",
-    border: "1px solid var(--control-border)",
-    color: "var(--label)",
+    backgroundColor: "var(--canvas)",
+    border: "1px solid var(--ui-stroke)",
+    color: "var(--text)",
   },
   ".cm-button": {
     backgroundImage: "none",
-    backgroundColor: "var(--control-bg)",
-    border: "1px solid var(--control-border)",
-    color: "var(--label)",
+    backgroundColor: "var(--canvas)",
+    border: "1px solid var(--ui-stroke)",
+    color: "var(--text)",
   },
   ".cm-tooltip": {
-    backgroundColor: "var(--content-bg)",
-    border: "1px solid var(--separator)",
-    color: "var(--label)",
-    boxShadow: "var(--shadow-popover)",
+    backgroundColor: "var(--surface-1)",
+    border: "1px solid var(--divider)",
+    color: "var(--text)",
+    boxShadow: "var(--elev-3)",
   },
   ".cm-tooltip-autocomplete > ul > li[aria-selected]": {
-    backgroundColor: "var(--accent)",
-    color: "var(--accent-label)",
+    backgroundColor: "var(--action-primary-fill)",
+    color: "var(--action-primary-text)",
   },
 };
 
 export const highlightSpecs: readonly TagStyle[] = [
   {
     tag: [t.keyword, t.controlKeyword, t.definitionKeyword, t.operatorKeyword, t.self],
-    color: "var(--syntax-keyword)",
+    color: "var(--text-interactive)",
+    fontWeight: "bold",
   },
-  { tag: [t.string, t.special(t.string), t.regexp], color: "var(--syntax-string)" },
-  { tag: [t.number, t.bool, t.null, t.atom], color: "var(--syntax-number)" },
+  { tag: [t.string, t.special(t.string), t.regexp], color: "var(--intelligent)" },
+  {
+    tag: [t.number, t.bool, t.null, t.atom],
+    color: "color-mix(in srgb, var(--neon-blue) 80%, var(--text-interactive))",
+  },
   {
     tag: [t.comment, t.lineComment, t.blockComment],
-    color: "var(--syntax-comment)",
+    color: "var(--form-caption)",
     fontStyle: "italic",
   },
   {
@@ -91,11 +97,11 @@ export const highlightSpecs: readonly TagStyle[] = [
       t.function(t.definition(t.variableName)),
       t.definition(t.function(t.variableName)),
     ],
-    color: "var(--syntax-function)",
+    color: "var(--text)",
   },
-  { tag: [t.className, t.typeName, t.definition(t.className)], color: "var(--syntax-type)" },
-  { tag: [t.variableName, t.propertyName, t.operator, t.punctuation], color: "var(--label)" },
-  { tag: t.invalid, color: "var(--status-error)" },
+  { tag: [t.className, t.typeName, t.definition(t.className)], color: "var(--text)" },
+  { tag: [t.variableName, t.propertyName, t.operator, t.punctuation], color: "var(--text)" },
+  { tag: t.invalid, color: "var(--negative)" },
 ];
 
 export const editorTheme = [

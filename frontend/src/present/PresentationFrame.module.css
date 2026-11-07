@@ -2,8 +2,13 @@
   position: relative;
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
   overflow: hidden;
-  background: var(--content-bg);
+  /* FR-10: user HTML without a background must stay legible in dark appearance, so the
+     stage is white and light in both (the one allowlisted raw colour). */
+  color-scheme: light;
+  background: #fff;
+  border: 1px solid var(--divider);
 }
 
 .iframe {
@@ -46,7 +51,7 @@
   left: 0;
   display: flex;
   align-items: flex-start;
-  gap: var(--space-1);
+  gap: var(--space-4);
   pointer-events: none;
   will-change: transform;
 }
@@ -54,17 +59,18 @@
 .arrow {
   width: 12px;
   height: 18px;
-  fill: var(--accent);
-  stroke: var(--accent-label);
+  fill: var(--action-primary-fill);
+  stroke: var(--action-primary-text);
   stroke-width: 1;
 }
 
 .label {
   margin-top: 14px;
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-control);
-  background: var(--accent);
-  color: var(--accent-label);
-  font: var(--type-caption) var(--font-text);
+  padding: 1px var(--space-8);
+  border-radius: 0;
+  background: var(--action-primary-fill);
+  color: var(--action-primary-text);
+  font-family: var(--font-copy);
+  font-size: var(--fs-label-3);
   white-space: nowrap;
 }

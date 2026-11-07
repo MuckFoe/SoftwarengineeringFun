@@ -1,19 +1,19 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font: var(--type-body) var(--font-text);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
 }
 
 .table th {
   text-align: left;
   font-weight: 600;
-  color: var(--label-secondary);
-  padding: 0 var(--space-2) var(--space-1) 0;
+  color: var(--form-caption);
+  padding: 0 var(--space-8) var(--space-4) 0;
 }
 
 .table td {
-  padding: var(--space-1) var(--space-2) var(--space-1) 0;
-  border-top: 1px solid var(--separator);
+  padding: var(--space-4) var(--space-8) var(--space-4) 0;
+  border-top: 1px solid var(--divider);
 }
 
 .number {
@@ -21,6 +21,6 @@
 }
 
 .revealed {
-  margin-left: var(--space-2);
-  color: var(--label-secondary);
+  margin-left: var(--space-8);
+  color: var(--form-caption);
 }

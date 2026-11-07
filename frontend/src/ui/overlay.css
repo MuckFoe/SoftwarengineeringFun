@@ -1,0 +1,84 @@
+/* Spec 015 task 20: Audi popover (tooltip) and notification (toast). Tokens only. */
+.tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip {
+  position: absolute;
+  top: calc(100% + var(--space-4));
+  left: 50%;
+  translate: -50% 0;
+  z-index: 20;
+  max-width: 240px;
+  padding: var(--space-4) var(--space-8);
+  border-radius: 0;
+  background: var(--canvas-inverted);
+  color: var(--canvas);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-audi);
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+  min-width: 240px;
+  max-width: 480px;
+  padding: var(--space-16);
+  border-radius: 0;
+  background: var(--canvas-inverted);
+  color: var(--canvas);
+  font-size: 16px;
+  line-height: 24px;
+  transition: opacity var(--dur-fast) var(--ease-audi);
+}
+
+.toast[data-tone="info"] {
+  background: var(--canvas-inverted);
+  color: var(--canvas);
+}
+
+.toast[data-tone="success"] {
+  background: var(--success);
+  color: black;
+}
+
+.toast[data-tone="notice"] {
+  background: var(--notice);
+  color: black;
+}
+
+.toast[data-tone="negative"] {
+  background: var(--negative);
+  color: black;
+}
+
+.toast-body {
+  flex: 1;
+}
+
+.toast-close {
+  flex: none;
+  padding: var(--space-4);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.toast-close:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip,
+  .toast {
+    transition-duration: 0s;
+  }
+}

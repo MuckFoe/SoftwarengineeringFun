@@ -1,0 +1,389 @@
+/* Audi DS 3.0 design tokens: the sole definition site of visual values (spec 015, plan 1.2).
+   Values are pinned to src/styles/kit-values.json by tokens.test.ts. */
+
+:root {
+  --radius-0: 0;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-max: 999px;
+  --bw-1: 1px;
+  --bw-2: 2px;
+  --bw-3: 3px;
+  --bw-focus: 4px;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-28: 28px;
+  --space-32: 32px;
+  --space-36: 36px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-56: 56px;
+  --space-64: 64px;
+  --space-72: 72px;
+  --space-80: 80px;
+  --space-96: 96px;
+  --space-128: 128px;
+  --elev-1: 0 2px 4px 0 rgba(0, 0, 0, 0.14), 0 0 2px 0 rgba(0, 0, 0, 0.12);
+  --elev-2: 0 4px 8px 0 rgba(0, 0, 0, 0.14), 0 0 2px 0 rgba(0, 0, 0, 0.12);
+  --elev-3: 0 8px 16px 0 rgba(0, 0, 0, 0.14), 0 0 2px 0 rgba(0, 0, 0, 0.12);
+  --elev-4: 0 12px 24px 0 rgba(0, 0, 0, 0.16), 0 0 6px 0 rgba(0, 0, 0, 0.12);
+  --elev-card: 0 1px 2px 0 rgba(0, 0, 0, 0.1), 0 2px 6px 0 rgba(0, 0, 0, 0.2);
+  --font-copy: "Audi Type", "Roboto Flex", Verdana, system-ui, sans-serif;
+  --font-display: "Audi Type", "Roboto Flex", Verdana, system-ui, sans-serif;
+  --wdth-copy: 108;
+  --wdth-display: 130;
+  --fs-copy-1: 16px;
+  --lh-copy-1: 24px;
+  --fs-copy-2: 12px;
+  --lh-copy-2: 20px;
+  --fs-copy-3: 10px;
+  --lh-copy-3: 16px;
+  --fs-label-1: 16px;
+  --lh-label-1: 20px;
+  --fs-label-2: 12px;
+  --lh-label-2: 16px;
+  --fs-label-3: 10px;
+  --lh-label-3: 12px;
+  --ease-audi: cubic-bezier(0.75, 0.02, 0.5, 1);
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --fs-display-1: 40px;
+  --lh-display-1: 60px;
+  --fs-display-2: 36px;
+  --lh-display-2: 52px;
+  --fs-h1: 28px;
+  --lh-h1: 40px;
+  --fs-h2: 24px;
+  --lh-h2: 36px;
+  --fs-h3: 20px;
+  --lh-h3: 32px;
+  --fs-h4: 16px;
+  --lh-h4: 24px;
+  --page-margin: 16px;
+  --canvas: #ffffff;
+  --canvas-inverted: #000000;
+  --surface-1: #ffffff;
+  --surface-2: #ffffff;
+  --surface-3: #ffffff;
+  --surface-4: #f2f2f2;
+  --highlight: #eb0d3f;
+  --on-highlight: #ffffff;
+  --neutral-100: #000000;
+  --neutral-200: #333333;
+  --neutral-300: #666666;
+  --neutral-400: #b3b3b3;
+  --neutral-500: #d9d9d9;
+  --neutral-600: #e6e6e6;
+  --neutral-700: #0000000d;
+  --neutral-800: #ffffff;
+  --action-primary-fill: #000000;
+  --action-primary-fill-hover: #4d4d4d;
+  --action-primary-fill-disabled: #b3b3b3;
+  --action-primary-text: #ffffff;
+  --action-secondary-stroke: #000000;
+  --action-secondary-stroke-hover: #4d4d4d;
+  --action-secondary-stroke-disabled: #b3b3b3;
+  --action-secondary-fill-pressed: #d9d9d9;
+  --action-text: #000000;
+  --action-text-hover: #4d4d4d;
+  --action-text-disabled: #b3b3b3;
+  --form-stroke: #666666;
+  --form-stroke-active: #000000;
+  --form-stroke-error: #eb0d3f;
+  --form-stroke-disabled: #b3b3b3;
+  --form-stroke-readonly: #d9d9d9;
+  --form-underline: #333333;
+  --form-underline-active: #000000;
+  --form-underline-error: #eb0d3f;
+  --form-underline-disabled: #b3b3b3;
+  --form-text: #333333;
+  --form-caption: #666666;
+  --form-text-active: #000000;
+  --form-text-error: #eb0d3f;
+  --form-text-disabled: #b3b3b3;
+  --form-readonly-fill: #d9d9d9;
+  --nav-active: #000000;
+  --nav-idle: #666666;
+  --nav-disabled: #b3b3b3;
+  --nav-pressed: #0000001a;
+  --divider: #d9d9d9;
+  --ui-stroke: #666666;
+  --ui-stroke-hover: #000000;
+  --ui-stroke-disabled: #b3b3b3;
+  --text: #333333;
+  --text-interactive: #000000;
+  --text-disabled: #b3b3b3;
+  --scrim: #000000b2;
+  --focus: #0989ff;
+  --negative: #eb0d3f;
+  --success: #0da20d;
+  --notice: #ffaa00;
+  --intelligent: #007579;
+  --neon-blue: #2526fe;
+  --board-light: #e6e6e6;
+  --board-dark: #808080;
+}
+
+:root[data-appearance="light"] {
+  --canvas: #ffffff;
+  --canvas-inverted: #000000;
+  --surface-1: #ffffff;
+  --surface-2: #ffffff;
+  --surface-3: #ffffff;
+  --surface-4: #f2f2f2;
+  --highlight: #eb0d3f;
+  --on-highlight: #ffffff;
+  --neutral-100: #000000;
+  --neutral-200: #333333;
+  --neutral-300: #666666;
+  --neutral-400: #b3b3b3;
+  --neutral-500: #d9d9d9;
+  --neutral-600: #e6e6e6;
+  --neutral-700: #0000000d;
+  --neutral-800: #ffffff;
+  --action-primary-fill: #000000;
+  --action-primary-fill-hover: #4d4d4d;
+  --action-primary-fill-disabled: #b3b3b3;
+  --action-primary-text: #ffffff;
+  --action-secondary-stroke: #000000;
+  --action-secondary-stroke-hover: #4d4d4d;
+  --action-secondary-stroke-disabled: #b3b3b3;
+  --action-secondary-fill-pressed: #d9d9d9;
+  --action-text: #000000;
+  --action-text-hover: #4d4d4d;
+  --action-text-disabled: #b3b3b3;
+  --form-stroke: #666666;
+  --form-stroke-active: #000000;
+  --form-stroke-error: #eb0d3f;
+  --form-stroke-disabled: #b3b3b3;
+  --form-stroke-readonly: #d9d9d9;
+  --form-underline: #333333;
+  --form-underline-active: #000000;
+  --form-underline-error: #eb0d3f;
+  --form-underline-disabled: #b3b3b3;
+  --form-text: #333333;
+  --form-caption: #666666;
+  --form-text-active: #000000;
+  --form-text-error: #eb0d3f;
+  --form-text-disabled: #b3b3b3;
+  --form-readonly-fill: #d9d9d9;
+  --nav-active: #000000;
+  --nav-idle: #666666;
+  --nav-disabled: #b3b3b3;
+  --nav-pressed: #0000001a;
+  --divider: #d9d9d9;
+  --ui-stroke: #666666;
+  --ui-stroke-hover: #000000;
+  --ui-stroke-disabled: #b3b3b3;
+  --text: #333333;
+  --text-interactive: #000000;
+  --text-disabled: #b3b3b3;
+  --scrim: #000000b2;
+  --focus: #0989ff;
+  --negative: #eb0d3f;
+  --success: #0da20d;
+  --notice: #ffaa00;
+  --intelligent: #007579;
+  --neon-blue: #2526fe;
+  --board-light: #e6e6e6;
+  --board-dark: #808080;
+}
+
+:root[data-appearance="dark"] {
+  --canvas: #000000;
+  --canvas-inverted: #ffffff;
+  --surface-1: #1a1a1a;
+  --surface-2: #333333;
+  --surface-3: #4d4d4d;
+  --surface-4: #666666;
+  --highlight: #fd2c4e;
+  --on-highlight: #000000;
+  --neutral-100: #ffffff;
+  --neutral-200: #e6e6e6;
+  --neutral-300: #b3b3b3;
+  --neutral-400: #666666;
+  --neutral-500: #4d4d4d;
+  --neutral-600: #333333;
+  --neutral-700: #ffffff26;
+  --neutral-800: #000000;
+  --action-primary-fill: #ffffff;
+  --action-primary-fill-hover: #b3b3b3;
+  --action-primary-fill-disabled: #666666;
+  --action-primary-text: #000000;
+  --action-secondary-stroke: #ffffff;
+  --action-secondary-stroke-hover: #b3b3b3;
+  --action-secondary-stroke-disabled: #666666;
+  --action-secondary-fill-pressed: #4d4d4d;
+  --action-text: #ffffff;
+  --action-text-hover: #b3b3b3;
+  --action-text-disabled: #666666;
+  --form-stroke: #b3b3b3;
+  --form-stroke-active: #ffffff;
+  --form-stroke-error: #fd2c4e;
+  --form-stroke-disabled: #666666;
+  --form-stroke-readonly: #4d4d4d;
+  --form-underline: #e6e6e6;
+  --form-underline-active: #ffffff;
+  --form-underline-error: #fd2c4e;
+  --form-underline-disabled: #666666;
+  --form-text: #e6e6e6;
+  --form-caption: #b3b3b3;
+  --form-text-active: #ffffff;
+  --form-text-error: #fd2c4e;
+  --form-text-disabled: #666666;
+  --form-readonly-fill: #4d4d4d;
+  --nav-active: #ffffff;
+  --nav-idle: #b3b3b3;
+  --nav-disabled: #666666;
+  --nav-pressed: #ffffff33;
+  --divider: #4d4d4d;
+  --ui-stroke: #b3b3b3;
+  --ui-stroke-hover: #ffffff;
+  --ui-stroke-disabled: #666666;
+  --text: #e6e6e6;
+  --text-interactive: #ffffff;
+  --text-disabled: #666666;
+  --scrim: #000000b2;
+  --focus: #0989ff;
+  --negative: #fd2c4e;
+  --success: #15da15;
+  --notice: #ffaa00;
+  --intelligent: #13e0c1;
+  --neon-blue: #556efe;
+  --board-light: #b3b3b3;
+  --board-dark: #4d4d4d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-appearance]) {
+    --canvas: #000000;
+    --canvas-inverted: #ffffff;
+    --surface-1: #1a1a1a;
+    --surface-2: #333333;
+    --surface-3: #4d4d4d;
+    --surface-4: #666666;
+    --highlight: #fd2c4e;
+    --on-highlight: #000000;
+    --neutral-100: #ffffff;
+    --neutral-200: #e6e6e6;
+    --neutral-300: #b3b3b3;
+    --neutral-400: #666666;
+    --neutral-500: #4d4d4d;
+    --neutral-600: #333333;
+    --neutral-700: #ffffff26;
+    --neutral-800: #000000;
+    --action-primary-fill: #ffffff;
+    --action-primary-fill-hover: #b3b3b3;
+    --action-primary-fill-disabled: #666666;
+    --action-primary-text: #000000;
+    --action-secondary-stroke: #ffffff;
+    --action-secondary-stroke-hover: #b3b3b3;
+    --action-secondary-stroke-disabled: #666666;
+    --action-secondary-fill-pressed: #4d4d4d;
+    --action-text: #ffffff;
+    --action-text-hover: #b3b3b3;
+    --action-text-disabled: #666666;
+    --form-stroke: #b3b3b3;
+    --form-stroke-active: #ffffff;
+    --form-stroke-error: #fd2c4e;
+    --form-stroke-disabled: #666666;
+    --form-stroke-readonly: #4d4d4d;
+    --form-underline: #e6e6e6;
+    --form-underline-active: #ffffff;
+    --form-underline-error: #fd2c4e;
+    --form-underline-disabled: #666666;
+    --form-text: #e6e6e6;
+    --form-caption: #b3b3b3;
+    --form-text-active: #ffffff;
+    --form-text-error: #fd2c4e;
+    --form-text-disabled: #666666;
+    --form-readonly-fill: #4d4d4d;
+    --nav-active: #ffffff;
+    --nav-idle: #b3b3b3;
+    --nav-disabled: #666666;
+    --nav-pressed: #ffffff33;
+    --divider: #4d4d4d;
+    --ui-stroke: #b3b3b3;
+    --ui-stroke-hover: #ffffff;
+    --ui-stroke-disabled: #666666;
+    --text: #e6e6e6;
+    --text-interactive: #ffffff;
+    --text-disabled: #666666;
+    --scrim: #000000b2;
+    --focus: #0989ff;
+    --negative: #fd2c4e;
+    --success: #15da15;
+    --notice: #ffaa00;
+    --intelligent: #13e0c1;
+    --neon-blue: #556efe;
+    --board-light: #b3b3b3;
+    --board-dark: #4d4d4d;
+  }
+}
+
+@media (min-width: 375px) {
+  :root {
+    --page-margin: 28px;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --fs-display-1: 48px;
+    --lh-display-1: 68px;
+    --page-margin: 40px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --fs-display-1: 60px;
+    --lh-display-1: 84px;
+    --fs-display-2: 44px;
+    --lh-display-2: 64px;
+    --fs-h1: 36px;
+    --lh-h1: 52px;
+    --fs-h2: 28px;
+    --lh-h2: 40px;
+    --page-margin: 60px;
+  }
+}
+
+@media (min-width: 1440px) {
+  :root {
+    --fs-display-1: 72px;
+    --lh-display-1: 100px;
+    --fs-display-2: 52px;
+    --lh-display-2: 76px;
+    --fs-h1: 40px;
+    --lh-h1: 60px;
+    --fs-h2: 32px;
+    --lh-h2: 44px;
+    --fs-h3: 24px;
+    --lh-h3: 36px;
+    --fs-h4: 18px;
+    --lh-h4: 28px;
+    --page-margin: 96px;
+  }
+}
+
+@media (min-width: 1920px) {
+  :root {
+    --fs-display-1: 84px;
+    --lh-display-1: 112px;
+    --fs-display-2: 60px;
+    --lh-display-2: 84px;
+    --fs-h1: 44px;
+    --lh-h1: 64px;
+    --fs-h2: 36px;
+    --lh-h2: 52px;
+    --fs-h4: 20px;
+    --lh-h4: 32px;
+  }
+}

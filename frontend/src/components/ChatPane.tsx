@@ -15,6 +15,8 @@ import type { SendGifResult, SendResult, ShownChatMessage } from "../chat/useCha
 import { Button } from "../ui/Button";
 import { SignedInMark } from "../ui/Icon";
 import { InlineMessage } from "../ui/InlineMessage";
+import { TextArea } from "../ui/TextArea";
+import "../ui/chat.css";
 import styles from "./ChatPane.module.css";
 
 /** Consecutive messages from one sender within this long of the previous share a header. */
@@ -212,15 +214,26 @@ export function ChatPane({
 
   return (
     <div className={styles.pane}>
-      <ol aria-label="Messages" className={styles.list} ref={listRef} onScroll={onScroll}>
+      <ol
+        aria-label="Messages"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable list must be reachable by keyboard.
+        tabIndex={0}
+        className={styles.list}
+        ref={listRef}
+        onScroll={onScroll}
+      >
         {groupMessages(messages).map((group) => (
           <li
             key={group.messages[0]?.id}
-            className={group.own ? `${styles.group} ${styles.own}` : styles.group}
+            className={
+              group.own
+                ? `chat-bubble ${styles.group} ${styles.own}`
+                : `chat-bubble ${styles.group}`
+            }
             data-own={group.own || undefined}
           >
             <h3 className={styles.header}>
-              <span className={styles.sender} data-sender>
+              <span className={`chat-bubble__author ${styles.sender}`} data-sender>
                 {group.own ? "You" : group.sender}
               </span>
               {group.signedIn && (
@@ -229,7 +242,7 @@ export function ChatPane({
                   <SignedInMark size={12} />
                 </>
               )}{" "}
-              <time dateTime={group.sentAt} className={styles.time}>
+              <time dateTime={group.sentAt} className={`chat-bubble__time ${styles.time}`}>
                 {timeLabel(group.sentAt)}
               </time>
             </h3>
@@ -258,18 +271,15 @@ export function ChatPane({
       </ol>
       {removeError && <InlineMessage id={`${id}-remove-error`}>{removeError}</InlineMessage>}
       <form className={styles.compose} onSubmit={(e) => void submit(e)}>
-        <label htmlFor={`${id}-input`} className={styles.label}>
-          Message
-        </label>
-        <textarea
+        <TextArea
           id={`${id}-input`}
-          className={styles.input}
-          rows={3}
+          label="Message"
           value={text}
+          onChange={setText}
+          rows={3}
           disabled={readOnly}
-          aria-invalid={count > MAX_CHAT_CHARS || undefined}
-          aria-describedby={[counterId, shown ? messageId : ""].filter(Boolean).join(" ")}
-          onChange={(e) => setText(e.target.value)}
+          invalid={count > MAX_CHAT_CHARS}
+          describedBy={[counterId, shown ? messageId : ""].filter(Boolean).join(" ")}
           onKeyDown={onKeyDown}
         />
         <div className={styles.footer}>
@@ -288,7 +298,7 @@ export function ChatPane({
                 GIF
               </Button>
             )}
-            <Button variant="bordered" type="submit" disabled={readOnly} busy={sending}>
+            <Button variant="primary" type="submit" disabled={readOnly} busy={sending}>
               Send
             </Button>
           </div>

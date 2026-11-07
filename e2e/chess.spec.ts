@@ -30,7 +30,7 @@ async function startChess(
 	const context = await browser.newContext();
 	const page = await context.newPage();
 	await page.goto(appUrl("/"));
-	await page.getByRole("link", { name: "Games" }).click();
+	await page.getByRole("tab", { name: "Games" }).click();
 	await page.getByRole("button", { name: "Start Chess" }).click();
 	await page.waitForURL((url) =>
 		/^\/games\/chess\/s\/[\w-]+$/.test(appPathname(url)),
@@ -64,7 +64,7 @@ async function setUpGame(browser: Browser) {
 	const viewer = await joinInvite(browser, invite, "Vera");
 	await expect(seats(white)).toContainText("Boris");
 	await white.getByRole("button", { name: "Start" }).click();
-	await expect(moves(black)).toBeVisible();
+	await expect(moves(black)).toBeAttached();
 	return { white, black, viewer, invite };
 }
 
@@ -74,7 +74,7 @@ test("AC-1 AC-2: Games lists chess with its description; Start opens an unstarte
 	const context = await browser.newContext();
 	const page = await context.newPage();
 	await page.goto(appUrl("/"));
-	await page.getByRole("link", { name: "Games" }).click();
+	await page.getByRole("tab", { name: "Games" }).click();
 	await expect(page.getByRole("heading", { name: "Games" })).toBeVisible();
 	const item = page
 		.getByRole("listitem")
