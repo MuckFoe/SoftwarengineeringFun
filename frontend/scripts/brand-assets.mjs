@@ -31,9 +31,15 @@ const rules = [];
 const meta = readJson(join(dir, "fonts", "fonts.json"));
 const weight = meta.weight || "100 900";
 const stretch = meta.stretch || "75% 150%";
+// Static faces (AudiTypeScreen-Light/Normal/Bold.woff2) get their own weight from the file
+// name, so three files don't all claim the whole range. A fonts.json overrides this.
+const staticWeight = { light: 300, normal: 400, regular: 400, bold: 700 };
 for (const f of list("fonts", ".woff2")) {
+  const m = !meta.weight && f.match(/-(light|normal|regular|bold)\./i);
+  const w = m ? staticWeight[m[1].toLowerCase()] : weight;
+  const st = m ? "100%" : stretch;
   rules.push(
-    `@font-face { font-family: "Audi Type"; src: url(fonts/${f}) format("woff2"); font-weight: ${weight}; font-stretch: ${stretch}; font-display: swap; }`,
+    `@font-face { font-family: "Audi Type"; src: url(fonts/${f}) format("woff2"); font-weight: ${w}; font-stretch: ${st}; font-display: swap; }`,
   );
 }
 
