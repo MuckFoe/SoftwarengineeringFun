@@ -39,10 +39,11 @@ Two kinds of change: a front-end-wide visual layer (FR-1 to FR-16) and one small
 - **[CONFIRM]** the problems list is already loaded app-wide or lazily. If it is lazy, `useJumpIndex` triggers the same existing fetch on first open, and does not add a new API.
 
 **6. Bottom dock (FR-16).**
-- `Dock` replaces the header tabs. It is a fixed, centred pill at the bottom with Sessions, Learn, Present and Games as links, `aria-current="page"` on the current one, and icon plus label.
-- Guests and chess invitees get `aria-disabled="true"` items and a visible and accessible reason (`aria-describedby`, plus a title). They are not links. **[CONFIRM]** which areas guests may use today, so the disabled set matches current permissions and does not change them.
-- Narrow screens (breakpoint token) show icons only, each with `aria-label`.
-- Content is never covered because the app shell reserves space with `padding-bottom: calc(var(--dock-height) + env(safe-area-inset-bottom) + gap)`. `--dock-height` is a token, so the last scrollable content ends above the dock. Full-screen layouts, such as the chess board and editor, are sized with `height: calc(100dvh - header - dock)`, so none sits under it.
+- `Dock` replaces the header tabs. It is a fixed, centred pill at the bottom with Sessions (`/`), Problems (`/problems`), Learn, Present and Games as links, `aria-current="page"` on the current one, and icon plus label. The dock works out its own current item (`currentKey`): `/` is Sessions, `/problems/*` and `/s/*` are Problems, the other areas by prefix; the sidebar `AreaNav` and `currentArea` are unchanged.
+- Guests and chess invitees get `aria-disabled="true"` items and a visible and accessible reason (`aria-describedby`, plus a title). They are not links.
+- Narrow screens (640px and under) show icons only, each with `aria-label`; the item padding is square there so the icon is centred.
+- The dock is an overlay and the shell reserves nothing for it: `.window` has no bottom padding, so content and full-screen layouts use the whole `100dvh`. `--dock-height` stays as the pill's height. The home screen keeps its own end-of-scroll padding.
+- Two states, CSS only. Idle: `transform` slides the pill down until 18px of it shows, and every child has `opacity: 0` so no highlight shows in the sliver. Up: `.dock:hover` or `.dock:has(:focus-visible)` sets `translate(-50%, 0)` and child opacity 1 with `transition-delay: 0s` (instant). Hiding uses a 250ms transition delay. Only `:focus-visible` counts, not `:focus-within`, because a clicked link keeps focus and would hold the dock up. A `::before` strip 8px above the pill (`z-index: -1`, so it sits behind the buttons and cannot swallow their clicks) keeps a graze of the top edge from dropping it. `prefers-reduced-motion` removes the transitions.
 
 **7. Run summary strip (FR-17).** See Contracts. `RunSummaryStrip` renders under the editor from the finished run result. It shows time, memory and "passed/total". Each figure is rendered only when the field is present, never as 0 (see the nullable fields below).
 
@@ -95,7 +96,7 @@ interface JumpItem { kind: "area" | "session" | "problem"; id: string; label: st
 function useJumpIndex(): { items: JumpItem[] };
 function filterJump(items: JumpItem[], query: string): JumpItem[]; // pure, case-insensitive
 
-interface DockItem { key: "sessions" | "learn" | "present" | "games"; label: string; to: string; disabledReason?: string }
+interface DockItem { key: "sessions" | "problems" | "learn" | "present" | "games"; label: string; to: string; disabledReason?: string }
 
 interface RunSummary { durationMs?: number; memoryKb?: number | null; examplesPassed?: number | null; examplesTotal?: number | null }
 function formatRunSummary(r: RunSummary): { label: string; value: string }[]; // pure, omits missing, keeps 0 passed
@@ -138,7 +139,7 @@ Levels: unit (pure functions, token checks), component or integration (React Tes
 | FR-13 | The existing unit and E2E suites run unchanged. The assertions that encode spec 015 shapes (square or outlined controls, header tabs, theme toggle form) are the only ones edited. **[CONFIRM]** They are enumerated by `/sdd-tasks` in a dedicated task, each listed with the old and new assertion so no other assertion is loosened. |
 | FR-14 | E2E in light and dark: with the invite panel open, a visible copy button is next to the link. Mouse and keyboard activation put the link on the clipboard (read through the Playwright clipboard permission) and the "Copied" status appears. |
 | FR-15 | Unit: `filterJump` matching and order. E2E: ⌘K or Ctrl+K opens the bar with the input focused, typing lists matching sessions, problems and areas, Enter navigates, and Escape closes with focus restored. Also asserts that no network request is made for search. |
-| FR-16 | E2E: the dock has four items with `aria-current` on the current area, and activating another navigates. On a long page, scrolled to the end, the last element's bottom is at most the dock's top. As a guest, disabled items have `aria-disabled` and an accessible reason. At a narrow viewport, the dock is at the bottom, labels are hidden and each item has an `aria-label`. |
+| FR-16 | E2E: the dock has five items with `aria-current` on the current area, and activating another navigates. Content reaches the bottom of the viewport (no reserved strip). Idle, only the sliver is in the viewport; hovering it brings the dock fully into view, and moving away hides it again after the delay, also after a click. As a guest, disabled items have `aria-disabled` and an accessible reason. At a narrow viewport, the dock is at the bottom, labels are hidden and each item has an `aria-label`. |
 | FR-17 | Backend (pytest, real runner): a run with examples returns `memory_kb > 0` and `examples_passed/total` equal to a known fixture. One failing example gives passed = total − 1. A problem without examples gives null for both. A timeout or error gives null figures. Unit: `formatRunSummary` omits missing, keeps a legitimate 0. E2E: the strip appears under the editor after a finished run with figures matching the API response, and is absent before a run. |
 | NFR Accessibility | Automated axe run on every screen in light and dark (no AA contrast violations), plus unit contrast checks of the token pairs. Focus-visible is asserted in the FR-11 test. |
 | NFR Performance | E2E: the light line animates only `transform` (computed `animation-name` keyframes check). A Playwright trace on the live header must show no layout or paint work per frame beyond compositing, and first contentful paint must not regress against the baseline recorded in the task. |

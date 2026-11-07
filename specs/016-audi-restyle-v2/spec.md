@@ -25,7 +25,7 @@ Everyone who uses the app today: signed-in account holders, anonymous guests (in
 - **FR-13** THE SYSTEM SHALL preserve all existing functionality and keyboard behaviour.
 - **FR-14** WHEN an invite link is shown in the Games invite flow THE SYSTEM SHALL always show next to it a button that copies the link to the clipboard and confirms the copy, visible without extra interaction and operable by mouse and keyboard (carried over from spec 015 FR-12).
 - **FR-15** WHEN the header is shown THE SYSTEM SHALL show a "Jump to anything" bar, opened also with the ⌘K / Ctrl+K shortcut, that lists the sessions, problems and app areas matching what the user types (using only what the app already lists, no new search data) and opens the chosen one by mouse or keyboard.
-- **FR-16** WHEN any screen is shown to a signed-in user, anonymous guest or chess invitee THE SYSTEM SHALL present the main areas (Sessions, Learn, Present, Games) as a floating pill dock at the bottom of the screen with the current area highlighted, instead of tabs in the header; areas a guest may not use SHALL be shown disabled with an accessible reason; on narrow screens the dock SHALL stay at the bottom and show icons only, each with an accessible name; the dock SHALL never cover content that cannot be scrolled out from under it.
+- **FR-16** WHEN any screen is shown to a signed-in user, anonymous guest or chess invitee THE SYSTEM SHALL present the main areas (Sessions, Problems, Learn, Present, Games) as a floating pill dock at the bottom of the screen with the current area highlighted, instead of tabs in the header; areas a guest may not use SHALL be shown disabled with an accessible reason; the dock SHALL be an overlay that takes no room from the content, so content uses the whole screen down to its bottom edge. While idle the dock SHALL be hidden down to a thin sliver of its pill with nothing highlighted in it; WHEN the pointer is over the dock or its sliver, or keyboard focus is inside it, THE SYSTEM SHALL bring it up at once at full size with icons and labels; WHEN the pointer leaves and focus is not inside it, THE SYSTEM SHALL wait a short moment and then hide it again. A click on an area SHALL NOT keep the dock up once the pointer has left. On narrow screens the dock SHALL show icons only, each with an accessible name, with each icon centred in its button.
 - **FR-17** WHEN a code run has finished THE SYSTEM SHALL show beneath the editor a strip with the run's time, memory use and the number of examples passed out of the total, alongside the existing run output; for this THE SYSTEM SHALL measure and report the run's memory use and the examples passed out of the total, which it does not report today.
 
 ## Non-functional requirements
@@ -93,8 +93,12 @@ Everyone who uses the app today: signed-in account holders, anonymous guests (in
 - Given any screen, When the user presses ⌘K (Ctrl+K), Then the jump bar opens focused; When they type, Then matching sessions, problems and areas are listed; When they press Enter on one, Then it opens; When they press Escape, Then the bar closes and focus returns.
 
 **FR-16**
-- Given a signed-in user, When any main area is shown, Then a bottom pill dock lists Sessions, Learn, Present and Games with the current one highlighted; When another is activated, Then that area opens.
-- Given a long page, When scrolled to the end, Then the last content is fully visible above the dock.
+- Given a signed-in user, When any main area is shown, Then a bottom pill dock lists Sessions, Problems, Learn, Present and Games with the current one highlighted (Sessions on the home screen, Problems on the problems list and coding sessions); When another is activated, Then that area opens.
+- Given any screen, When it is shown, Then content reaches the bottom edge of the window and no strip is reserved under it for the dock.
+- Given the dock is idle, When the screen is shown, Then only a thin sliver of the pill is visible at the bottom edge, with no item or highlight showing in it.
+- Given the dock is idle, When the pointer moves onto the sliver, Then the dock comes up at once at full size with icons and labels.
+- Given the dock is up, When the pointer leaves it (even after an area was clicked) and focus is not inside it, Then it waits a short moment and hides again.
+- Given the dock is up, When the pointer only grazes just above its top edge, Then it does not drop away.
 - Given a guest, When the dock is shown, Then areas they cannot use are disabled with an accessible reason.
 - Given a narrow viewport, When the dock is shown, Then it stays at the bottom with icons only, each with an accessible name.
 
