@@ -86,6 +86,9 @@
   font-family: var(--font-copy);
   font-size: 24px;
   white-space: nowrap;
+  /* The brand is a link, but looks as it did before: header text colour, no underline. */
+  color: inherit;
+  text-decoration: none;
 }
 
 .app-header .brand-logo {
