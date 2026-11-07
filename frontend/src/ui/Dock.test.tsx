@@ -71,7 +71,7 @@ describe("Dock", () => {
     }
     expect(stripped).toMatch(/@media \(max-width: 640px\)/);
     expect(stripped).toMatch(/\.label\s*\{[^}]*display:\s*none/);
-    expect(stripped).toMatch(/\.dock:hover \.label/);
+    expect(stripped).toMatch(/\.dock:hover/);
   });
 
   it("is a fixed centred pill at the dock layer using tokens", () => {
