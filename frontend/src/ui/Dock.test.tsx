@@ -22,12 +22,19 @@ function mount(path: string, disabled: Partial<Record<DockItem["key"], string>> 
 }
 
 describe("Dock", () => {
-  it("lists four areas with the current one marked (FR-16)", () => {
+  it("lists five areas with the current one marked (FR-16)", () => {
     mount("/learn/x");
     const nav = screen.getByRole("navigation", { name: "Areas" });
     const links = nav.querySelectorAll("a");
-    expect([...links].map((a) => a.textContent)).toEqual(["Sessions", "Learn", "Present", "Games"]);
+    expect([...links].map((a) => a.textContent)).toEqual([
+      "Sessions",
+      "Problems",
+      "Learn",
+      "Present",
+      "Games",
+    ]);
     expect([...links].map((a) => a.getAttribute("aria-current"))).toEqual([
+      null,
       null,
       "page",
       null,
@@ -59,11 +66,12 @@ describe("Dock", () => {
 
   it("keeps an aria-label on every item and hides labels when narrow (FR-16)", () => {
     mount("/", { learn: "Sign in" });
-    for (const n of ["Sessions", "Learn", "Present", "Games"]) {
+    for (const n of ["Sessions", "Problems", "Learn", "Present", "Games"]) {
       expect(document.querySelector(`[aria-label="${n}"]`), n).not.toBeNull();
     }
     expect(stripped).toMatch(/@media \(max-width: 640px\)/);
     expect(stripped).toMatch(/\.label\s*\{[^}]*display:\s*none/);
+    expect(stripped).toMatch(/\.dock:hover \.label/);
   });
 
   it("is a fixed centred pill at the dock layer using tokens", () => {

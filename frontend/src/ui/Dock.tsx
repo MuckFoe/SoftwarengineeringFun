@@ -1,10 +1,9 @@
 import { Link, useLocation } from "react-router";
-import { currentArea } from "../components/AreaNav";
 import styles from "./Dock.module.css";
 import { Icon, type IconName } from "./Icon";
 
 export interface DockItem {
-  key: "sessions" | "learn" | "present" | "games";
+  key: "sessions" | "problems" | "learn" | "present" | "games";
   label: string;
   to: string;
   icon: IconName;
@@ -13,6 +12,7 @@ export interface DockItem {
 /** The sidebar AreaNav keeps "Problems" for `/`; the dock calls the same route "Sessions". */
 export const DOCK_ITEMS: readonly DockItem[] = [
   { key: "sessions", label: "Sessions", to: "/", icon: "chat" },
+  { key: "problems", label: "Problems", to: "/problems", icon: "pencil" },
   { key: "learn", label: "Learn", to: "/learn", icon: "doc" },
   { key: "present", label: "Present", to: "/present", icon: "people" },
   { key: "games", label: "Games", to: "/games", icon: "play" },
@@ -23,9 +23,22 @@ interface Props {
   disabled?: Partial<Record<DockItem["key"], string>>;
 }
 
-/** Floating pill dock at the bottom with the four main areas (spec 016 FR-16). */
+const under = (pathname: string, base: string) =>
+  pathname === base || pathname.startsWith(`${base}/`);
+
+/** The dock's own current item: Sessions is the home screen, Problems the coding problems and their sessions. */
+function currentKey(pathname: string): DockItem["key"] | undefined {
+  if (pathname === "/") return "sessions";
+  for (const item of DOCK_ITEMS.slice(1)) if (under(pathname, item.to)) return item.key;
+  return pathname.startsWith("/s/") ? "problems" : undefined;
+}
+
+/**
+ * Overlay dock at the bottom with the main areas (spec 016 FR-16): slim with only icons until the
+ * pointer or keyboard focus enters it, then it grows to show the labels.
+ */
 export function Dock({ disabled = {} }: Props) {
-  const current = currentArea(useLocation().pathname);
+  const current = currentKey(useLocation().pathname);
   return (
     <nav className={styles.dock} aria-label="Areas">
       {DOCK_ITEMS.map((item) => {
@@ -55,7 +68,7 @@ export function Dock({ disabled = {} }: Props) {
             </span>
           );
         }
-        const isCurrent = item.to === current;
+        const isCurrent = item.key === current;
         return (
           <Link
             key={item.key}

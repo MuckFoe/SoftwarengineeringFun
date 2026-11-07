@@ -7,7 +7,6 @@
     "sidebar center inspector";
   height: 100dvh;
   box-sizing: border-box;
-  padding-bottom: calc(var(--dock-height) + env(safe-area-inset-bottom) + var(--space-16));
   overflow: hidden;
   background: var(--canvas);
   color: var(--text-interactive);

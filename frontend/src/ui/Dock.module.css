@@ -5,6 +5,7 @@
   transform: translateX(-50%);
   z-index: var(--z-dock);
   height: var(--dock-height);
+  max-width: calc(100vw - var(--space-16));
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -12,14 +13,16 @@
   padding: 0 var(--space-8);
   background: var(--surface);
   border-radius: var(--radius-pill);
-  box-shadow: inset 0 1px 0 var(--edge-light);
+  box-shadow:
+    inset 0 1px 0 var(--edge-light),
+    var(--elev-3);
 }
 
 .item {
   display: inline-flex;
   align-items: center;
   gap: var(--space-8);
-  padding: var(--space-12) var(--space-20);
+  padding: var(--space-12);
   border-radius: var(--radius-pill);
   color: var(--text-muted);
   font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
@@ -27,6 +30,28 @@
   transition:
     background var(--motion-fast),
     color var(--motion-fast);
+}
+
+/* Slim: icons only. Hover or focus inside the dock grows the labels in. */
+.label {
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  white-space: nowrap;
+  transition:
+    max-width var(--motion-fast),
+    opacity var(--motion-fast);
+}
+
+.dock:hover .label,
+.dock:focus-within .label {
+  max-width: 8em;
+  opacity: 1;
+}
+
+.dock:hover .item,
+.dock:focus-within .item {
+  padding: var(--space-12) var(--space-20);
 }
 
 a.item:hover {
@@ -66,8 +91,11 @@ a.current:hover {
   .label {
     display: none;
   }
+}
 
+@media (prefers-reduced-motion: reduce) {
+  .label,
   .item {
-    padding: var(--space-12);
+    transition: none;
   }
 }
