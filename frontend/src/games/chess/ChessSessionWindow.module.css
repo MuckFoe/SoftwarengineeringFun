@@ -43,21 +43,56 @@
   min-width: 0;
 }
 
+/* One screen, no page scroll: board | seats, controls, moves | chat, each filling the height. */
 .layout {
   display: flex;
   gap: var(--space-16);
   height: 100%;
   min-height: 0;
+  padding: var(--space-16);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.main {
+.boardCol {
   flex: 1;
   min-width: 0;
-  overflow: auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
-  padding: var(--space-16);
+  align-items: center;
+  gap: var(--space-8);
+}
+
+/* The largest square that fits the space left for the board. */
+.stage {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.boardBox {
+  width: min(100cqw, 100cqh);
+  height: min(100cqw, 100cqh);
+}
+
+.side {
+  width: 18rem;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  overflow: hidden;
+}
+
+.moves {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .chat {
@@ -81,10 +116,26 @@
   .layout {
     flex-direction: column;
     height: auto;
+    overflow: visible;
+  }
+
+  .stage {
+    flex: none;
+    height: auto;
+    container-type: inline-size;
+  }
+
+  .boardBox {
+    width: 100cqw;
+    height: 100cqw;
+  }
+
+  .side,
+  .chat {
+    width: auto;
   }
 
   .chat {
-    width: auto;
     min-height: 20rem;
   }
 }

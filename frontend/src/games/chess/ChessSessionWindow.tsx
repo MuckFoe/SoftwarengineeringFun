@@ -215,10 +215,13 @@ export function ChessSessionWindow({ createSocket }: Props) {
     setPromotion(null);
   }
 
-  const shell = (body: React.ReactNode, banner?: React.ReactNode) => (
+  const shell = (body: React.ReactNode, banner?: React.ReactNode, header = true) => (
     <Window
       toolbar={
-        <AppHeader label="Chess">
+        <AppHeader
+          label="Chess"
+          actions={header ? <InviteLink link={inviteLink} compact /> : undefined}
+        >
           <h1 className={styles.title}>Chess</h1>
         </AppHeader>
       }
@@ -277,6 +280,8 @@ export function ChessSessionWindow({ createSocket }: Props) {
           </form>
         </Card>
       </div>,
+      undefined,
+      false,
     );
   }
 
@@ -300,8 +305,32 @@ export function ChessSessionWindow({ createSocket }: Props) {
 
   return shell(
     <div className={styles.layout}>
-      <div className={styles.main}>
-        <InviteLink link={inviteLink} />
+      <div className={styles.boardCol}>
+        <div className={styles.stage}>
+          {snap && (
+            <fieldset
+              className={`${styles.frozen} ${styles.boardBox}`}
+              disabled={stale}
+              aria-label="Board"
+            >
+              <Board
+                game={game ?? START_GAME}
+                seat={stale || !game ? "viewer" : roleOf(state)}
+                bottom={bottomColor(state)}
+                selected={state.selected}
+                onSelect={(square) => dispatchLocal({ type: "square_selected", square })}
+                onMove={tryMove}
+              />
+            </fieldset>
+          )}
+        </div>
+        {snap && (
+          <Button variant="plain" onClick={() => dispatchLocal({ type: "flip_toggled" })}>
+            Flip board
+          </Button>
+        )}
+      </div>
+      <div className={styles.side}>
         {state.closed ? <ClosedSheet closed={state.closed} /> : null}
         {state.error && !state.error.startsWith("chat_") && !state.error.startsWith("gif_") && (
           <InlineMessage id="chess-error">{errorText(state.error)}</InlineMessage>
@@ -312,19 +341,6 @@ export function ChessSessionWindow({ createSocket }: Props) {
         )}
         {snap && (
           <>
-            <fieldset className={styles.frozen} disabled={stale} aria-label="Board">
-              <Board
-                game={game ?? START_GAME}
-                seat={stale || !game ? "viewer" : roleOf(state)}
-                bottom={bottomColor(state)}
-                selected={state.selected}
-                onSelect={(square) => dispatchLocal({ type: "square_selected", square })}
-                onMove={tryMove}
-              />
-            </fieldset>
-            <Button variant="plain" onClick={() => dispatchLocal({ type: "flip_toggled" })}>
-              Flip board
-            </Button>
             {promotion && <PromotionPicker onChoose={choose} onCancel={() => setPromotion(null)} />}
             <fieldset className={styles.frozen} disabled={stale} aria-label="Seats and controls">
               <SeatsPanel snapshot={snap} youId={youId} send={send} />
@@ -335,7 +351,9 @@ export function ChessSessionWindow({ createSocket }: Props) {
                 onAdminDelete={() => void adminDelete()}
               />
             </fieldset>
-            <MoveList moves={game?.moves ?? []} />
+            <div className={styles.moves}>
+              <MoveList moves={game?.moves ?? []} />
+            </div>
           </>
         )}
       </div>

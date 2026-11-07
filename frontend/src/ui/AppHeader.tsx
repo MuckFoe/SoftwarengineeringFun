@@ -15,11 +15,14 @@ import "./appHeader.css";
 export function AppHeader({
   appName = "Collab",
   label,
+  actions,
   children,
 }: {
   appName?: string;
   /** Accessible name of the screen's toolbar. */
   label: string;
+  /** Screen-specific controls placed right beside the jump bar and appearance toggle. */
+  actions?: ReactNode;
   children?: ReactNode;
 }) {
   const live = useAnyLive();
@@ -30,6 +33,7 @@ export function AppHeader({
       <Toolbar label={label} variant="bare">
         {children}
         <span className="app-header-spacer" />
+        {actions}
         <JumpBar />
         <AppearanceToggle />
         <AccountControl />

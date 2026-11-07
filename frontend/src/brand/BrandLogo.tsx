@@ -1,9 +1,10 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 
 /**
  * The header's brand mark (spec 015 FR-11): the supplied logo, drawn by the `.brand-logo`
  * rule of the served `brand.css` as a CSS mask in the text colour (so it follows light and
- * dark), beside the app name. With no such rule (no logo was obtained) the mark is hidden,
+ * dark), beside the app name; the whole mark links to the home screen. With no such rule (no logo was obtained) the mark is hidden,
  * so there is no broken image and no gap, and the name stands alone.
  */
 export function BrandLogo({ appName }: { appName: string }) {
@@ -23,7 +24,7 @@ export function BrandLogo({ appName }: { appName: string }) {
   }, []);
 
   return (
-    <span className="brand">
+    <Link to="/" className="brand" aria-label={`${appName} home`}>
       <span
         ref={logo}
         className="brand-logo"
@@ -32,6 +33,6 @@ export function BrandLogo({ appName }: { appName: string }) {
         hidden={absent || undefined}
       />
       <span className="brand-name">{appName}</span>
-    </span>
+    </Link>
   );
 }
