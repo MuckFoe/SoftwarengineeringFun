@@ -1,7 +1,6 @@
 import { Link, useLocation } from "react-router";
 import { useMe } from "../auth/useMe";
 import { Icon } from "../brand/Icon";
-import styles from "./AccountControl.module.css";
 
 /**
  * The toolbar's profile entry on every screen (spec 012 FR-9): *Profile* for visitors (and
@@ -16,7 +15,7 @@ export function AccountControl() {
   const text = me.status === "ready" && me.me.signed_in ? me.me.name : "Profile";
 
   return (
-    <Link className={styles.entry} to={`/profile?${from}`}>
+    <Link className="app-header-pill" to={`/profile?${from}`}>
       <Icon name="person" size={16} />
       {text}
     </Link>

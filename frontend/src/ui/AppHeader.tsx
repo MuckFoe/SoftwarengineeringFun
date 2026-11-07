@@ -31,12 +31,15 @@ export function AppHeader({
     <div className={live ? "app-header is-live" : "app-header"}>
       <BrandLogo appName={appName} />
       <Toolbar label={label} variant="bare">
-        {children}
+        <div className="app-header-start">{children}</div>
         <span className="app-header-spacer" />
-        {actions}
         <JumpBar />
-        <AppearanceToggle />
-        <AccountControl />
+        <span className="app-header-spacer" />
+        <div className="app-header-end">
+          {actions}
+          <AppearanceToggle />
+          <AccountControl />
+        </div>
       </Toolbar>
       <div className="app-header-line" aria-hidden="true">
         <span className="app-header-sweep" />

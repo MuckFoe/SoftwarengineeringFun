@@ -35,13 +35,15 @@ for (const scheme of SCHEMES as readonly Scheme[]) {
         await expect(page.getByRole("status").filter({ hasText: "Copied" })).toBeVisible();
         expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url);
 
-        // Keyboard, after joining (button stays visible in the joined view).
+        // Keyboard, after joining (the header pill in the joined view).
         await page.getByLabel("Your name").fill("Ada");
         await page.getByRole("button", { name: "Join" }).click();
         await expect(page.getByRole("button", { name: "Delete session" })).toBeVisible();
         await page.evaluate(() => navigator.clipboard.writeText("cleared"));
-        await expect(copy).toBeVisible();
-        await copy.focus();
+        // Joined view: the header's "Copy invite link" pill (the link itself is not shown).
+        const headerCopy = page.getByRole("button", { name: "Copy invite link" });
+        await expect(headerCopy).toBeVisible();
+        await headerCopy.focus();
         await page.keyboard.press("Enter");
         await expect(page.getByRole("status").filter({ hasText: "Copied" })).toBeVisible();
         expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url);

@@ -42,7 +42,12 @@ export function JumpBar() {
 
   return (
     <>
-      <button ref={trigger} type="button" className={styles.trigger} onClick={show}>
+      <button
+        ref={trigger}
+        type="button"
+        className="app-header-pill app-header-search"
+        onClick={show}
+      >
         <Icon name="search" />
         <span>Jump to anything</span>
         {keys ? <kbd className={styles.keys}>{keys}</kbd> : null}

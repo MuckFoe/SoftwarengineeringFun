@@ -53,19 +53,3 @@
   opacity: 0;
   pointer-events: none;
 }
-
-/* In the app header: a single row, the label stays for screen readers only. */
-.compact {
-  width: 16rem;
-  align-items: center;
-}
-.compact .label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
-.compact .input {
-  padding: var(--space-4) var(--space-8);
-}

@@ -1,24 +1,3 @@
-.trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-8);
-  padding: var(--space-8) var(--space-16);
-  border: 1px solid var(--divider);
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text-muted);
-  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
-  cursor: pointer;
-  transition:
-    background var(--motion-fast),
-    color var(--motion-fast);
-}
-
-.trigger:hover {
-  background: var(--surface);
-  color: var(--text);
-}
-
 .keys {
   font: inherit;
   color: var(--text-muted);

@@ -150,7 +150,7 @@ describe("ChessSessionWindow", () => {
     fireEvent.change(screen.getByLabelText("Your name"), { target: { value: "Zed" } });
     fireEvent.click(screen.getByRole("button", { name: "Join" }));
     await joined();
-    expect(screen.getByRole("button", { name: "Copy link" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Copy invite link" })).toBeTruthy();
   });
 
   // AC-3 (FR-4)

@@ -13,7 +13,7 @@ import { Banner } from "../../ui/Banner";
 import { Button } from "../../ui/Button";
 import { Card } from "../../ui/Card";
 import { InlineMessage } from "../../ui/InlineMessage";
-import { InviteLink } from "../../ui/InviteLink";
+import { CopyInviteButton, InviteLink } from "../../ui/InviteLink";
 import { TextField } from "../../ui/TextField";
 import { Window } from "../../ui/Window";
 import { getChessSession } from "../gamesApi";
@@ -220,7 +220,7 @@ export function ChessSessionWindow({ createSocket }: Props) {
       toolbar={
         <AppHeader
           label="Chess"
-          actions={header ? <InviteLink link={inviteLink} compact /> : undefined}
+          actions={header ? <CopyInviteButton link={inviteLink} /> : undefined}
         >
           <h1 className={styles.title}>Chess</h1>
         </AppHeader>

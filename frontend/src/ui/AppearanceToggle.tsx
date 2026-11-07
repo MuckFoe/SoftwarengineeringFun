@@ -102,7 +102,7 @@ export function AppearanceToggle() {
       <button
         ref={trigger}
         type="button"
-        className="app-header-icon"
+        className="app-header-pill app-header-pill-icon"
         aria-label="Appearance"
         aria-haspopup="menu"
         aria-expanded={open}
