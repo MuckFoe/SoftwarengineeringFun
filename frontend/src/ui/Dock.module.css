@@ -25,6 +25,7 @@
 .dock::before {
   content: "";
   position: absolute;
+  z-index: -1; /* behind the buttons, or it swallows their clicks */
   inset: calc(-1 * var(--space-8)) 0 0;
 }
 
