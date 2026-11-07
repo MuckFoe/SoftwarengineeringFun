@@ -1,0 +1,17 @@
+{
+  "title": "Carousel Slot Shift",
+  "description": "## Task\n\nA carousel holds items in a ring of slots. Turn it by a number of steps and report the new order, reading the slots from the same starting position as before. A positive number of steps moves every item that many slots to the right (the last items wrap around to the front); a negative number moves items to the left.\n\n## Input\n\n- `slots` — a list of integers; may be empty.\n- `steps` — how far to turn; may be negative or larger than the list.\n\n## Output\n\nA new list with the slots after the turn. The input is not modified.\n\n## Example\n\n```python\nrotate_carousel([1, 2, 3, 4, 5], 2)  # returns [4, 5, 1, 2, 3]\nrotate_carousel([1, 2, 3], -1)  # returns [2, 3, 1]\nrotate_carousel([], 4)  # returns []\n```\n\n## Constraints\n\n- 0 ≤ length of `slots` ≤ 10^5\n- -10^9 ≤ `steps` ≤ 10^9\n- -10^9 ≤ each slot value ≤ 10^9\n\n",
+  "signature": "def rotate_carousel(slots: list[int], steps: int) -> list[int]",
+  "topic": "rotation",
+  "difficulty": "easy",
+  "category": "arrays",
+  "tests": [
+    { "args": [[1, 2, 3, 4, 5], 2], "expected": [4, 5, 1, 2, 3] },
+    { "args": [[1, 2, 3], -1], "expected": [2, 3, 1] },
+    { "args": [[], 4], "expected": [] },
+    { "args": [[9], 123], "expected": [9] },
+    { "args": [[1, 2, 3, 4], 4], "expected": [1, 2, 3, 4] },
+    { "args": [[1, 2, 3, 4], -6], "expected": [3, 4, 1, 2] },
+    { "args": [[1, 2, 3, 4, 5, 6], 1000000007], "expected": [2, 3, 4, 5, 6, 1] }
+  ]
+}

@@ -4,6 +4,7 @@
   "signature": "def shift_letters(s: str, amount: int) -> str",
   "topic": "strings",
   "difficulty": "medium",
+  "category": "strings",
   "tests": [
     { "args": ["abc", 1], "expected": "bcd" },
     { "args": ["xyz", 3], "expected": "abc" },

@@ -1,0 +1,16 @@
+{
+  "title": "Smallest Daily Hauler Load",
+  "description": "## Task\n\nA hauler must move parcels in the exact order they arrive. Each day it carries a consecutive run of parcels whose total weight does not exceed its load limit, and the whole queue must be cleared within the given number of days. Find the smallest load limit that makes this possible. Try limits by halving between the heaviest single parcel and the total weight, checking each guess with one pass over the queue.\n\n## Input\n\n- `weights` — positive integers, the parcels in arrival order. It may be empty.\n- `days` — the number of days available, at least 1.\n\n## Output\n\nThe smallest integer load limit that clears all parcels within `days` days; `0` if there are no parcels.\n\n## Example\n\n```python\nsmallest_hauler_load([4, 2, 7, 3, 5], 2)  # returns 13\nsmallest_hauler_load([1, 1, 1, 1], 4)  # returns 1\nsmallest_hauler_load([10], 3)  # returns 10\n```\n\n## Constraints\n\n- 0 ≤ length of `weights` ≤ 10^5\n- 1 ≤ each weight ≤ 10^4\n- 1 ≤ `days` ≤ 10^5\n",
+  "signature": "def smallest_hauler_load(weights: list[int], days: int) -> int",
+  "topic": "binary search on the answer",
+  "difficulty": "medium",
+  "category": "sorting-searching",
+  "tests": [
+    { "args": [[4, 2, 7, 3, 5], 2], "expected": 13 },
+    { "args": [[1, 1, 1, 1], 4], "expected": 1 },
+    { "args": [[10], 3], "expected": 10 },
+    { "args": [[], 2], "expected": 0 },
+    { "args": [[5, 5, 5], 1], "expected": 15 },
+    { "args": [[9, 1, 9, 1, 9], 5], "expected": 9 }
+  ]
+}

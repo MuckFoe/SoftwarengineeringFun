@@ -1,0 +1,77 @@
+{
+  "title": "Shortest Burst To Hit Quota",
+  "description": "## Task\n\nA bakery logs how many loaves it sells each hour. Find the shortest run of consecutive hours whose sales add up to at least `quota`.\n\n## Input\n\n- `sales` — a list of positive integers. It may be empty.\n- `quota` — the required total.\n\n## Output\n\nAn integer: the length of the shortest contiguous run with sum `>= quota`, or 0 if no run reaches it.\n\n## Example\n\n```python\nshortest_burst([2, 3, 1, 2, 4, 3], 7)  # returns 2\nshortest_burst([1, 1, 1], 10)  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `sales` ≤ 2 * 10^5\n- 1 ≤ each sale ≤ 10^4\n- 1 ≤ `quota` ≤ 10^9\n",
+  "signature": "def shortest_burst(sales: list[int], quota: int) -> int",
+  "topic": "sliding window",
+  "difficulty": "medium",
+  "category": "two-pointers-windows",
+  "tests": [
+    {
+      "args": [
+        [
+          2,
+          3,
+          1,
+          2,
+          4,
+          3
+        ],
+        7
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          1,
+          1,
+          1
+        ],
+        10
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [],
+        1
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          9
+        ],
+        9
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          5,
+          1,
+          1,
+          1,
+          5
+        ],
+        5
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        15
+      ],
+      "expected": 5
+    }
+  ]
+}

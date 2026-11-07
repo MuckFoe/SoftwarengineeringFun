@@ -1,0 +1,91 @@
+{
+  "title": "Net Zero Tide Stretches",
+  "description": "## Task\n\nA harbour records the change in water level at each hour. Count how many contiguous stretches of hours leave the level exactly where it started, meaning their changes add up to zero. Stretches at different positions count separately even if they have the same values.\n\n## Input\n\n- `changes` — a list of integers, the hourly changes. It may be empty.\n\n## Output\n\nThe number of non-empty contiguous stretches whose sum is zero.\n\n## Example\n\n```python\ncount_net_zero([2, -2, 3, -3])  # returns 3\ncount_net_zero([0, 0, 0])  # returns 6\n```\n\n## Constraints\n\n- 0 ≤ length of `changes` ≤ 2 * 10^5\n- -10^4 ≤ each change ≤ 10^4\n- An all-pairs scan would be too slow; the answer can be as large as about 2 * 10^10.\n",
+  "signature": "def count_net_zero(changes: list[int]) -> int",
+  "topic": "prefix sums",
+  "difficulty": "medium",
+  "category": "hash-maps-sets",
+  "tests": [
+    {
+      "args": [
+        [
+          2,
+          -2,
+          3,
+          -3
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "expected": 6
+    },
+    {
+      "args": [
+        []
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          5
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          0
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          1,
+          -1,
+          1,
+          -1,
+          1,
+          -1
+        ]
+      ],
+      "expected": 9
+    },
+    {
+      "args": [
+        [
+          3,
+          -1,
+          -2,
+          4,
+          -4,
+          1,
+          1,
+          -2
+        ]
+      ],
+      "expected": 7
+    }
+  ]
+}

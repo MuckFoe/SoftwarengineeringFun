@@ -17,7 +17,7 @@ export function AccountControl() {
   return (
     <Link className="app-header-pill" to={`/profile?${from}`}>
       <Icon name="person" size={16} />
-      {text}
+      <span className="app-header-pill-text">{text}</span>
     </Link>
   );
 }

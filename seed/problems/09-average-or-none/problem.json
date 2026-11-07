@@ -4,6 +4,7 @@
   "signature": "def average(xs: list[float]) -> float | None",
   "topic": "math",
   "difficulty": "medium",
+  "category": "math-bits",
   "tests": [
     { "args": [[2.0, 4.0]], "expected": 3.0 },
     { "args": [[]], "expected": null },

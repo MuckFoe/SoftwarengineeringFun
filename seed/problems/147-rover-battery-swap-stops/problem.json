@@ -1,0 +1,119 @@
+{
+  "title": "Rover Battery Swap Stops",
+  "description": "## Task\n\nA rover drives along a straight track from position 0 to position `target`, using one unit of charge per unit of distance. It starts with `start_charge` units. Along the track there are swap stations; at a station the rover may swap in a fresh pack and add that station's charge to whatever it has left (leftover charge is kept, and each station can be used at most once). Return the fewest stations it must stop at to reach `target`, or -1 if it cannot. A good solution runs in O(n log n); trying every subset or an O(n^2) table is too slow for the largest inputs.\n\n## Input\n\n- `target` — the distance to travel.\n- `start_charge` — the starting charge.\n- `stations` — a list of `[position, charge]` pairs, sorted by strictly increasing position, each position strictly between 0 and `target`. It may be empty.\n\n## Output\n\nThe fewest stops needed (an integer); 0 if no stop is needed; -1 if the target is unreachable.\n\n## Example\n\n```python\nmin_swap_stops(100, 10, [[10, 60], [20, 30], [30, 30], [60, 40]])  # returns 2\nmin_swap_stops(100, 1, [[10, 100]])  # returns -1\nmin_swap_stops(50, 50, [])  # returns 0\n```\n\n## Constraints\n\n- 1 ≤ `target` ≤ 10^9\n- 0 ≤ number of stations ≤ 10^5\n- 1 ≤ each charge ≤ 10^9\n- 0 ≤ `start_charge` ≤ 10^9\n",
+  "signature": "def min_swap_stops(target: int, start_charge: int, stations: list[list[int]]) -> int",
+  "topic": "greedy with heap",
+  "difficulty": "hard",
+  "category": "greedy-intervals",
+  "tests": [
+    {
+      "args": [
+        100,
+        10,
+        [
+          [
+            10,
+            60
+          ],
+          [
+            20,
+            30
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            60,
+            40
+          ]
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        100,
+        1,
+        [
+          [
+            10,
+            100
+          ]
+        ]
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        50,
+        50,
+        []
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        50,
+        10,
+        []
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        100,
+        25,
+        [
+          [
+            10,
+            5
+          ],
+          [
+            20,
+            5
+          ],
+          [
+            30,
+            70
+          ]
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        10,
+        3,
+        [
+          [
+            3,
+            2
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            6,
+            4
+          ]
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        1000000000,
+        999999999,
+        [
+          [
+            5,
+            1
+          ]
+        ]
+      ],
+      "expected": 1
+    }
+  ]
+}

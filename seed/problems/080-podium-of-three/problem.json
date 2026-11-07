@@ -1,0 +1,109 @@
+{
+  "title": "Podium Of Three",
+  "description": "## Task\n\nA contest records each entrant as a name and a score. Rank entrants from the highest score to the lowest; when two scores tie, the name that comes first alphabetically ranks higher. Return the names of the top three entrants (or all of them if there are fewer than three).\n\n## Input\n\n- `names` — a list of distinct, non-empty lowercase strings, one per entrant. It may be empty.\n- `scores` — a list of integers, the same length as `names`; `scores[i]` belongs to `names[i]`.\n\n## Output\n\nA list of up to three names, best first.\n\n## Example\n\n```python\npodium_names(['ana', 'bo', 'cy', 'di'], [70, 90, 70, 50])  # returns ['bo', 'ana', 'cy']\npodium_names(['zed'], [5])  # returns ['zed']\n```\n\n## Constraints\n\n- 0 ≤ length of `names` ≤ 10^4\n- -10^6 ≤ each score ≤ 10^6\n",
+  "signature": "def podium_names(names: list[str], scores: list[int]) -> list[str]",
+  "topic": "custom sort order",
+  "difficulty": "easy",
+  "category": "sorting-searching",
+  "tests": [
+    {
+      "args": [
+        [
+          "ana",
+          "bo",
+          "cy",
+          "di"
+        ],
+        [
+          70,
+          90,
+          70,
+          50
+        ]
+      ],
+      "expected": [
+        "bo",
+        "ana",
+        "cy"
+      ]
+    },
+    {
+      "args": [
+        [
+          "zed"
+        ],
+        [
+          5
+        ]
+      ],
+      "expected": [
+        "zed"
+      ]
+    },
+    {
+      "args": [
+        [],
+        []
+      ],
+      "expected": []
+    },
+    {
+      "args": [
+        [
+          "b",
+          "a",
+          "c",
+          "d"
+        ],
+        [
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "expected": [
+        "a",
+        "b",
+        "c"
+      ]
+    },
+    {
+      "args": [
+        [
+          "x",
+          "y",
+          "z",
+          "w"
+        ],
+        [
+          -3,
+          -1,
+          -2,
+          -9
+        ]
+      ],
+      "expected": [
+        "y",
+        "z",
+        "x"
+      ]
+    },
+    {
+      "args": [
+        [
+          "m",
+          "n"
+        ],
+        [
+          10,
+          20
+        ]
+      ],
+      "expected": [
+        "n",
+        "m"
+      ]
+    }
+  ]
+}

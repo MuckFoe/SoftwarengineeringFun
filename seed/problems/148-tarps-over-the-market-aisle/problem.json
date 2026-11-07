@@ -1,0 +1,116 @@
+{
+  "title": "Tarps Over The Market Aisle",
+  "description": "## Task\n\nAn outdoor market aisle runs from position 0 to position `length`. Each available tarp is a closed segment `[left, right]` that shelters every point between its ends; tarps may be hung over each other, and two tarps that merely touch at a point leave no gap. Return the fewest tarps that together shelter every point of the aisle, or -1 if some point cannot be covered. Inputs can hold 10^5 tarps, so a pairwise or exhaustive search will not finish in time.\n\n## Input\n\n- `length` — the aisle length.\n- `tarps` — a list of `[left, right]` pairs with `left < right`, in any order. They may reach outside the aisle.\n\n## Output\n\nThe fewest tarps (an integer); 0 if `length` is 0; -1 if the aisle cannot be fully covered.\n\n## Example\n\n```python\nfewest_tarps(10, [[0, 4], [3, 7], [6, 10], [2, 5]])  # returns 3\nfewest_tarps(10, [[0, 4], [5, 10]])  # returns -1\nfewest_tarps(0, [])  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ `length` ≤ 10^9\n- 0 ≤ number of tarps ≤ 10^5\n- -10^9 ≤ `left` < `right` ≤ 10^9\n",
+  "signature": "def fewest_tarps(length: int, tarps: list[list[int]]) -> int",
+  "topic": "interval cover",
+  "difficulty": "hard",
+  "category": "greedy-intervals",
+  "tests": [
+    {
+      "args": [
+        10,
+        [
+          [
+            0,
+            4
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            2,
+            5
+          ]
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        10,
+        [
+          [
+            0,
+            4
+          ],
+          [
+            5,
+            10
+          ]
+        ]
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        0,
+        []
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        5,
+        []
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        5,
+        [
+          [
+            -3,
+            8
+          ]
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        10,
+        [
+          [
+            0,
+            3
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            1,
+            9
+          ]
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        1000000000,
+        [
+          [
+            0,
+            1000000000
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      ],
+      "expected": 1
+    }
+  ]
+}

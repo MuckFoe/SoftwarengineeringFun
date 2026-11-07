@@ -16,6 +16,8 @@ const EXISTING = {
   description: "Add them",
   signature: "def add(a: int, b: int) -> int",
   tests: [{ args: [1, 2], expected: 3 }],
+  category: "strings",
+  difficulty: "hard",
 };
 
 // The backend is not part of this unit; only the HTTP boundary is stubbed.
@@ -23,6 +25,12 @@ function stubServer(responses: { post?: Response; put?: Response; del?: Response
   const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), "http://localhost");
     const method = init?.method ?? "GET";
+    if (method === "GET" && url.pathname === "/api/problems/categories") {
+      return json(200, [
+        { id: "arrays", label: "Arrays" },
+        { id: "strings", label: "Strings" },
+      ]);
+    }
     if (method === "GET" && url.pathname === "/api/problems/abc/edit") return json(200, EXISTING);
     if (method === "POST" && url.pathname === "/api/problems") {
       return responses.post ?? json(201, { id: "new-id" });
@@ -246,5 +254,45 @@ describe("ProblemEditorSheet", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onClose).toHaveBeenCalledOnce();
     expect(onSaved).not.toHaveBeenCalled();
+  });
+
+  // Spec 018 FR-13, NFR-6
+  it("saves with the chosen category and difficulty from labelled selects", async () => {
+    const fetchMock = stubServer();
+    const { onSaved } = renderSheet();
+    fillValid();
+    fireEvent.click(await screen.findByRole("combobox", { name: "Category" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Arrays" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "Difficulty" }));
+    fireEvent.click(screen.getByRole("option", { name: "Medium" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
+    expect(JSON.parse(String(post?.[1]?.body))).toMatchObject({
+      category: "arrays",
+      difficulty: "medium",
+    });
+  });
+
+  it("shows the problem's stored category and difficulty when editing", async () => {
+    stubServer();
+    renderSheet("abc");
+    await waitFor(() =>
+      expect(screen.getByRole("combobox", { name: "Category" }).textContent).toContain("Strings"),
+    );
+    expect(screen.getByRole("combobox", { name: "Difficulty" }).textContent).toContain("Hard");
+  });
+
+  it("shows the server's refusal of a category beside the select and keeps the form", async () => {
+    stubServer({
+      post: json(422, { errors: [{ field: "category", message: "Not a known category" }] }),
+    });
+    const { onSaved } = renderSheet();
+    fillValid();
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    expect(await screen.findByText("Not a known category")).toBeTruthy();
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(fieldValue("Title")).toBe("Sum two");
   });
 });

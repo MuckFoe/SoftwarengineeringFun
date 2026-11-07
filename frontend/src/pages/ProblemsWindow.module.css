@@ -16,6 +16,19 @@
   width: 220px;
 }
 
+/* Narrow only: the header has no room, so the sidebar toggle, search and New problem sit here. */
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin-bottom: var(--space-16);
+}
+
+.searchGrow {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .content {
   padding: var(--space-16) var(--page-margin);
 }
@@ -69,8 +82,137 @@
   white-space: nowrap;
 }
 
-.none {
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-16);
+  margin-bottom: var(--space-16);
+}
+
+.category {
+  min-width: min(100%, 14rem);
+}
+
+.difficulties {
+  margin: 0;
+  border: 0;
+  min-width: 0;
+  display: flex;
+  gap: var(--space-8);
+  padding-bottom: var(--space-8);
+}
+
+/* v2 shapes (constitution-ui 6): the chips are pills, the category trigger a tonal pill. */
+.difficulties button {
+  border-radius: var(--radius-pill);
+  transition:
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease;
+}
+
+/* A chosen chip stays accent-filled under the pointer (the base hover tone made it unreadable). */
+.difficulties button[aria-pressed="true"],
+.difficulties button[aria-pressed="true"]:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.category :global(.ui-select-trigger) {
+  min-height: var(--space-40);
+  padding: 0 var(--space-16);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+}
+
+.category :global(.ui-select-trigger:hover),
+.category :global(.ui-select-trigger[aria-expanded="true"]) {
+  border: 1px solid var(--accent);
+}
+
+.count {
+  margin-left: auto;
+  padding-bottom: var(--space-8);
+  font-family: var(--font-copy);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
   color: var(--form-caption);
+}
+
+.meta {
+  white-space: nowrap;
+  color: var(--form-caption);
+}
+
+.groupRow th {
+  background: var(--surface-2);
+}
+
+.groupTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-copy-1);
+  line-height: var(--lh-copy-1);
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Narrow (about 390px): each problem becomes a stacked card so nothing scrolls sideways. */
+@media (max-width: 40rem) {
+  /* The header line is tight at 390 px: the title stays for screen readers, and the search
+     sits under the header (see useNarrow). */
+  .title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .spacer {
+    display: none;
+  }
+
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td,
+  .table th[scope="rowgroup"] {
+    display: block;
+  }
+
+  .table td {
+    border-bottom: 0;
+    padding: var(--space-4) var(--space-16);
+  }
+
+  .table tbody tr:not(.groupRow) {
+    border-bottom: 1px solid var(--divider);
+    padding: var(--space-8) 0;
+  }
+
+  .titleCell {
+    width: auto;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .count {
+    margin-left: 0;
+  }
 }
 
 .visuallyHidden {

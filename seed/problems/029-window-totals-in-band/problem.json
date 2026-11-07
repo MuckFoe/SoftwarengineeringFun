@@ -1,0 +1,87 @@
+{
+  "title": "Window Totals In Band",
+  "description": "## Task\n\nA sensor logs signed readings `xs`. A window is a non-empty run of consecutive readings. Count the windows whose total lies in the band from `lo` to `hi`, both included. Windows at different positions are counted separately.\n\n## Input\n\n- `xs` — a list of integers, possibly negative.\n- `lo`, `hi` — the band limits, `lo ≤ hi`.\n\n## Output\n\nThe number of windows whose sum `s` satisfies `lo ≤ s ≤ hi`. The list can be long enough that checking every window one by one is far too slow; the answer needs roughly n log n work.\n\n## Example\n\n```python\ncount_band_windows([1, -2, 3], 0, 2)  # returns 3\ncount_band_windows([2, 2, 2], 4, 4)  # returns 2\n```\n\n## Constraints\n\n- 0 ≤ length of `xs` ≤ 5·10^4\n- -10^5 ≤ each value ≤ 10^5\n- -10^10 ≤ `lo` ≤ `hi` ≤ 10^10\n\n",
+  "signature": "def count_band_windows(xs: list[int], lo: int, hi: int) -> int",
+  "topic": "prefix sums with a Fenwick tree",
+  "difficulty": "hard",
+  "category": "arrays",
+  "tests": [
+    {
+      "args": [
+        [
+          1,
+          -2,
+          3
+        ],
+        0,
+        2
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        [
+          2,
+          2,
+          2
+        ],
+        4,
+        4
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [],
+        0,
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          5
+        ],
+        5,
+        5
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          5
+        ],
+        6,
+        9
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        0,
+        0
+      ],
+      "expected": 10
+    },
+    {
+      "args": [
+        [
+          -1,
+          -1,
+          -1
+        ],
+        -2,
+        -1
+      ],
+      "expected": 5
+    }
+  ]
+}

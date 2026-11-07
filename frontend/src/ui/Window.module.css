@@ -63,3 +63,14 @@
     box-shadow: var(--elev-3);
   }
 }
+
+/* Narrow (about 390 px): the 420 px minimum for the main area would push the page sideways. */
+@media (max-width: 40rem) {
+  .window {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .center {
+    min-width: 0;
+  }
+}

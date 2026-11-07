@@ -32,6 +32,17 @@ export interface ProblemSummary {
   id: string;
   title: string;
   is_starter: boolean;
+  /** Spec 018: one of the fixed category ids, or null when unset. */
+  category?: string | null;
+  difficulty?: Difficulty | null;
+}
+
+export type Difficulty = "easy" | "medium" | "hard";
+
+/** GET /api/problems/categories (spec 018), in catalogue order. */
+export interface ProblemCategory {
+  id: string;
+  label: string;
 }
 
 /** A problem as everyone sees it. Never carries tests. */
@@ -57,6 +68,9 @@ export interface ProblemInput {
   description: string;
   signature: string;
   tests: ProblemTest[];
+  /** Spec 018: omitted leaves the stored value unchanged. */
+  category?: string | null;
+  difficulty?: Difficulty | null;
 }
 
 /** Editor-only: GET /api/problems/{id}/edit. */

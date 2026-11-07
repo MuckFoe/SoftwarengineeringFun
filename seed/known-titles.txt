@@ -1,0 +1,178 @@
+# Well-known catalogue problem titles (lowercase compare). A seed title equal to one of these fails seed_check.
+two sum
+three sum
+3sum
+four sum
+4sum
+add two numbers
+longest substring without repeating characters
+median of two sorted arrays
+longest palindromic substring
+zigzag conversion
+reverse integer
+string to integer (atoi)
+palindrome number
+regular expression matching
+container with most water
+integer to roman
+roman to integer
+longest common prefix
+letter combinations of a phone number
+remove nth node from end of list
+valid parentheses
+merge two sorted lists
+generate parentheses
+merge k sorted lists
+swap nodes in pairs
+reverse nodes in k-group
+remove duplicates from sorted array
+remove element
+find the index of the first occurrence in a string
+divide two integers
+next permutation
+longest valid parentheses
+search in rotated sorted array
+find first and last position of element in sorted array
+search insert position
+valid sudoku
+sudoku solver
+combination sum
+trapping rain water
+first missing positive
+multiply strings
+wildcard matching
+jump game
+jump game ii
+permutations
+permutations ii
+rotate image
+group anagrams
+n-queens
+maximum subarray
+spiral matrix
+merge intervals
+insert interval
+unique paths
+minimum path sum
+climbing stairs
+edit distance
+set matrix zeroes
+sort colors
+minimum window substring
+subsets
+word search
+largest rectangle in histogram
+merge sorted array
+validate binary search tree
+same tree
+symmetric tree
+maximum depth of binary tree
+binary tree level order traversal
+best time to buy and sell stock
+best time to buy and sell stock ii
+valid palindrome
+word ladder
+longest consecutive sequence
+palindrome partitioning
+gas station
+single number
+linked list cycle
+lru cache
+evaluate reverse polish notation
+reverse words in a string
+maximum product subarray
+find minimum in rotated sorted array
+min stack
+majority element
+excel sheet column number
+factorial trailing zeroes
+rotate array
+number of 1 bits
+reverse bits
+house robber
+number of islands
+happy number
+reverse linked list
+course schedule
+implement trie (prefix tree)
+minimum size subarray sum
+kth largest element in an array
+contains duplicate
+product of array except self
+sliding window maximum
+valid anagram
+missing number
+move zeroes
+find the duplicate number
+longest increasing subsequence
+coin change
+word break
+top k frequent elements
+intersection of two arrays
+power of two
+fizz buzz
+two sum ii - input array is sorted
+isomorphic strings
+ransom note
+first unique character in a string
+decode string
+daily temperatures
+partition equal subset sum
+subarray sum equals k
+backspace string compare
+reorder list
+maximum sliding window
+climbing stairs ii
+fibonacci number
+n-th tribonacci number
+pascal's triangle
+longest common subsequence
+unique binary search trees
+clone graph
+binary search
+sqrt(x)
+power of three
+add binary
+plus one
+happy number
+lemonade change
+assign cookies
+meeting rooms
+meeting rooms ii
+non-overlapping intervals
+minimum number of arrows to burst balloons
+task scheduler
+partition labels
+queue reconstruction by height
+candy
+reverse string
+valid palindrome ii
+longest repeating character replacement
+permutation in string
+find all anagrams in a string
+maximum number of vowels in a substring of given length
+sum of two integers
+counting bits
+hamming distance
+single number ii
+subsets ii
+combination sum ii
+letter case permutation
+rotting oranges
+pacific atlantic water flow
+word search ii
+binary tree maximum path sum
+lowest common ancestor of a binary tree
+serialize and deserialize binary tree
+diameter of binary tree
+invert binary tree
+kth smallest element in a bst
+topological sort
+dijkstra
+network delay time
+cheapest flights within k stops
+alien dictionary
+graph valid tree
+number of connected components in an undirected graph
+redundant connection
+accounts merge

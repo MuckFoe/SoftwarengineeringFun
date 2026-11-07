@@ -1,0 +1,150 @@
+{
+  "title": "Night Train With Transfer Fee",
+  "description": "## Task\n\nA night-train network has `n` stations and one-way legs, each with a fare. Every time you change to another leg after the first one you also pay a flat transfer `fee`, so a journey of `k` legs costs the sum of its fares plus `fee * (k - 1)`. Find the cheapest journey from `start` to `goal`. If `start` and `goal` are the same station the journey is free.\n\n## Input\n\n- `n` — the number of stations, numbered `0` to `n - 1`.\n- `legs` — a list of `[a, b, fare]`: a one-way leg from `a` to `b` costing `fare`. Parallel legs and loops may appear.\n- `fee` — the transfer fee, a non-negative integer.\n- `start`, `goal` — the stations.\n\n## Output\n\nThe lowest total cost as an integer, or `-1` if `goal` cannot be reached.\n\n## Example\n\n```python\ncheapest_night_journey(3, [[0, 1, 5], [1, 2, 5], [0, 2, 20]], 2, 0, 2)  # returns 12\ncheapest_night_journey(3, [[0, 1, 5], [1, 2, 5], [0, 2, 20]], 20, 0, 2)  # returns 20\ncheapest_night_journey(2, [[1, 0, 1]], 0, 0, 1)  # returns -1\n```\n\n## Constraints\n\n- 1 ≤ `n` ≤ 2000\n- 0 ≤ number of legs ≤ 1.2 * 10^4\n- 0 ≤ `fee` ≤ 1000 and 0 ≤ `fare` ≤ 1000\n",
+  "signature": "def cheapest_night_journey(n: int, legs: list[list[int]], fee: int, start: int, goal: int) -> int",
+  "topic": "dijkstra",
+  "difficulty": "medium",
+  "category": "graphs-trees",
+  "tests": [
+    {
+      "args": [
+        3,
+        [
+          [
+            0,
+            1,
+            5
+          ],
+          [
+            1,
+            2,
+            5
+          ],
+          [
+            0,
+            2,
+            20
+          ]
+        ],
+        2,
+        0,
+        2
+      ],
+      "expected": 12
+    },
+    {
+      "args": [
+        3,
+        [
+          [
+            0,
+            1,
+            5
+          ],
+          [
+            1,
+            2,
+            5
+          ],
+          [
+            0,
+            2,
+            20
+          ]
+        ],
+        20,
+        0,
+        2
+      ],
+      "expected": 20
+    },
+    {
+      "args": [
+        2,
+        [
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        0,
+        0,
+        1
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        1,
+        [],
+        5,
+        0,
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        4,
+        [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            1
+          ],
+          [
+            2,
+            3,
+            1
+          ],
+          [
+            0,
+            3,
+            10
+          ]
+        ],
+        0,
+        0,
+        3
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        4,
+        [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            1
+          ],
+          [
+            2,
+            3,
+            1
+          ],
+          [
+            0,
+            3,
+            10
+          ]
+        ],
+        5,
+        0,
+        3
+      ],
+      "expected": 10
+    }
+  ]
+}

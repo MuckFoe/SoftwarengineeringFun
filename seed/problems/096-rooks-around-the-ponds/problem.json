@@ -1,0 +1,19 @@
+{
+  "title": "Rooks Around the Ponds",
+  "description": "## Task\n\nA garden is an `n` by `n` grid of squares. Some squares are ponds and cannot hold a rook. Place `n` rooks so that every row and every column has exactly one rook and no rook stands on a pond. Count the different placements.\n\n## Input\n\n- `n` — the side length of the grid.\n- `ponds` — a list of `[row, col]` pairs (0-based) marking pond squares.\n\n## Output\n\nThe number of valid placements of `n` rooks.\n\n## Example\n\n```python\nrooks_around_the_ponds(2, [])  # returns 2\nrooks_around_the_ponds(2, [[0, 0]])  # returns 1\nrooks_around_the_ponds(3, [[0, 0], [1, 1], [2, 2]])  # returns 2\n```\n\n## Constraints\n\n- 1 ≤ `n` ≤ 13\n- 0 ≤ length of `ponds` ≤ `n` * `n`\n- Pond squares are inside the grid; a square may be listed twice.\n\n",
+  "signature": "def rooks_around_the_ponds(n: int, ponds: list[list[int]]) -> int",
+  "topic": "rook placement counting",
+  "difficulty": "medium",
+  "category": "recursion-backtracking",
+  "tests": [
+    { "args": [2, []], "expected": 2 },
+    { "args": [2, [[0, 0]]], "expected": 1 },
+    { "args": [3, [[0, 0], [1, 1], [2, 2]]], "expected": 2 },
+    { "args": [1, [[0, 0]]], "expected": 0 },
+    { "args": [1, []], "expected": 1 },
+    { "args": [4, [[0, 1], [1, 2], [2, 3], [3, 0]]], "expected": 9 },
+    { "args": [6, [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [5, 5]]], "expected": 265 },
+    { "args": [10, [[0, 0], [1, 3], [2, 6], [3, 9], [4, 2], [5, 5], [6, 8], [7, 1], [8, 4], [9, 7]]], "expected": 1334961 },
+    { "args": [13, [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 10], [10, 11], [11, 12], [12, 0], [0, 5], [7, 2]]], "expected": 1926482098 }
+  ]
+}

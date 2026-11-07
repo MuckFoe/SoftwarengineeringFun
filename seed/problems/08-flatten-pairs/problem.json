@@ -4,6 +4,7 @@
   "signature": "def flatten_pairs(pairs: list[list[int]]) -> list[int]",
   "topic": "arrays",
   "difficulty": "easy",
+  "category": "arrays",
   "tests": [
     { "args": [[[1, 2], [3, 4]]], "expected": [1, 2, 3, 4] },
     { "args": [[]], "expected": [] },

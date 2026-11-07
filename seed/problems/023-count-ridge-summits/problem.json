@@ -1,0 +1,17 @@
+{
+  "title": "Count Ridge Summits",
+  "description": "## Task\n\nA hiker records the height of the ridge every 100 metres. A summit is a point that is strictly higher than the point just before it and the point just after it. Count the summits along the trail. The two end points have only one neighbour and never count.\n\n## Input\n\n- `heights` — a list of integers, one per sampling point.\n\n## Output\n\nThe number of summits.\n\n## Example\n\n```python\ncount_summits([1, 3, 2, 5, 4])  # returns 2\ncount_summits([1, 2, 3])  # returns 0\ncount_summits([2, 4, 4, 1])  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `heights` ≤ 10^5\n- -10^9 ≤ each height ≤ 10^9\n\n",
+  "signature": "def count_summits(heights: list[int]) -> int",
+  "topic": "neighbour comparison",
+  "difficulty": "easy",
+  "category": "arrays",
+  "tests": [
+    { "args": [[1, 3, 2, 5, 4]], "expected": 2 },
+    { "args": [[1, 2, 3]], "expected": 0 },
+    { "args": [[2, 4, 4, 1]], "expected": 0 },
+    { "args": [[]], "expected": 0 },
+    { "args": [[5, 1]], "expected": 0 },
+    { "args": [[1, 3, 1, 3, 1, 3, 1]], "expected": 3 },
+    { "args": [[0, -5, 0, -5, 0]], "expected": 1 }
+  ]
+}

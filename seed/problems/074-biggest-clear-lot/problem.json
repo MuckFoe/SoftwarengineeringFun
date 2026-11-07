@@ -1,0 +1,72 @@
+{
+  "title": "Biggest Clear Lot",
+  "description": "## Task\n\nA survey map of a construction site is a grid of cells, each either clear (`1`) or blocked (`0`). A builder wants the largest axis-aligned rectangular lot made entirely of clear cells. Return its area in cells.\n\n## Input\n\n- `site` — a list of equal-length strings of `0` and `1`, one string per row. It may be empty.\n\n## Output\n\nAn integer: the area of the largest rectangle containing only `1` cells, or `0` if there is none.\n\n## Example\n\n```python\nbiggest_clear_lot(['10100', '10111', '11111', '10010'])  # returns 6\nbiggest_clear_lot(['00', '00'])  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ number of rows ≤ 400\n- 0 ≤ row length ≤ 400 (all rows have the same length)\n- Each character is `0` or `1`.\n- Large grids appear in the tests; trying every rectangle will be too slow.\n",
+  "signature": "def biggest_clear_lot(site: list[str]) -> int",
+  "topic": "histogram stack",
+  "difficulty": "hard",
+  "category": "stacks-queues",
+  "tests": [
+    {
+      "args": [
+        [
+          "10100",
+          "10111",
+          "11111",
+          "10010"
+        ]
+      ],
+      "expected": 6
+    },
+    {
+      "args": [
+        []
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          "00",
+          "00"
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          "1"
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          "0"
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          "111",
+          "111",
+          "111"
+        ]
+      ],
+      "expected": 9
+    },
+    {
+      "args": [
+        [
+          "101",
+          "111",
+          "101"
+        ]
+      ],
+      "expected": 3
+    }
+  ]
+}

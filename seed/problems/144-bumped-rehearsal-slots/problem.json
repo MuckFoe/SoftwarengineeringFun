@@ -1,0 +1,134 @@
+{
+  "title": "Bumped Rehearsal Slots",
+  "description": "## Task\n\nA theatre has booked many rehearsals into one stage, and some clash. Each booking is a half-open range `[start, end)`, so a rehearsal that begins exactly when another ends is fine. Return the fewest bookings that must be bumped so that no two remaining bookings overlap.\n\n## Input\n\n- `slots` — a list of `[start, end]` pairs with `start < end`, in any order. It may be empty.\n\n## Output\n\nThe minimum number of bookings to remove (an integer).\n\n## Example\n\n```python\nbumped_rehearsals([[1, 4], [2, 6], [5, 8], [8, 9]])  # returns 1\nbumped_rehearsals([[0, 5], [5, 10]])  # returns 0\nbumped_rehearsals([[1, 10], [2, 3], [4, 5], [6, 7]])  # returns 1\n```\n\n## Constraints\n\n- 0 ≤ number of slots ≤ 10^5\n- 0 ≤ `start` < `end` ≤ 10^9\n- Identical bookings count separately.\n",
+  "signature": "def bumped_rehearsals(slots: list[list[int]]) -> int",
+  "topic": "interval scheduling",
+  "difficulty": "medium",
+  "category": "greedy-intervals",
+  "tests": [
+    {
+      "args": [
+        []
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          [
+            3,
+            7
+          ]
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            8,
+            9
+          ]
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          [
+            0,
+            5
+          ],
+          [
+            5,
+            10
+          ]
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          [
+            1,
+            10
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            6,
+            7
+          ]
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          [
+            0,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            8,
+            10
+          ]
+        ]
+      ],
+      "expected": 2
+    }
+  ]
+}

@@ -4,6 +4,7 @@
   "signature": "def count_vowels(s: str) -> int",
   "topic": "strings",
   "difficulty": "easy",
+  "category": "strings",
   "tests": [
     { "args": ["hello"], "expected": 2 },
     { "args": ["sky"], "expected": 0 },

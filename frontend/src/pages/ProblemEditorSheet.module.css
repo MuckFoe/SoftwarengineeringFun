@@ -64,3 +64,18 @@
   margin: 0 0 var(--space-16);
   color: var(--text-muted);
 }
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-16);
+}
+
+/* v2 shapes (constitution-ui 6): the selects are tonal pills, like the picker's category trigger. */
+.pair :global(.ui-select-trigger) {
+  min-height: var(--space-40);
+  padding: 0 var(--space-16);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+}

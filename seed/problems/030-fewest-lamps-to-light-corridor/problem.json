@@ -1,0 +1,81 @@
+{
+  "title": "Fewest Lamps To Light Corridor",
+  "description": "## Task\n\nA corridor runs from position 0 to position `n`, where `n` is one less than the length of `reach`. There is a lamp socket at every integer position `i`, and a lamp placed at socket `i` lights every position from `i - reach[i]` to `i + reach[i]`, both included (a reach of 0 lights only its own position). Switch on as few lamps as possible so that the whole corridor from 0 to `n` is lit, with no dark gaps between lit positions.\n\n## Input\n\n- `reach` — a list of non-negative integers, one per socket; its length is `n + 1`.\n\n## Output\n\nThe smallest number of lamps that light every position from 0 to `n`. (Every socket lights at least itself, so a full cover always exists.) Trying subsets of lamps is hopeless on the big inputs; a linear or n log n method is expected.\n\n## Example\n\n```python\nfewest_lamps([3, 0, 0, 0, 0, 0, 0])  # returns 4\nfewest_lamps([1, 4, 0, 0, 1, 0, 0, 2, 0])  # returns 2\nfewest_lamps([0])  # returns 1\n```\n\n## Constraints\n\n- 1 ≤ length of `reach` ≤ 5·10^4\n- 0 ≤ each value ≤ 5·10^4\n\n",
+  "signature": "def fewest_lamps(reach: list[int]) -> int",
+  "topic": "greedy interval cover",
+  "difficulty": "hard",
+  "category": "arrays",
+  "tests": [
+    {
+      "args": [
+        [
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        [
+          1,
+          4,
+          0,
+          0,
+          1,
+          0,
+          0,
+          2,
+          0
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          0
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          0,
+          0
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "expected": 4
+    }
+  ]
+}

@@ -72,6 +72,7 @@ The page loads its markdown renderer from cdnjs, so it needs network access.
 | 015 | [audi-ui-redesign](015-audi-ui-redesign/spec.md) | Restyle every screen, games included, in the Audi design language (kit colours, Audi type and icons, component states, light/dark), replacing spec 003's Apple look; behaviour unchanged | draft | 0 |
 | 016 | [Audi restyle v2](016-audi-restyle-v2/spec.md) | Carry the chosen v2 look (pills, rounded tiles, light line, blue accent, floating appearance menu) to every screen | draft | 0 |
 | 017 | [Home screen with live session tiles](017-home-screen-tiles/spec.md) | Landing screen with a live greeting, Start session tile and tiles for sessions and games with code and board previews | validated | 0 |
+| 018 | [Problem catalogue of 150](018-problem-catalogue-150/spec.md) | Grow the starter set to 150 problems (50 easy, 50 medium, 50 hard, existing 20 included), each in one category, with category and difficulty browsing and filtering | draft | 0 |
 
 **Status** is one of `draft` (written, not approved), `approved` (every
 `[NEEDS CLARIFICATION]` resolved and the spec signed off), `planned`, `in

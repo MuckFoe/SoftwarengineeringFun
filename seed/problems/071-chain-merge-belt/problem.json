@@ -1,0 +1,86 @@
+{
+  "title": "Chain Merge Belt",
+  "description": "## Task\n\nNumbered crates arrive one at a time on a belt and are added to the end of a row. As soon as the last two crates in the row have the same number, they fuse into a single crate carrying their sum, and that new crate is checked against the one before it in the same way, so a chain of fusions can follow. Keep going until the row stops changing, then add the next arriving crate. Return the final row after every crate has arrived.\n\n## Input\n\n- `crates` — a list of positive integers in arrival order. It may be empty.\n\n## Output\n\nThe list of crate numbers in the final row, from first to last.\n\n## Example\n\n```python\nchain_merge_belt([2, 2, 4, 8])  # returns [16]\nchain_merge_belt([1, 2, 2, 1])  # returns [1, 4, 1]\n```\n\n## Constraints\n\n- 0 ≤ length of `crates` ≤ 10^5\n- 1 ≤ each number ≤ 1000\n",
+  "signature": "def chain_merge_belt(crates: list[int]) -> list[int]",
+  "topic": "stack",
+  "difficulty": "medium",
+  "category": "stacks-queues",
+  "tests": [
+    {
+      "args": [
+        [
+          2,
+          2,
+          4,
+          8
+        ]
+      ],
+      "expected": [
+        16
+      ]
+    },
+    {
+      "args": [
+        []
+      ],
+      "expected": []
+    },
+    {
+      "args": [
+        [
+          5
+        ]
+      ],
+      "expected": [
+        5
+      ]
+    },
+    {
+      "args": [
+        [
+          1,
+          2,
+          2,
+          1
+        ]
+      ],
+      "expected": [
+        1,
+        4,
+        1
+      ]
+    },
+    {
+      "args": [
+        [
+          3,
+          3,
+          3,
+          3,
+          3
+        ]
+      ],
+      "expected": [
+        12,
+        3
+      ]
+    },
+    {
+      "args": [
+        [
+          1,
+          1,
+          2,
+          4,
+          8,
+          16,
+          3
+        ]
+      ],
+      "expected": [
+        32,
+        3
+      ]
+    }
+  ]
+}

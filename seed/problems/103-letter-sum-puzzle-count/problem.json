@@ -1,0 +1,21 @@
+{
+  "title": "Letter Sum Puzzle Count",
+  "description": "## Task\n\nA puzzle writes a sum with letters instead of digits: the words added together should equal `result`. Each letter stands for one digit from 0 to 9, different letters stand for different digits, and a word or result with more than one letter does not start with the digit 0. Count the letter-to-digit assignments that make the sum true when each word is read as a decimal number. Trying all assignments of up to ten letters is too slow; fill the letters column by column from the right and check each column's digit and carry as soon as it is complete.\n\n## Input\n\n- `words` — a list of words made of uppercase letters, the addends.\n- `result` — the word on the other side of the equals sign.\n\n## Output\n\nThe number of valid assignments (0 if none).\n\n## Example\n\n```python\nletter_sum_puzzle_count(['SEND', 'MORE'], 'MONEY')  # returns 1\nletter_sum_puzzle_count(['A', 'B'], 'C')  # returns 32\nletter_sum_puzzle_count(['AB'], 'BA')  # returns 0\n```\n\n## Constraints\n\n- 1 ≤ number of words ≤ 8\n- 1 ≤ length of each word and of `result` ≤ 9\n- At most 10 distinct letters in total\n\n",
+  "signature": "def letter_sum_puzzle_count(words: list[str], result: str) -> int",
+  "topic": "cryptarithm column search",
+  "difficulty": "hard",
+  "category": "recursion-backtracking",
+  "tests": [
+    { "args": [["SEND", "MORE"], "MONEY"], "expected": 1 },
+    { "args": [["A", "B"], "C"], "expected": 32 },
+    { "args": [["AB"], "BA"], "expected": 0 },
+    { "args": [["A"], "A"], "expected": 10 },
+    { "args": [["TWO", "TWO"], "FOUR"], "expected": 7 },
+    { "args": [["NO", "GO", "NO"], "YES"], "expected": 81 },
+    { "args": [["THIS", "IS", "TOO"], "EASY"], "expected": 75 },
+    { "args": [["BASE", "BALL"], "GAMES"], "expected": 1 },
+    { "args": [["EAT", "THAT"], "APPLE"], "expected": 1 },
+    { "args": [["SIX", "SEVEN", "SEVEN"], "TWENTY"], "expected": 1 },
+    { "args": [["ABC", "DEF", "GHI"], "JABC"], "expected": 256 }
+  ]
+}

@@ -4,6 +4,7 @@
   "signature": "def is_palindrome(s: str) -> bool",
   "topic": "strings",
   "difficulty": "easy",
+  "category": "strings",
   "tests": [
     { "args": ["level"], "expected": true },
     { "args": ["hello"], "expected": false },

@@ -1,0 +1,17 @@
+{
+  "title": "Longest Rising Ledger Streak",
+  "description": "## Task\n\nA ledger records the closing balance of an account at the end of each day. Find the longest stretch of consecutive days in which the balance went up every single day, and report how many days that stretch covers.\n\n## Input\n\n- `balances` — a list of integers, one per day. It may be empty.\n\n## Output\n\nThe number of days in the longest block of consecutive entries that are strictly increasing. A single day counts as a block of length 1. An empty list gives 0.\n\n## Example\n\n```python\nlongest_rising_streak([3, 5, 8, 2, 4, 6, 7, 1])  # returns 4\nlongest_rising_streak([5, 5, 5])  # returns 1\nlongest_rising_streak([])  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `balances` ≤ 10^5\n- -10^9 ≤ each balance ≤ 10^9\n\n",
+  "signature": "def longest_rising_streak(balances: list[int]) -> int",
+  "topic": "runs in a list",
+  "difficulty": "easy",
+  "category": "arrays",
+  "tests": [
+    { "args": [[3, 5, 8, 2, 4, 6, 7, 1]], "expected": 4 },
+    { "args": [[]], "expected": 0 },
+    { "args": [[7]], "expected": 1 },
+    { "args": [[1, 2, 3, 4, 5]], "expected": 5 },
+    { "args": [[5, 4, 3, 2]], "expected": 1 },
+    { "args": [[2, 2, 3, 3, 4]], "expected": 2 },
+    { "args": [[1, 3, 2, 4, 6, 8, 7]], "expected": 4 }
+  ]
+}

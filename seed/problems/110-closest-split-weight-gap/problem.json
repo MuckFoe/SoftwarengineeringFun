@@ -1,0 +1,20 @@
+{
+  "title": "Closest Split Weight Gap",
+  "description": "## Task\n\nA crew must carry crates up two staircases and wants the two loads as even as possible. Every crate goes to exactly one of the two groups. Find the smallest possible difference between the total weight of the two groups.\n\n## Input\n\n- `weights` — positive integer crate weights. It may be empty.\n\n## Output\n\nThe minimum absolute difference between the two group totals. An empty list gives 0.\n\n## Example\n\n```python\nclosest_split_gap([3, 1, 4, 2, 2])  # returns 0\nclosest_split_gap([10])  # returns 10\nclosest_split_gap([8, 5, 3])  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `weights` ≤ 200\n- 1 ≤ each weight ≤ 500\n",
+  "signature": "def closest_split_gap(weights: list[int]) -> int",
+  "topic": "subset sum",
+  "difficulty": "medium",
+  "category": "dynamic-programming",
+  "tests": [
+    { "args": [[3, 1, 4, 2, 2]], "expected": 0 },
+    { "args": [[10]], "expected": 10 },
+    { "args": [[8, 5, 3]], "expected": 0 },
+    { "args": [[]], "expected": 0 },
+    { "args": [[1, 1]], "expected": 0 },
+    { "args": [[7, 7, 7]], "expected": 7 },
+    { "args": [[500, 500, 500, 500, 500]], "expected": 500 },
+    { "args": [[300, 58, 167, 223, 162, 244, 479, 84, 408, 206, 242, 359, 81, 166, 195, 408, 230, 95, 275, 52, 348, 322, 50, 232, 288, 471, 253, 54, 38, 383, 124, 343, 408, 190, 437, 66, 43, 314, 347, 389, 212, 242, 242, 194, 352, 71, 313, 443, 217, 255, 96, 477, 238, 148, 282, 49, 459, 308, 460, 286, 82, 169, 191, 115, 306, 323, 418, 379, 122, 127, 229, 354, 419, 440, 201, 258, 481, 254, 224, 276, 334, 404, 444, 74, 105, 117, 177, 428, 170, 34, 37, 157, 61, 244, 93, 382, 237, 323, 496, 477, 451, 343, 240, 1, 207, 37, 297, 19, 267, 222, 97, 14, 270, 482, 324, 65, 104, 387, 439, 177, 212, 167, 492, 108, 184, 333, 318, 99, 278, 478, 135, 104, 400, 463, 3, 483, 128, 490, 165, 382, 452, 433, 257, 30, 19, 342, 154, 8, 313, 363, 415, 487, 56, 13, 399, 493, 200, 499, 269, 428, 216, 383, 225, 183, 430, 471, 9, 470, 326, 377, 319, 359, 232, 73, 301, 19, 81, 426, 427, 345, 366, 323, 238, 161, 293, 137, 393, 472, 443, 273, 240, 11, 148, 175, 457, 179, 10, 35, 395, 38]], "expected": 0 },
+    { "args": [[2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31]], "expected": 0 },
+    { "args": [[400, 1, 1, 1]], "expected": 397 }
+  ]
+}

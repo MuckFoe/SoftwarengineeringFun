@@ -4,6 +4,7 @@
   "signature": "def word_frequency(words: list[str]) -> dict[str, int]",
   "topic": "hash maps",
   "difficulty": "easy",
+  "category": "hash-maps-sets",
   "tests": [
     { "args": [["a", "b", "a"]], "expected": { "a": 2, "b": 1 } },
     { "args": [[]], "expected": {} },

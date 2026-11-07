@@ -1,0 +1,106 @@
+{
+  "title": "Rank Shift Report",
+  "description": "## Task\n\nRunners cross a finish line one after another, and `xs[i]` is the time of the runner who crossed in position `i`. For each runner, report how many runners who crossed later posted a strictly smaller time.\n\n## Input\n\n- `xs` — a list of integers; values may repeat.\n\n## Output\n\nA list of the same length where entry `i` is the number of indices `j > i` with `xs[j] < xs[i]`. Comparing every pair is too slow for the largest inputs; an n log n method is expected.\n\n## Example\n\n```python\nsmaller_after_counts([5, 2, 6, 1])  # returns [2, 1, 1, 0]\nsmaller_after_counts([3, 3, 3])  # returns [0, 0, 0]\n```\n\n## Constraints\n\n- 0 ≤ length of `xs` ≤ 5·10^4\n- -10^9 ≤ each value ≤ 10^9\n\n",
+  "signature": "def smaller_after_counts(xs: list[int]) -> list[int]",
+  "topic": "Fenwick tree with coordinate compression",
+  "difficulty": "hard",
+  "category": "arrays",
+  "tests": [
+    {
+      "args": [
+        [
+          5,
+          2,
+          6,
+          1
+        ]
+      ],
+      "expected": [
+        2,
+        1,
+        1,
+        0
+      ]
+    },
+    {
+      "args": [
+        [
+          3,
+          3,
+          3
+        ]
+      ],
+      "expected": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "args": [
+        []
+      ],
+      "expected": []
+    },
+    {
+      "args": [
+        [
+          8
+        ]
+      ],
+      "expected": [
+        0
+      ]
+    },
+    {
+      "args": [
+        [
+          4,
+          3,
+          2,
+          1
+        ]
+      ],
+      "expected": [
+        3,
+        2,
+        1,
+        0
+      ]
+    },
+    {
+      "args": [
+        [
+          1,
+          2,
+          3,
+          4
+        ]
+      ],
+      "expected": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "args": [
+        [
+          2,
+          -5,
+          2,
+          -5,
+          0
+        ]
+      ],
+      "expected": [
+        3,
+        0,
+        2,
+        0,
+        0
+      ]
+    }
+  ]
+}

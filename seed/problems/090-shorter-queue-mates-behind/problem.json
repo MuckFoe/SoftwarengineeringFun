@@ -1,0 +1,16 @@
+{
+  "title": "Shorter Queue Mates Behind You",
+  "description": "## Task\n\nPeople stand in a queue from front to back. For each person, count how many people behind them in the queue are strictly shorter. Return the counts in queue order. Queues can have 10^5 people, so a nested loop is too slow; compress the heights to ranks and use a Fenwick (binary indexed) tree, or a merge sort that tracks original positions.\n\n## Input\n\n- `heights` — a list of integers in queue order (front first). It may be empty.\n\n## Output\n\nA list of the same length where entry `i` is the number of positions `j > i` with `heights[j] < heights[i]`.\n\n## Example\n\n```python\nshorter_behind([5, 2, 6, 1])  # returns [2, 1, 1, 0]\nshorter_behind([3, 3, 3])  # returns [0, 0, 0]\nshorter_behind([1, 2, 3])  # returns [0, 0, 0]\n```\n\n## Constraints\n\n- 0 ≤ length of `heights` ≤ 10^5\n- -10^9 ≤ each height ≤ 10^9\n",
+  "signature": "def shorter_behind(heights: list[int]) -> list[int]",
+  "topic": "counting with a Fenwick tree",
+  "difficulty": "hard",
+  "category": "sorting-searching",
+  "tests": [
+    { "args": [[5, 2, 6, 1]], "expected": [2, 1, 1, 0] },
+    { "args": [[3, 3, 3]], "expected": [0, 0, 0] },
+    { "args": [[1, 2, 3]], "expected": [0, 0, 0] },
+    { "args": [[]], "expected": [] },
+    { "args": [[9]], "expected": [0] },
+    { "args": [[-1, -5, 0, -5, 2]], "expected": [2, 0, 1, 0, 0] }
+  ]
+}

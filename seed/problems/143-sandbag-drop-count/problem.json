@@ -1,0 +1,90 @@
+{
+  "title": "Sandbag Drop Count",
+  "description": "## Task\n\nA balloon basket must shed at least `needed` kilograms to clear a ridge. It carries sandbags of various weights, and each bag is dropped whole. Return the fewest bags that must be dropped, or -1 if even dropping all of them is not enough.\n\n## Input\n\n- `weights` — a list of positive integers, the weight of each bag. It may be empty.\n- `needed` — the weight that must be shed (may be zero or negative).\n\n## Output\n\nThe fewest bags to drop (an integer); 0 if nothing needs shedding; -1 if it is impossible.\n\n## Example\n\n```python\nsandbags_to_drop([4, 1, 7, 2], 9)  # returns 2\nsandbags_to_drop([3, 3], 10)  # returns -1\nsandbags_to_drop([5], 0)  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `weights` ≤ 10^5\n- 1 ≤ each weight ≤ 10^4\n- -10^9 ≤ `needed` ≤ 10^9\n",
+  "signature": "def sandbags_to_drop(weights: list[int], needed: int) -> int",
+  "topic": "greedy sorting",
+  "difficulty": "easy",
+  "category": "greedy-intervals",
+  "tests": [
+    {
+      "args": [
+        [
+          4,
+          1,
+          7,
+          2
+        ],
+        9
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          3,
+          3
+        ],
+        10
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        [
+          5
+        ],
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [],
+        1
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        [],
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          2,
+          2,
+          2,
+          2
+        ],
+        8
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        [
+          2,
+          2,
+          2,
+          2
+        ],
+        9
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        [
+          9,
+          1,
+          1
+        ],
+        -5
+      ],
+      "expected": 0
+    }
+  ]
+}

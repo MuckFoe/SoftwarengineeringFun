@@ -1,0 +1,64 @@
+{
+  "title": "Longest Paired-Off Stretch",
+  "description": "## Task\n\nFind the longest contiguous piece of a string in which every letter appears an even number of times (letters that do not appear at all count as zero, which is even).\n\n## Input\n\n- `s` — a string of lowercase letters; it may be empty.\n\n## Output\n\nThe length of the longest such piece, or `0` if there is none.\n\n## Example\n\n```python\nlongest_paired_off('abbaxc')  # returns 4\nlongest_paired_off('abc')  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `s` ≤ 3 * 10^5\n- `s` contains only `a-z`.\n- Checking every piece one by one would be too slow.\n",
+  "signature": "def longest_paired_off(s: str) -> int",
+  "topic": "bitmask prefix",
+  "difficulty": "hard",
+  "category": "hash-maps-sets",
+  "tests": [
+    {
+      "args": [
+        "abbaxc"
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        "abc"
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        ""
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        "aa"
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        "a"
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        "abcabc"
+      ],
+      "expected": 6
+    },
+    {
+      "args": [
+        "abcabcd"
+      ],
+      "expected": 6
+    },
+    {
+      "args": [
+        "xyzzyx"
+      ],
+      "expected": 6
+    },
+    {
+      "args": [
+        "aabbccddx"
+      ],
+      "expected": 8
+    }
+  ]
+}

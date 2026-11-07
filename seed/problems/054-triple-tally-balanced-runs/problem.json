@@ -1,0 +1,58 @@
+{
+  "title": "Triple Tally Balanced Runs",
+  "description": "## Task\n\nA string is made only of the letters `a`, `b` and `c`. Count the contiguous non-empty pieces in which the three letters occur the same number of times. Pieces at different positions count separately.\n\n## Input\n\n- `s` — a string over `a`, `b`, `c`; it may be empty.\n\n## Output\n\nThe number of non-empty contiguous substrings with equally many `a`, `b` and `c`.\n\n## Example\n\n```python\ncount_balanced_runs('abcabc')  # returns 5\ncount_balanced_runs('aabbcc')  # returns 1\n```\n\n## Constraints\n\n- 0 ≤ length of `s` ≤ 3 * 10^5\n- `s` contains only `a`, `b`, `c`.\n- Checking every piece would be too slow.\n",
+  "signature": "def count_balanced_runs(s: str) -> int",
+  "topic": "difference key hashing",
+  "difficulty": "hard",
+  "category": "hash-maps-sets",
+  "tests": [
+    {
+      "args": [
+        "abcabc"
+      ],
+      "expected": 5
+    },
+    {
+      "args": [
+        "aabbcc"
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        ""
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        "a"
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        "abc"
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        "abccba"
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        "aaabbbccc"
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        "cabcabcab"
+      ],
+      "expected": 12
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "title": "Stacked Exponent Remainder",
+  "description": "## Task\n\nBuild a power tower from the list: `nums[0] ** (nums[1] ** (nums[2] ** ...))`, evaluated from the top down, so the last number is the topmost exponent. A tower of one number is that number. Find the tower's value modulo `m`.\n\n## Input\n\n- `nums` — the numbers of the tower, bottom first.\n- `m` — the modulus.\n\n## Output\n\nThe value of the tower modulo `m`.\n\n## Example\n\n```python\nstacked_exponent_remainder([2, 3, 2], 1000)  # returns 512\nstacked_exponent_remainder([5], 3)  # returns 2\nstacked_exponent_remainder([7, 7, 7], 1)  # returns 0\n```\n\n## Constraints\n\n- 1 ≤ length of `nums` ≤ 100000\n- 1 ≤ each number ≤ 10^9\n- 1 ≤ `m` ≤ 10^9\n- The full tower has astronomically many digits, so computing it exactly and reducing afterwards will run out of time or memory.\n",
+  "signature": "def stacked_exponent_remainder(nums: list[int], m: int) -> int",
+  "topic": "euler tower",
+  "difficulty": "hard",
+  "category": "math-bits",
+  "tests": [
+    {
+      "args": [
+        [
+          2,
+          3,
+          2
+        ],
+        1000
+      ],
+      "expected": 512
+    },
+    {
+      "args": [
+        [
+          5
+        ],
+        3
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        [
+          7,
+          7,
+          7
+        ],
+        1
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          1,
+          1,
+          1
+        ],
+        2
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        [
+          2,
+          2,
+          2,
+          2
+        ],
+        1000000007
+      ],
+      "expected": 65536
+    },
+    {
+      "args": [
+        [
+          3,
+          2,
+          1,
+          5,
+          9
+        ],
+        97
+      ],
+      "expected": 9
+    },
+    {
+      "args": [
+        [
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000
+        ],
+        1000000000
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          999999937,
+          5,
+          3,
+          1000000000,
+          2,
+          7
+        ],
+        1000000000
+      ],
+      "expected": 967077057
+    },
+    {
+      "args": [
+        [
+          1,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000,
+          1000000000
+        ],
+        13
+      ],
+      "expected": 1
+    }
+  ]
+}

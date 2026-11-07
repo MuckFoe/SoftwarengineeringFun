@@ -1,0 +1,20 @@
+{
+  "title": "Self-Avoiding Garden Walks",
+  "description": "## Task\n\nA garden is a grid of open tiles (`.`) and hedges (`#`). A walker starts on the top-left tile and wants to reach the bottom-right tile, stepping one tile up, down, left or right at a time onto open tiles. She never steps on the same tile twice. Count the different walks (distinct sequences of tiles) from start to finish.\n\n## Input\n\n- `grid` — a list of equal-length strings made of `.` and `#`.\n\n## Output\n\nThe number of distinct walks. It is 0 if the start or the finish is a hedge. When the grid is a single open tile, the empty walk counts, so the answer is 1.\n\n## Example\n\n```python\nself_avoiding_garden_walks(['..', '..'])  # returns 2\nself_avoiding_garden_walks(['...', '...', '...'])  # returns 12\nself_avoiding_garden_walks(['.#', '#.'])  # returns 0\n```\n\n## Constraints\n\n- 1 ≤ rows, columns ≤ 6 and rows * columns ≤ 30\n- The answer fits in a normal 64-bit integer.\n\n",
+  "signature": "def self_avoiding_garden_walks(grid: list[str]) -> int",
+  "topic": "path counting by depth-first search",
+  "difficulty": "medium",
+  "category": "recursion-backtracking",
+  "tests": [
+    { "args": [["..", ".."]], "expected": 2 },
+    { "args": [["...", "...", "..."]], "expected": 12 },
+    { "args": [[".#", "#."]], "expected": 0 },
+    { "args": [["."]], "expected": 1 },
+    { "args": [["#."]], "expected": 0 },
+    { "args": [[".#."]], "expected": 0 },
+    { "args": [["....", "....", "...."]], "expected": 38 },
+    { "args": [[".....", ".....", ".....", ".....", "....."]], "expected": 8512 },
+    { "args": [[".....#", "..#...", "......", "#.....", "...#.."]], "expected": 876 },
+    { "args": [["......", "......", "......", "......", "......"]], "expected": 79384 }
+  ]
+}

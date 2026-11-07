@@ -1,0 +1,16 @@
+{
+  "title": "Rehearsal Rooms Required",
+  "description": "## Task\n\nA theatre has booked a set of rehearsal slots. Each slot occupies a room from its start time up to, but not including, its end time, so a slot that ends at time 10 and one that starts at time 10 can share a room. Find the fewest rooms that can host every slot. Sort the starts and the ends separately and sweep through time.\n\n## Input\n\n- `slots` — a list of `[start, end]` pairs with `start < end`. It may be empty.\n\n## Output\n\nThe minimum number of rooms needed; `0` for no slots.\n\n## Example\n\n```python\nrehearsal_rooms([[0, 30], [5, 10], [15, 20]])  # returns 2\nrehearsal_rooms([[1, 4], [4, 6], [6, 9]])  # returns 1\n```\n\n## Constraints\n\n- 0 ≤ length of `slots` ≤ 10^5\n- 0 ≤ `start` < `end` ≤ 10^9\n",
+  "signature": "def rehearsal_rooms(slots: list[list[int]]) -> int",
+  "topic": "sorting events, sweep",
+  "difficulty": "medium",
+  "category": "sorting-searching",
+  "tests": [
+    { "args": [[[0, 30], [5, 10], [15, 20]]], "expected": 2 },
+    { "args": [[[1, 4], [4, 6], [6, 9]]], "expected": 1 },
+    { "args": [[]], "expected": 0 },
+    { "args": [[[2, 3]]], "expected": 1 },
+    { "args": [[[1, 5], [1, 5], [1, 5]]], "expected": 3 },
+    { "args": [[[1, 10], [2, 3], [3, 4], [4, 5]]], "expected": 2 }
+  ]
+}

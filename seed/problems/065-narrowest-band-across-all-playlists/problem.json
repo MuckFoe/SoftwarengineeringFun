@@ -1,0 +1,109 @@
+{
+  "title": "Narrowest Band Across All Playlists",
+  "description": "## Task\n\nSeveral playlists each hold song lengths in seconds, every playlist sorted in non-decreasing order. Find the narrowest inclusive range `[lo, hi]` of lengths such that every playlist has at least one song whose length lies in the range. A range is narrower than another when `hi - lo` is smaller; on a tie choose the one with the smaller `lo`.\n\n## Input\n\n- `playlists` — a non-empty list of non-empty lists of integers, each inner list sorted in non-decreasing order.\n\n## Output\n\nA list `[lo, hi]`.\n\n## Example\n\n```python\nnarrowest_band([[4, 10, 15, 24, 26], [0, 9, 12, 20], [5, 18, 22, 30]])  # returns [20, 24]\nnarrowest_band([[3], [3], [3]])  # returns [3, 3]\n```\n\n## Constraints\n\n- 1 ≤ number of playlists ≤ 3500\n- 1 ≤ length of each playlist, total songs ≤ 10^5\n- -10^6 ≤ each length ≤ 10^6\n",
+  "signature": "def narrowest_band(playlists: list[list[int]]) -> list[int]",
+  "topic": "sliding window",
+  "difficulty": "hard",
+  "category": "two-pointers-windows",
+  "tests": [
+    {
+      "args": [
+        [
+          [
+            4,
+            10,
+            15,
+            24,
+            26
+          ],
+          [
+            0,
+            9,
+            12,
+            20
+          ],
+          [
+            5,
+            18,
+            22,
+            30
+          ]
+        ]
+      ],
+      "expected": [
+        20,
+        24
+      ]
+    },
+    {
+      "args": [
+        [
+          [
+            3
+          ],
+          [
+            3
+          ],
+          [
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        3,
+        3
+      ]
+    },
+    {
+      "args": [
+        [
+          [
+            1,
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        1
+      ]
+    },
+    {
+      "args": [
+        [
+          [
+            1
+          ],
+          [
+            100
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        100
+      ]
+    },
+    {
+      "args": [
+        [
+          [
+            1,
+            5,
+            9
+          ],
+          [
+            2,
+            6,
+            10
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        2
+      ]
+    }
+  ]
+}

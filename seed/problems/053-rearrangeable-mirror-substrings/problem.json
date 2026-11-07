@@ -1,0 +1,58 @@
+{
+  "title": "Rearrangeable Mirror Substrings",
+  "description": "## Task\n\nA piece of a string is mirror-rearrangeable if its letters can be reordered into a palindrome. Count the contiguous non-empty pieces of `s` that are mirror-rearrangeable. Pieces at different positions count separately.\n\n## Input\n\n- `s` — a string of lowercase letters; it may be empty.\n\n## Output\n\nThe number of non-empty contiguous substrings in which at most one letter occurs an odd number of times.\n\n## Example\n\n```python\ncount_mirror_rearrangeable('aab')  # returns 5\ncount_mirror_rearrangeable('abc')  # returns 3\n```\n\n## Constraints\n\n- 0 ≤ length of `s` ≤ 2 * 10^5\n- `s` contains only `a-z`.\n- Checking every piece letter by letter would be too slow.\n",
+  "signature": "def count_mirror_rearrangeable(s: str) -> int",
+  "topic": "parity mask counting",
+  "difficulty": "hard",
+  "category": "hash-maps-sets",
+  "tests": [
+    {
+      "args": [
+        "aab"
+      ],
+      "expected": 5
+    },
+    {
+      "args": [
+        "abc"
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        ""
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        "a"
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        "aaaa"
+      ],
+      "expected": 10
+    },
+    {
+      "args": [
+        "abab"
+      ],
+      "expected": 7
+    },
+    {
+      "args": [
+        "abcabc"
+      ],
+      "expected": 9
+    },
+    {
+      "args": [
+        "zzyyxx"
+      ],
+      "expected": 18
+    }
+  ]
+}

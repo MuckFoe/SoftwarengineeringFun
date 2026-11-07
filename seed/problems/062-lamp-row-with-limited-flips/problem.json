@@ -1,0 +1,74 @@
+{
+  "title": "Lamp Row With Limited Flips",
+  "description": "## Task\n\nA row of lamps is described by a list of 0 (off) and 1 (on). You may flip at most `k` lamps from off to on. After the flips, what is the longest run of consecutive lamps that are all on?\n\n## Input\n\n- `lamps` — a list containing only 0 and 1. It may be empty.\n- `k` — the number of flips available.\n\n## Output\n\nAn integer: the length of the longest run of 1s achievable by flipping at most `k` zeros.\n\n## Example\n\n```python\nlongest_lit([1, 0, 0, 1, 1, 0, 1], 1)  # returns 4\nlongest_lit([0, 0, 0], 0)  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `lamps` ≤ 2 * 10^5\n- 0 ≤ `k` ≤ 2 * 10^5\n",
+  "signature": "def longest_lit(lamps: list[int], k: int) -> int",
+  "topic": "sliding window",
+  "difficulty": "medium",
+  "category": "two-pointers-windows",
+  "tests": [
+    {
+      "args": [
+        [
+          1,
+          0,
+          0,
+          1,
+          1,
+          0,
+          1
+        ],
+        1
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        [
+          0,
+          0,
+          0
+        ],
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [],
+        4
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          0,
+          0,
+          0
+        ],
+        3
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        [
+          1,
+          1,
+          1
+        ],
+        0
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        [
+          0
+        ],
+        1
+      ],
+      "expected": 1
+    }
+  ]
+}

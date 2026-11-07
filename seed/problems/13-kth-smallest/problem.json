@@ -4,6 +4,7 @@
   "signature": "def kth_smallest(xs: list[int], k: int) -> int",
   "topic": "sorting",
   "difficulty": "easy",
+  "category": "sorting-searching",
   "tests": [
     { "args": [[5, 3, 1, 4, 2], 1], "expected": 1 },
     { "args": [[5, 3, 1, 4, 2], 5], "expected": 5 },

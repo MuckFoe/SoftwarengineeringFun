@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { createSession, searchProblems } from "../api/client";
-import type { ProblemSummary } from "../api/types";
+import { createSession, getProblemCategories, searchProblems } from "../api/client";
+import type { Difficulty, ProblemCategory, ProblemSummary } from "../api/types";
 import { useMe } from "../auth/useMe";
 import { StaleSessionsList } from "../components/StaleSessionsList";
 import { ShortcutScope, useShortcut } from "../shortcuts/useShortcut";
 import { AppHeader } from "../ui/AppHeader";
 import { Button } from "../ui/Button";
+import { EmptyState } from "../ui/EmptyState";
 import { Hud } from "../ui/Hud";
 import { InlineMessage } from "../ui/InlineMessage";
 import { SearchField } from "../ui/SearchField";
+import { Select } from "../ui/Select";
 import { Sidebar, SidebarSection } from "../ui/Sidebar";
 import { SourceList } from "../ui/SourceList";
 import { Tag } from "../ui/Tag";
@@ -25,6 +27,47 @@ const LIBRARIES = [
 ] as const;
 
 type Library = (typeof LIBRARIES)[number]["id"];
+
+const DIFFICULTIES: readonly { id: Difficulty; label: string }[] = [
+  { id: "easy", label: "Easy" },
+  { id: "medium", label: "Medium" },
+  { id: "hard", label: "Hard" },
+];
+const DIFFICULTY_LABEL = Object.fromEntries(DIFFICULTIES.map((d) => [d.id, d.label]));
+const ALL = "";
+
+interface Group {
+  key: string;
+  label: string | null;
+  items: ProblemSummary[];
+}
+
+/** Groups by category in the catalogue's category order, unset last; each group keeps the server's order. */
+function groupByCategory(items: ProblemSummary[], categories: ProblemCategory[]): Group[] {
+  const groups: Group[] = categories.map((c) => ({ key: c.id, label: c.label, items: [] }));
+  const other: Group = { key: "", label: "Other", items: [] };
+  for (const p of items) {
+    const group = groups.find((g) => g.key === p.category) ?? other;
+    group.items.push(p);
+  }
+  return [...groups, other].filter((g) => g.items.length > 0);
+}
+
+const NARROW_QUERY = "(max-width: 40rem)";
+
+/** True at about 390 px, where the header has no room for the search (it moves under it). */
+function useNarrow(): boolean {
+  const supported = typeof window.matchMedia === "function";
+  const [narrow, setNarrow] = useState(() => supported && window.matchMedia(NARROW_QUERY).matches);
+  useEffect(() => {
+    if (!supported) return;
+    const list = window.matchMedia(NARROW_QUERY);
+    const onChange = () => setNarrow(list.matches);
+    list.addEventListener("change", onChange);
+    return () => list.removeEventListener("change", onChange);
+  }, [supported]);
+  return narrow;
+}
 
 interface Props {
   /** Opens the editor sheet on arrival, for the /problems/new and /problems/:id/edit links. */
@@ -46,12 +89,20 @@ export function ProblemsWindow({ initialSheet }: Props) {
   const [problems, setProblems] = useState<ProblemSummary[]>([]);
   const [reload, setReload] = useState(0);
   const [query, setQuery] = useState("");
+  const [categories, setCategories] = useState<ProblemCategory[]>([]);
+  const [category, setCategory] = useState(ALL);
+  const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [library, setLibrary] = useState<Library>("all");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Below 1200 px the sidebar overlays the list (Window), so it starts closed there.
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () =>
+      typeof window.matchMedia !== "function" || window.matchMedia("(min-width: 75rem)").matches,
+  );
   const [sheet, setSheet] = useState<SheetRequest | null>(initialSheet ?? null);
   const [error, setError] = useState<string | null>(null);
   const [hud, setHud] = useState<{ key: number; message: string } | null>(null);
   const search = useRef<HTMLInputElement>(null);
+  const narrow = useNarrow();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-fetches after a save or delete.
   useEffect(() => {
@@ -71,6 +122,19 @@ export function ProblemsWindow({ initialSheet }: Props) {
     };
   }, [reload]);
 
+  useEffect(() => {
+    let current = true;
+    getProblemCategories().then(
+      (found) => {
+        if (current) setCategories(found);
+      },
+      () => undefined,
+    );
+    return () => {
+      current = false;
+    };
+  }, []);
+
   useShortcut("focusSearch", () => search.current?.focus());
   useShortcut("newProblem", () => setSheet({ mode: "new" }), { enabled: isEditor });
   useShortcut("toggleSidebar", () => setSidebarOpen((open) => !open));
@@ -80,8 +144,51 @@ export function ProblemsWindow({ initialSheet }: Props) {
   const shown = problems.filter(
     (p) =>
       (library === "all" || p.is_starter) &&
+      (category === ALL || p.category === category) &&
+      (difficulty === null || p.difficulty === difficulty) &&
       (needle === "" || p.title.toLowerCase().includes(needle)),
   );
+
+  const filtered = category !== ALL || difficulty !== null || needle !== "";
+  const groups: Group[] =
+    filtered || categories.length === 0
+      ? [{ key: "all", label: null, items: shown }]
+      : groupByCategory(shown, categories);
+  const categoryLabel = (id: string | null | undefined) =>
+    categories.find((c) => c.id === id)?.label ?? "";
+
+  const sidebarToggle = (
+    <Button
+      variant="plain"
+      icon="sidebar"
+      label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+      aria-pressed={sidebarOpen}
+      onClick={() => setSidebarOpen((open) => !open)}
+    />
+  );
+  const newProblem = isEditor ? (
+    narrow ? (
+      <Button
+        variant="plain"
+        icon="plus"
+        label="New problem"
+        onClick={() => setSheet({ mode: "new" })}
+      />
+    ) : (
+      <Button variant="plain" icon="plus" onClick={() => setSheet({ mode: "new" })}>
+        New problem
+      </Button>
+    )
+  ) : null;
+  const searchField = (
+    <SearchField ref={search} label="Search problems" value={query} onChange={setQuery} />
+  );
+
+  function clearFilters() {
+    setCategory(ALL);
+    setDifficulty(null);
+    setQuery("");
+  }
 
   async function start(problemId: string) {
     try {
@@ -120,66 +227,119 @@ export function ProblemsWindow({ initialSheet }: Props) {
         }
         toolbar={
           <AppHeader label="Problems">
-            <Button
-              variant="plain"
-              icon="sidebar"
-              label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-              aria-pressed={sidebarOpen}
-              onClick={() => setSidebarOpen((open) => !open)}
-            />
+            {!narrow && sidebarToggle}
             <h1 className={styles.title}>Problems</h1>
             <span className={styles.spacer} />
-            <div className={styles.search}>
-              <SearchField ref={search} label="Search problems" value={query} onChange={setQuery} />
-            </div>
-            {isEditor && (
-              <Button variant="plain" icon="plus" onClick={() => setSheet({ mode: "new" })}>
-                New problem
-              </Button>
-            )}
+            {!narrow && <div className={styles.search}>{searchField}</div>}
+            {!narrow && newProblem}
           </AppHeader>
         }
       >
         <div className={styles.content}>
           {error && <InlineMessage id="problems-error">{error}</InlineMessage>}
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th scope="col">Title</th>
-                <th scope="col">Kind</th>
-                <th scope="col">
-                  <span className={styles.visuallyHidden}>Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((p) => (
-                <tr key={p.id} className="anim-row-in">
-                  <td className={styles.titleCell}>{p.title}</td>
-                  <td className={styles.kind}>{p.is_starter ? <Tag label="Starter" /> : ""}</td>
-                  <td className={styles.actions}>
-                    {isEditor && (
-                      <Button
-                        variant="plain"
-                        label={`Edit ${p.title}`}
-                        icon="pencil"
-                        onClick={() => setSheet({ mode: "edit", id: p.id })}
-                      />
-                    )}
-                    <Button
-                      variant="bordered"
-                      label={`Start session: ${p.title}`}
-                      onClick={() => void start(p.id)}
-                    >
-                      Start session
-                    </Button>
-                  </td>
-                </tr>
+          {narrow && (
+            <div className={styles.searchRow}>
+              {sidebarToggle}
+              <div className={styles.searchGrow}>{searchField}</div>
+              {newProblem}
+            </div>
+          )}
+          <div className={styles.filters}>
+            <div className={styles.category}>
+              <Select
+                label="Category"
+                value={category}
+                onChange={setCategory}
+                options={[
+                  { value: ALL, label: "All categories" },
+                  ...categories.map((c) => ({ value: c.id, label: c.label })),
+                ]}
+              />
+            </div>
+            <fieldset className={styles.difficulties}>
+              <legend className={styles.visuallyHidden}>Difficulty</legend>
+              {DIFFICULTIES.map((d) => (
+                <Tag
+                  key={d.id}
+                  label={d.label}
+                  selected={difficulty === d.id}
+                  onClick={() => setDifficulty(difficulty === d.id ? null : d.id)}
+                />
               ))}
-            </tbody>
-          </table>
-          {shown.length === 0 && problems.length > 0 && (
-            <p className={styles.none}>No problems match “{query}”.</p>
+            </fieldset>
+            {filtered && shown.length > 0 && (
+              <Button variant="plain" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            )}
+            <output className={styles.count} aria-label="Result count" aria-live="polite">
+              {shown.length === 1 ? "1 problem" : `${shown.length} problems`}
+            </output>
+          </div>
+          {shown.length === 0 && problems.length > 0 ? (
+            <EmptyState
+              icon="search"
+              title="No problems match"
+              action={
+                <Button variant="bordered" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              }
+            >
+              Try a different search, category or difficulty.
+            </EmptyState>
+          ) : (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th scope="col">Title</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Difficulty</th>
+                  <th scope="col">Kind</th>
+                  <th scope="col">
+                    <span className={styles.visuallyHidden}>Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              {groups.map((g) => (
+                <tbody key={g.key}>
+                  {g.label && (
+                    <tr className={styles.groupRow}>
+                      <th scope="rowgroup" colSpan={5}>
+                        <h2 className={styles.groupTitle}>{g.label}</h2>
+                      </th>
+                    </tr>
+                  )}
+                  {g.items.map((p) => (
+                    <tr key={p.id} className="anim-row-in">
+                      <td className={styles.titleCell}>{p.title}</td>
+                      <td className={styles.meta}>{categoryLabel(p.category)}</td>
+                      <td className={styles.meta}>
+                        {p.difficulty ? DIFFICULTY_LABEL[p.difficulty] : ""}
+                      </td>
+                      <td className={styles.kind}>{p.is_starter ? <Tag label="Starter" /> : ""}</td>
+                      <td className={styles.actions}>
+                        {isEditor && (
+                          <Button
+                            variant="plain"
+                            label={`Edit ${p.title}`}
+                            icon="pencil"
+                            onClick={() => setSheet({ mode: "edit", id: p.id })}
+                          />
+                        )}
+                        <Button
+                          variant="bordered"
+                          label={`Start session: ${p.title}`}
+                          onClick={() => void start(p.id)}
+                        >
+                          Start session
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              ))}
+            </table>
           )}
         </div>
       </Window>

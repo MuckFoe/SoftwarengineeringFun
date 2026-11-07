@@ -173,3 +173,35 @@
     display: none;
   }
 }
+
+/* Narrow (about 390 px): the jump bar is an icon; its name stays for screen readers. Without
+   this the account control ends past the right edge. */
+@media (max-width: 40rem) {
+  .app-header .app-header-search {
+    width: 36px;
+    padding: 0;
+  }
+
+  .app-header .app-header-search > :not(svg) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+@media (max-width: 40rem) {
+  .app-header .app-header-pill-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .app-header .app-header-pill:has(> .app-header-pill-text) {
+    width: 36px;
+    padding: 0;
+  }
+}

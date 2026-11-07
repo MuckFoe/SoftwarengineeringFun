@@ -3,6 +3,7 @@
 Spec 002 tasks 8-9: Markdown starter descriptions (FR8, FR9), over the `DESCRIBED` folders.
 """
 
+import asyncio
 import json
 import os
 import socket
@@ -59,7 +60,9 @@ async def test_fr6_each_seed_problem_validates_and_its_reference_passes(
     inserted = await load_seed(migrated, SEED_DIR)
     assert inserted == len(folders)
 
-    for folder in folders:
+    gate = asyncio.Semaphore(8)  # the runner runs containers side by side; 150 in a row took 90 s
+
+    async def one(folder: Path) -> None:
         data = json.loads((folder / "problem.json").read_text())
         reference = (folder / "reference.py").read_text()
         function_name = parse_signature(data["signature"]).name
@@ -67,21 +70,24 @@ async def test_fr6_each_seed_problem_validates_and_its_reference_passes(
         expected = [t["expected"] for t in data["tests"]]
         assert len(data["tests"]) >= 5, f"{folder.name} has fewer than 5 tests"
 
-        start = time.monotonic()
-        outcomes = await execute(runner_url, reference, function_name, cases)
-        elapsed = time.monotonic() - start
+        async with gate:
+            start = time.monotonic()
+            outcomes = await execute(runner_url, reference, function_name, cases)
+            elapsed = time.monotonic() - start
 
         assert elapsed < 10, f"{folder.name} took {elapsed:.1f}s"  # NFR-3
         for outcome, exp in zip(outcomes, expected, strict=True):
             assert outcome.status == "ok", f"{folder.name}: {outcome}"
             assert values_equal(outcome.value, exp), f"{folder.name}: {outcome.value} != {exp}"
 
+    await asyncio.gather(*(one(f) for f in folders))
 
-async def test_fr6_a_fresh_install_lists_exactly_20_starter_problems(
+
+async def test_fr6_a_fresh_install_lists_every_seed_folder_as_a_starter_problem(
     migrated: asyncpg.Connection,
 ) -> None:
     folders = _folders()
-    assert len(folders) == 20
+    assert len(folders) >= 20  # the original 20 plus whatever spec 018 has added (count: task 43)
 
     topics = set()
     for folder in folders:
@@ -93,7 +99,7 @@ async def test_fr6_a_fresh_install_lists_exactly_20_starter_problems(
     await load_seed(migrated, SEED_DIR)
 
     rows = await migrated.fetch("select is_starter, description from problem")
-    assert len(rows) == 20
+    assert len(rows) == len(folders)
     assert all(r["is_starter"] for r in rows)
     assert all(r["description"].strip() for r in rows)  # spec 002 FR8
 

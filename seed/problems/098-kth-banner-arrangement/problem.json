@@ -1,0 +1,19 @@
+{
+  "title": "Kth Banner Arrangement",
+  "description": "## Task\n\nA shop owner has a handful of letter tiles, some of them repeated, and lays them all out in a row to make a banner. List every distinct arrangement (two arrangements are the same when they spell the same string) in ascending dictionary order. Return the one at position `k`, counting from 0, without writing the whole list out: the list can be enormous.\n\n## Input\n\n- `letters` — a string of lowercase letters, the tiles.\n- `k` — the 0-based position wanted. It is always valid.\n\n## Output\n\nThe arrangement at position `k`, as a string.\n\n## Example\n\n```python\nkth_banner_arrangement('aab', 0)  # returns 'aab'\nkth_banner_arrangement('aab', 2)  # returns 'baa'\nkth_banner_arrangement('abc', 3)  # returns 'bca'\n```\n\n## Constraints\n\n- 1 ≤ length of `letters` ≤ 18\n- 0 ≤ `k` < the number of distinct arrangements (which may exceed 10^15)\n\n",
+  "signature": "def kth_banner_arrangement(letters: str, k: int) -> str",
+  "topic": "ranking permutations of a multiset",
+  "difficulty": "medium",
+  "category": "recursion-backtracking",
+  "tests": [
+    { "args": ["aab", 0], "expected": "aab" },
+    { "args": ["aab", 2], "expected": "baa" },
+    { "args": ["abc", 3], "expected": "bca" },
+    { "args": ["z", 0], "expected": "z" },
+    { "args": ["aaaa", 0], "expected": "aaaa" },
+    { "args": ["mississippi", 12345], "expected": "isssismpiip" },
+    { "args": ["abcdefghijklmnopqr", 6402373705727999], "expected": "rqponmlkjihgfedcba" },
+    { "args": ["aabbccddeeffgghhii", 1000000000000], "expected": "agfdhgahbdecbciief" },
+    { "args": ["zzzyyx", 59], "expected": "zzzyyx" }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "title": "Lucky Ticket Census",
+  "description": "## Task\n\nA lottery numbers its tickets from `lo` to `hi` inclusive. A ticket is lucky when the sum of its decimal digits is exactly `s`. Count the lucky tickets.\n\n## Input\n\n- `lo`, `hi` — the first and last ticket numbers.\n- `s` — the required digit sum.\n\n## Output\n\nThe number of integers `x` with `lo <= x <= hi` whose decimal digit sum equals `s`.\n\n## Example\n\n```python\nlucky_ticket_census(1, 100, 10)  # returns 9\nlucky_ticket_census(0, 9, 0)  # returns 1\nlucky_ticket_census(5, 5, 6)  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ `lo` ≤ `hi` ≤ 10^18\n- 0 ≤ `s` ≤ 200\n- Checking every ticket in the range will time out for the large ranges.\n",
+  "signature": "def lucky_ticket_census(lo: int, hi: int, s: int) -> int",
+  "topic": "digit dp",
+  "difficulty": "hard",
+  "category": "math-bits",
+  "tests": [
+    { "args": [1, 100, 10], "expected": 9 },
+    { "args": [0, 9, 0], "expected": 1 },
+    { "args": [5, 5, 6], "expected": 0 },
+    { "args": [0, 0, 0], "expected": 1 },
+    { "args": [0, 1000000000000000000, 1], "expected": 19 },
+    { "args": [1, 1000000000000000000, 81], "expected": 32458256583753952 },
+    { "args": [123456789, 987654321987654321, 90], "expected": 24494866501389112 },
+    { "args": [100000000000000000, 1000000000000000000, 200], "expected": 0 },
+    { "args": [500, 1000000000000000, 13], "expected": 20048060 }
+  ]
+}

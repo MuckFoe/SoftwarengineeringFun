@@ -1,0 +1,18 @@
+{
+  "title": "Rotated Shelf Lookup",
+  "description": "## Task\n\nA shelf of books numbered in increasing order was cut at some point and the two parts swapped, so the numbers climb, drop once, then climb again (or the shelf was never cut). All numbers are distinct. Find the position of a given book number in O(log n) steps by deciding, at each halving, which half is still in order.\n\n## Input\n\n- `books` — distinct integers forming an increasing sequence that has been rotated by some amount (possibly zero). It may be empty.\n- `target` — the number to find.\n\n## Output\n\nThe index of `target` in `books`, or `-1` if it is absent.\n\n## Example\n\n```python\nfind_on_rotated_shelf([7, 9, 12, 2, 4], 2)  # returns 3\nfind_on_rotated_shelf([7, 9, 12, 2, 4], 8)  # returns -1\nfind_on_rotated_shelf([1, 2, 3], 3)  # returns 2\n```\n\n## Constraints\n\n- 0 ≤ length of `books` ≤ 10^5\n- -10^9 ≤ each value, `target` ≤ 10^9\n- Indices start at 0.\n",
+  "signature": "def find_on_rotated_shelf(books: list[int], target: int) -> int",
+  "topic": "binary search on rotated list",
+  "difficulty": "medium",
+  "category": "sorting-searching",
+  "tests": [
+    { "args": [[7, 9, 12, 2, 4], 2], "expected": 3 },
+    { "args": [[7, 9, 12, 2, 4], 8], "expected": -1 },
+    { "args": [[1, 2, 3], 3], "expected": 2 },
+    { "args": [[], 1], "expected": -1 },
+    { "args": [[5], 5], "expected": 0 },
+    { "args": [[5], 6], "expected": -1 },
+    { "args": [[4, 5, 1, 2, 3], 4], "expected": 0 },
+    { "args": [[2, 1], 1], "expected": 1 }
+  ]
+}

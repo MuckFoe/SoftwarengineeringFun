@@ -1,0 +1,20 @@
+{
+  "title": "Fewest-Letter Chain Splice",
+  "description": "## Task\n\nSplice all the words into one string that contains every word as a run of consecutive characters, and make that string as short as possible. Words may overlap where the end of one matches the start of the next, and a word that already sits inside another word costs nothing extra. Return only the shortest possible length.\n\n## Input\n\n- `words` — a list of non-empty lowercase words. It may be empty and may contain repeats.\n\n## Output\n\nThe length of the shortest string that contains every word. An empty list gives `0`.\n\n## Example\n\n```python\nshortest_splice_length([\"cat\", \"tac\"])  # returns 5  (\"catac\")\nshortest_splice_length([\"ab\", \"bc\", \"ca\"])  # returns 4  (\"abca\")\nshortest_splice_length([\"abc\", \"bc\"])  # returns 3\n```\n\n## Constraints\n\n- 0 ≤ number of words ≤ 12\n- 1 ≤ length of each word ≤ 12\n- Words contain only the lowercase letters `a`-`z`.\n- Trying every order of the words is too slow for the largest inputs.\n",
+  "signature": "def shortest_splice_length(words: list[str]) -> int",
+  "topic": "bitmask dp over overlaps",
+  "difficulty": "hard",
+  "category": "strings",
+  "tests": [
+    { "args": [["cat", "tac"]], "expected": 5 },
+    { "args": [["ab", "bc", "ca"]], "expected": 4 },
+    { "args": [["abc", "bc"]], "expected": 3 },
+    { "args": [[]], "expected": 0 },
+    { "args": [["a"]], "expected": 1 },
+    { "args": [["x", "x", "x"]], "expected": 1 },
+    { "args": [["abc", "def"]], "expected": 6 },
+    { "args": [["aabba", "babab", "abbab", "bbaab", "ababa", "baabb", "aaabb", "bbbaa", "abaab", "babba", "aabab", "bbabb"]], "expected": 21 },
+    { "args": [["ccaacacb", "cbbbbbaab", "ccacaabcca", "cccaccaaaaa", "cabbbaba", "cacbbcaba", "cbbcabbabb", "caaacbcccbc", "bcbcaaaa", "cbaaacccb", "bacbcaabca", "ccbcbcbcaac"]], "expected": 95 },
+    { "args": [["abbabaaaaaba", "ababbabbabba", "aaaaaaaabbba", "babaaabbaaaa", "baabaaaabaaa", "abaaaabbabab", "abbbbaaababb", "baaababaaabb", "babbbaabbbbb", "babababaabab", "ababaaabbaaa", "abbaaabaaaaa"]], "expected": 92 }
+  ]
+}

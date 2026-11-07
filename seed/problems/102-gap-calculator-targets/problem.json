@@ -1,0 +1,22 @@
+{
+  "title": "Gap Calculator Targets",
+  "description": "## Task\n\nA calculator has lost its key row except for the digits, plus, minus and times. Given a string of digits, you may put `+`, `-`, `*` or nothing in each gap between neighbouring digits. Putting nothing glues the digits into one multi-digit number. The usual precedence applies: `*` is done before `+` and `-`. A number may not have a leading zero unless it is the single digit `0`. Count the ways to place symbols so the expression equals `target`. Re-evaluating each finished expression from scratch is too slow; track the running total and the last product term while you build.\n\n## Input\n\n- `digits` — a string of the characters `0` to `9`.\n- `target` — the value to reach.\n\n## Output\n\nThe number of different symbol placements whose expression equals `target`.\n\n## Example\n\n```python\ngap_calculator_targets('123', 6)  # returns 2   (1+2+3 and 1*2*3)\ngap_calculator_targets('105', 5)  # returns 2   (1*0+5 and 10-5)\ngap_calculator_targets('00', 0)  # returns 3\n```\n\n## Constraints\n\n- 1 ≤ length of `digits` ≤ 10\n- -10^10 ≤ `target` ≤ 10^10\n\n",
+  "signature": "def gap_calculator_targets(digits: str, target: int) -> int",
+  "topic": "expression enumeration with running term",
+  "difficulty": "hard",
+  "category": "recursion-backtracking",
+  "tests": [
+    { "args": ["123", 6], "expected": 2 },
+    { "args": ["105", 5], "expected": 2 },
+    { "args": ["00", 0], "expected": 3 },
+    { "args": ["0", 0], "expected": 1 },
+    { "args": ["7", 7], "expected": 1 },
+    { "args": ["7", 8], "expected": 0 },
+    { "args": ["232", 8], "expected": 2 },
+    { "args": ["3456237490", 9191], "expected": 0 },
+    { "args": ["999999999", 81], "expected": 9 },
+    { "args": ["1234567890", 100], "expected": 268 },
+    { "args": ["987654321", 45], "expected": 107 },
+    { "args": ["1111111111", 0], "expected": 8974 }
+  ]
+}

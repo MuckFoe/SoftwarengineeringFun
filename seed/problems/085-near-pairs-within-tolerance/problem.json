@@ -1,0 +1,16 @@
+{
+  "title": "Near Pairs Within Tolerance",
+  "description": "## Task\n\nCount the pairs of positions `i < j` whose values differ by at most `tolerance`. Checking every pair is too slow for long lists: sort a copy of the values, then for each value count how many larger-or-equal neighbours still lie within the tolerance using a window that only ever moves forward.\n\n## Input\n\n- `values` — a list of integers in no particular order.\n- `tolerance` — a non-negative integer.\n\n## Output\n\nThe number of unordered pairs of positions whose values differ by at most `tolerance`.\n\n## Example\n\n```python\nnear_pair_count([1, 5, 3, 4], 1)  # returns 2\nnear_pair_count([2, 2, 2], 0)  # returns 3\nnear_pair_count([10, 20], 5)  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `values` ≤ 10^5\n- -10^9 ≤ each value ≤ 10^9\n- 0 ≤ `tolerance` ≤ 2·10^9\n",
+  "signature": "def near_pair_count(values: list[int], tolerance: int) -> int",
+  "topic": "sort and count with two pointers",
+  "difficulty": "medium",
+  "category": "sorting-searching",
+  "tests": [
+    { "args": [[1, 5, 3, 4], 1], "expected": 2 },
+    { "args": [[2, 2, 2], 0], "expected": 3 },
+    { "args": [[10, 20], 5], "expected": 0 },
+    { "args": [[], 3], "expected": 0 },
+    { "args": [[7], 100], "expected": 0 },
+    { "args": [[-5, 5, 0], 5], "expected": 2 }
+  ]
+}

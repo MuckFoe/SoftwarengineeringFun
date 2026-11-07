@@ -1,0 +1,170 @@
+{
+  "title": "Beacon Distance Map",
+  "description": "## Task\n\nA network has `n` towns joined by two-way links. Some towns host a signal beacon. For every town, find how many links a signal must cross to reach the nearest beacon town, going along links. A beacon town has distance 0. A town that cannot reach any beacon gets `-1`.\n\n## Input\n\n- `n` — the number of towns, numbered `0` to `n - 1`.\n- `links` — a list of `[a, b]` pairs, each a two-way link.\n- `beacons` — the towns that host a beacon, without repeats. It may be empty.\n\n## Output\n\nA list of `n` integers: entry `i` is the fewest links from town `i` to any beacon, or `-1`.\n\n## Example\n\n```python\nbeacon_distance_map(5, [[0, 1], [1, 2], [2, 3]], [0])  # returns [0, 1, 2, 3, -1]\nbeacon_distance_map(4, [[0, 1], [1, 2], [2, 3]], [0, 3])  # returns [0, 1, 1, 0]\nbeacon_distance_map(2, [[0, 1]], [])  # returns [-1, -1]\n```\n\n## Constraints\n\n- 1 ≤ `n` ≤ 10^4\n- 0 ≤ number of links ≤ 3 * 10^4\n- A single pass over the graph should be enough; running a search from every town is too slow on the largest tests.\n",
+  "signature": "def beacon_distance_map(n: int, links: list[list[int]], beacons: list[int]) -> list[int]",
+  "topic": "multi-source bfs",
+  "difficulty": "medium",
+  "category": "graphs-trees",
+  "tests": [
+    {
+      "args": [
+        5,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        [
+          0
+        ]
+      ],
+      "expected": [
+        0,
+        1,
+        2,
+        3,
+        -1
+      ]
+    },
+    {
+      "args": [
+        4,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "expected": [
+        0,
+        1,
+        1,
+        0
+      ]
+    },
+    {
+      "args": [
+        2,
+        [
+          [
+            0,
+            1
+          ]
+        ],
+        []
+      ],
+      "expected": [
+        -1,
+        -1
+      ]
+    },
+    {
+      "args": [
+        1,
+        [],
+        [
+          0
+        ]
+      ],
+      "expected": [
+        0
+      ]
+    },
+    {
+      "args": [
+        6,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ]
+        ],
+        [
+          4
+        ]
+      ],
+      "expected": [
+        -1,
+        -1,
+        2,
+        1,
+        0,
+        -1
+      ]
+    },
+    {
+      "args": [
+        7,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        [
+          0,
+          6
+        ]
+      ],
+      "expected": [
+        0,
+        1,
+        1,
+        2,
+        3,
+        1,
+        0
+      ]
+    }
+  ]
+}

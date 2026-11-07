@@ -1,0 +1,17 @@
+{
+  "title": "Plate Rack Readout",
+  "description": "## Task\n\nA cafeteria keeps plates in a spring-loaded rack where only the top plate can be touched. Each operation is a number: a positive number adds a plate of that weight on top, and `0` takes the top plate off (nothing happens if the rack is empty). After every operation, record the weight of the plate now on top, or `-1` if the rack is empty.\n\n## Input\n\n- `ops` — a list of integers; positive means add a plate of that weight, `0` means remove the top plate. It may be empty.\n\n## Output\n\nA list with one entry per operation: the weight on top after that operation, or `-1` when the rack is empty.\n\n## Example\n\n```python\nplate_rack_readout([5, 3, 0, 0, 0, 4])  # returns [5, 3, 5, -1, -1, 4]\nplate_rack_readout([0, 7])  # returns [-1, 7]\n```\n\n## Constraints\n\n- 0 ≤ length of `ops` ≤ 10^4\n- 0 ≤ each value ≤ 10^6\n",
+  "signature": "def plate_rack_readout(ops: list[int]) -> list[int]",
+  "topic": "stack",
+  "difficulty": "easy",
+  "category": "stacks-queues",
+  "tests": [
+    { "args": [[5, 3, 0, 0, 0, 4]], "expected": [5, 3, 5, -1, -1, 4] },
+    { "args": [[]], "expected": [] },
+    { "args": [[0, 0, 0]], "expected": [-1, -1, -1] },
+    { "args": [[1]], "expected": [1] },
+    { "args": [[2, 2, 0, 9, 0, 0, 0, 0, 6]], "expected": [2, 2, 2, 9, 2, -1, -1, -1, 6] },
+    { "args": [[10, 20, 30, 0, 40, 0, 0]], "expected": [10, 20, 30, 20, 40, 20, 10] },
+    { "args": [[7, 0, 7, 0, 7]], "expected": [7, -1, 7, -1, 7] }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "title": "Two Crate Stacks Best Haul",
+  "description": "## Task\n\nCrates stand in a line and `values[i]` is the worth of crate `i`. A forklift takes two separate groups of neighbouring crates: one group of exactly `a` crates and one group of exactly `b` crates. The groups may not share a crate, and either may come first. Find the greatest total worth it can take.\n\n## Input\n\n- `values` — a list of non-negative integers.\n- `a`, `b` — the two group sizes.\n\n## Output\n\nThe best total worth of the two groups, or -1 if the line has fewer than `a + b` crates.\n\n## Example\n\n```python\nbest_two_hauls([1, 6, 2, 5, 3, 9, 1], 2, 3)  # returns 25\nbest_two_hauls([4, 4], 1, 2)  # returns -1\n```\n\n## Constraints\n\n- 0 ≤ length of `values` ≤ 10^5\n- 0 ≤ each value ≤ 10^6\n- 1 ≤ `a`, `b` ≤ 10^5\n\n",
+  "signature": "def best_two_hauls(values: list[int], a: int, b: int) -> int",
+  "topic": "prefix sums, running maximum",
+  "difficulty": "medium",
+  "category": "arrays",
+  "tests": [
+    {
+      "args": [
+        [
+          1,
+          6,
+          2,
+          5,
+          3,
+          9,
+          1
+        ],
+        2,
+        3
+      ],
+      "expected": 25
+    },
+    {
+      "args": [
+        [
+          4,
+          4
+        ],
+        1,
+        2
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        [],
+        1,
+        1
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        [
+          5,
+          1,
+          5
+        ],
+        1,
+        1
+      ],
+      "expected": 10
+    },
+    {
+      "args": [
+        [
+          7,
+          7,
+          7,
+          7
+        ],
+        2,
+        2
+      ],
+      "expected": 28
+    },
+    {
+      "args": [
+        [
+          0,
+          0,
+          0,
+          9,
+          0,
+          0,
+          0
+        ],
+        3,
+        1
+      ],
+      "expected": 9
+    }
+  ]
+}

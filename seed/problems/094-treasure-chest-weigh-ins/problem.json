@@ -1,0 +1,19 @@
+{
+  "title": "Treasure Chest Weigh-Ins",
+  "description": "## Task\n\nA pirate has a row of items and wants to know in how many ways she can pick some of them so their weights add up exactly to `target`. Two picks differ if they use different positions, even when the weights are equal. Picking nothing is allowed and has total weight 0.\n\n## Input\n\n- `weights` — a list of integers (they may be zero or negative).\n- `target` — the total to hit.\n\n## Output\n\nThe number of position subsets whose weights sum to `target`.\n\n## Example\n\n```python\ntreasure_chest_weigh_ins([1, 2, 3], 3)  # returns 2   ({3} and {1, 2})\ntreasure_chest_weigh_ins([0, 0], 0)  # returns 4\ntreasure_chest_weigh_ins([], 5)  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `weights` ≤ 16\n- -50 ≤ each weight ≤ 50\n- -10^3 ≤ `target` ≤ 10^3\n\n",
+  "signature": "def treasure_chest_weigh_ins(weights: list[int], target: int) -> int",
+  "topic": "subset enumeration",
+  "difficulty": "easy",
+  "category": "recursion-backtracking",
+  "tests": [
+    { "args": [[1, 2, 3], 3], "expected": 2 },
+    { "args": [[0, 0], 0], "expected": 4 },
+    { "args": [[], 0], "expected": 1 },
+    { "args": [[], 5], "expected": 0 },
+    { "args": [[5], 5], "expected": 1 },
+    { "args": [[4, -4, 2, -2], 0], "expected": 4 },
+    { "args": [[3, 34, 4, 12, 5, 2, 7, 8, 1, 9, 6, 10, 11, 13, 14, 15], 30], "expected": 186 },
+    { "args": [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 8], "expected": 12870 },
+    { "args": [[7, 7, 7], 14], "expected": 3 }
+  ]
+}

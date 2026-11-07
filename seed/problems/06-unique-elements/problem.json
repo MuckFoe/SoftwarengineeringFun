@@ -4,6 +4,7 @@
   "signature": "def unique_elements(xs: list[int]) -> list[int]",
   "topic": "arrays",
   "difficulty": "easy",
+  "category": "arrays",
   "tests": [
     { "args": [[1, 2, 2, 3, 1]], "expected": [1, 2, 3] },
     { "args": [[]], "expected": [] },

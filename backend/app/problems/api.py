@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from app.auth.deps import User, require_role
 from app.problems import repo, service
+from app.problems.categories import CATEGORIES, CATEGORY_IDS, DIFFICULTIES
 from app.problems.markdown import render_description
 from app.problems.signature import FieldError, TestInput
 
@@ -35,12 +36,21 @@ class ProblemIn(BaseModel):
     description: str
     signature: str
     tests: list[ProblemTestIn]
+    category: str | None = None
+    difficulty: str | None = None
 
 
 class ProblemSummaryOut(BaseModel):
     id: uuid.UUID
     title: str
     is_starter: bool
+    category: str | None
+    difficulty: str | None
+
+
+class CategoryOut(BaseModel):
+    id: str
+    label: str
 
 
 class ProblemOut(BaseModel):
@@ -70,6 +80,8 @@ class EditableProblemOut(BaseModel):
     description: str
     signature: str
     tests: list[ProblemTestIn]
+    category: str | None = None
+    difficulty: str | None = None
 
 
 def _field_error_body(errors: list[FieldError]) -> dict:
@@ -94,12 +106,43 @@ def _refused(result: list[FieldError] | service.DescriptionError) -> HTTPExcepti
     return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=detail)
 
 
+def _bad_filter(name: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail={"error": f"invalid_{name}", "field": name},
+    )
+
+
 @router.get("", response_model=list[ProblemSummaryOut])
 async def list_problems(
-    q: str = "", conn: asyncpg.Connection = Depends(get_conn)
+    q: str = "",
+    category: str | None = None,
+    difficulty: str | None = None,
+    conn: asyncpg.Connection = Depends(get_conn),
 ) -> list[ProblemSummaryOut]:
-    found = await service.search(conn, q)
-    return [ProblemSummaryOut(id=p.id, title=p.title, is_starter=p.is_starter) for p in found]
+    """Open to everyone, guests included (spec 018 FR-14). Unknown filter values are a 422
+    naming the parameter."""
+    if category is not None and category not in CATEGORY_IDS:
+        raise _bad_filter("category")
+    if difficulty is not None and difficulty not in DIFFICULTIES:
+        raise _bad_filter("difficulty")
+    found = await service.search(conn, q, category=category, difficulty=difficulty)
+    return [
+        ProblemSummaryOut(
+            id=p.id,
+            title=p.title,
+            is_starter=p.is_starter,
+            category=p.category,
+            difficulty=p.difficulty,
+        )
+        for p in found
+    ]
+
+
+# Declared before `/{problem_id}` so "categories" is not read as an id.
+@router.get("/categories", response_model=list[CategoryOut])
+async def list_categories() -> list[CategoryOut]:
+    return [CategoryOut(id=cid, label=label) for cid, label in CATEGORIES]
 
 
 @router.get("/{problem_id}", response_model=ProblemOut)
@@ -139,6 +182,8 @@ async def create_problem(
         tests=tests,
         created_by_sub=user.sub,
         created_by_name=user.name,
+        category=body.category,
+        difficulty=body.difficulty,
     )
     if not isinstance(result, uuid.UUID):
         raise _refused(result)
@@ -173,6 +218,8 @@ async def get_problem_for_edit(
         description=problem.description,
         signature=problem.signature,
         tests=[ProblemTestIn(args=t.args, expected=t.expected) for t in problem.tests],
+        category=problem.category,
+        difficulty=problem.difficulty,
     )
 
 
@@ -192,6 +239,8 @@ async def update_problem(
             description=body.description,
             signature=body.signature,
             tests=tests,
+            category=body.category,
+            difficulty=body.difficulty,
         )
     except repo.NotFound as exc:
         raise HTTPException(

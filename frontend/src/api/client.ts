@@ -12,6 +12,7 @@ import type {
   Me,
   Preferences,
   Problem,
+  ProblemCategory,
   ProblemInput,
   ProblemSummary,
   RecentSession,
@@ -152,6 +153,7 @@ export const putPreferences = (p: Partial<Preferences>) =>
 
 export const searchProblems = (q: string) =>
   request<ProblemSummary[]>("GET", `/problems?q=${enc(q)}`);
+export const getProblemCategories = () => request<ProblemCategory[]>("GET", "/problems/categories");
 export const getProblem = (id: string) => request<Problem>("GET", `/problems/${enc(id)}`);
 export const createProblem = (input: ProblemInput) =>
   request<CreatedProblem>("POST", "/problems", input);

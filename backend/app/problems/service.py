@@ -11,6 +11,7 @@ from dataclasses import dataclass
 import asyncpg
 
 from app.problems import images_repo, repo
+from app.problems.categories import CATEGORY_IDS, DIFFICULTIES
 from app.problems.images import MAX_IMAGES_PER_DESCRIPTION
 from app.problems.markdown import disallowed_image_sources, image_ids
 from app.problems.signature import (
@@ -52,6 +53,17 @@ async def _check_description(conn: asyncpg.Connection, source: str) -> Descripti
     return None
 
 
+def _check_labels(category: str | None, difficulty: str | None) -> list[FieldError]:
+    errors = []
+    if category is not None and category not in CATEGORY_IDS:
+        errors.append(FieldError("category", f"category must be one of: {', '.join(CATEGORY_IDS)}"))
+    if difficulty is not None and difficulty not in DIFFICULTIES:
+        errors.append(
+            FieldError("difficulty", f"difficulty must be one of: {', '.join(DIFFICULTIES)}")
+        )
+    return errors
+
+
 def register_on_problem_deleted(callback: OnProblemDeleted) -> None:
     _on_problem_deleted.append(callback)
 
@@ -73,9 +85,13 @@ async def create(
     tests: list[TestInput],
     created_by_sub: str,
     created_by_name: str,
+    category: str | None = None,
+    difficulty: str | None = None,
 ) -> uuid.UUID | list[FieldError] | DescriptionError:
-    """Validates the signature and tests (FR-4) and the description (spec 002), then
-    creates the problem (FR-3)."""
+    """Validates the signature and tests (FR-4), the category and difficulty (spec 018 FR-13)
+    and the description (spec 002), then creates the problem (FR-3)."""
+    if label_errors := _check_labels(category, difficulty):
+        return label_errors
     try:
         sig = parse_signature(signature)
     except SignatureError as exc:
@@ -94,12 +110,21 @@ async def create(
         tests=tests,
         created_by_sub=created_by_sub,
         created_by_name=created_by_name,
+        category=category,
+        difficulty=difficulty,
     )
 
 
-async def search(conn: asyncpg.Connection, query: str) -> list[repo.ProblemSummary]:
-    """FR-5: case-insensitive substring match, excluding deleted problems."""
-    return await repo.search(conn, query)
+async def search(
+    conn: asyncpg.Connection,
+    query: str,
+    *,
+    category: str | None = None,
+    difficulty: str | None = None,
+) -> list[repo.ProblemSummary]:
+    """FR-5: case-insensitive substring match, excluding deleted problems; spec 018 adds the
+    category and difficulty filters and the canonical order."""
+    return await repo.search(conn, query, category=category, difficulty=difficulty)
 
 
 async def get_public(conn: asyncpg.Connection, problem_id: uuid.UUID) -> repo.ProblemPublic:
@@ -120,8 +145,13 @@ async def update(
     description: str,
     signature: str,
     tests: list[TestInput],
+    category: str | None = None,
+    difficulty: str | None = None,
 ) -> list[FieldError] | DescriptionError | None:
-    """FR-7: validates, then replaces the problem's fields and tests. `None` on success."""
+    """FR-7: validates, then replaces the problem's fields and tests. `None` on success.
+    An omitted category or difficulty leaves the stored one unchanged (spec 018 FR-13)."""
+    if label_errors := _check_labels(category, difficulty):
+        return label_errors
     try:
         sig = parse_signature(signature)
     except SignatureError as exc:
@@ -132,7 +162,16 @@ async def update(
     refused = await _check_description(conn, description)
     if refused:
         return refused
-    await repo.update(conn, problem_id, title=title, description=description, sig=sig, tests=tests)
+    await repo.update(
+        conn,
+        problem_id,
+        title=title,
+        description=description,
+        sig=sig,
+        tests=tests,
+        category=category,
+        difficulty=difficulty,
+    )
     return None
 
 

@@ -1,0 +1,18 @@
+{
+  "title": "Digit Mirror Gap",
+  "description": "## Task\n\nWrite the decimal digits of `n` backwards to get its mirror (leading zeros of the mirror simply vanish, so the mirror of `120` is `21`). Report how far apart `n` and its mirror are.\n\n## Input\n\n- `n` — a non-negative integer.\n\n## Output\n\nThe absolute difference between `n` and its mirror.\n\n## Example\n\n```python\ndigit_mirror_gap(123)  # returns 198\ndigit_mirror_gap(120)  # returns 99\ndigit_mirror_gap(121)  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ `n` ≤ 10^18\n\n",
+  "signature": "def digit_mirror_gap(n: int) -> int",
+  "topic": "digit reversal",
+  "difficulty": "easy",
+  "category": "math-bits",
+  "tests": [
+    { "args": [123], "expected": 198 },
+    { "args": [120], "expected": 99 },
+    { "args": [121], "expected": 0 },
+    { "args": [0], "expected": 0 },
+    { "args": [7], "expected": 0 },
+    { "args": [1000], "expected": 999 },
+    { "args": [1000000000000000000], "expected": 999999999999999999 },
+    { "args": [987654321012345678], "expected": 111111110888888889 }
+  ]
+}

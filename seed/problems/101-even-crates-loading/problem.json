@@ -1,0 +1,21 @@
+{
+  "title": "Even Crates Loading",
+  "description": "## Task\n\nA dock worker must load every parcel onto exactly `k` crates so that all `k` crates end up with the same total weight. Every parcel goes on exactly one crate and crates may hold any number of parcels, but a crate may not be empty. Say whether that is possible. Trying every assignment of parcels to crates is far too slow for 16 parcels, so prune or remember states.\n\n## Input\n\n- `weights` — positive integers, the parcel weights.\n- `k` — the number of crates.\n\n## Output\n\n`True` if the parcels can be split into `k` non-empty groups of equal total weight, otherwise `False`.\n\n## Example\n\n```python\neven_crates_loading([4, 3, 2, 3, 5, 2, 1], 4)  # returns True\neven_crates_loading([1, 2, 3, 4], 3)  # returns False\neven_crates_loading([5], 1)  # returns True\n```\n\n## Constraints\n\n- 1 ≤ length of `weights` ≤ 16\n- 1 ≤ each weight ≤ 10^6\n- 1 ≤ `k` ≤ length of `weights`\n\n",
+  "signature": "def even_crates_loading(weights: list[int], k: int) -> bool",
+  "topic": "subset partition with bitmask search",
+  "difficulty": "hard",
+  "category": "recursion-backtracking",
+  "tests": [
+    { "args": [[4, 3, 2, 3, 5, 2, 1], 4], "expected": true },
+    { "args": [[1, 2, 3, 4], 3], "expected": false },
+    { "args": [[5], 1], "expected": true },
+    { "args": [[2, 2, 2, 2], 4], "expected": true },
+    { "args": [[3, 3, 3, 3], 3], "expected": false },
+    { "args": [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2], 2], "expected": false },
+    { "args": [[10, 10, 10, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6], 6], "expected": false },
+    { "args": [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], 8], "expected": true },
+    { "args": [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], 5], "expected": false },
+    { "args": [[9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 3], 4], "expected": false },
+    { "args": [[100000, 200000, 300000, 400000, 500000, 1000000], 3], "expected": false }
+  ]
+}

@@ -149,6 +149,7 @@
   --radius-card: 24px;
   --motion-fast: 150ms;
   --motion-sweep: 600ms;
+  --motion-dock-delay: 250ms;
   --spin-duration: 800ms;
   --pulse-duration: 1200ms;
   --z-header: 30;

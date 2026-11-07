@@ -1,0 +1,16 @@
+{
+  "title": "Double Dominance Pairs",
+  "description": "## Task\n\nCount the pairs of positions `i < j` where the earlier value is more than twice the later one, i.e. `xs[i] > 2 * xs[j]`. Values may be negative, so take care: for a negative later value the condition behaves differently than for a positive one. The list can hold 10^5 values, so a pair-by-pair check will time out; use a divide and conquer that counts the cross pairs between two sorted halves before merging them.\n\n## Input\n\n- `xs` — a list of integers in no particular order. It may be empty.\n\n## Output\n\nThe number of pairs `i < j` with `xs[i] > 2 * xs[j]`.\n\n## Example\n\n```python\ndouble_dominance_pairs([5, 2, 1])  # returns 2\ndouble_dominance_pairs([4, 1, 2, 8])  # returns 1\ndouble_dominance_pairs([-4, -1])  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `xs` ≤ 10^5\n- -10^9 ≤ each value ≤ 10^9\n",
+  "signature": "def double_dominance_pairs(xs: list[int]) -> int",
+  "topic": "merge sort with a counting pass",
+  "difficulty": "hard",
+  "category": "sorting-searching",
+  "tests": [
+    { "args": [[5, 2, 1]], "expected": 2 },
+    { "args": [[4, 1, 2, 8]], "expected": 1 },
+    { "args": [[-4, -1]], "expected": 0 },
+    { "args": [[]], "expected": 0 },
+    { "args": [[0, 0, 0]], "expected": 0 },
+    { "args": [[3, -1, -2, 0, 7]], "expected": 4 }
+  ]
+}

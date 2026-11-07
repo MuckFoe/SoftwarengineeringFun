@@ -5,7 +5,7 @@ import { expect, test } from "../fixtures";
 import { checkScreen, watchPage } from "./checks";
 import { SCHEMES, SCREENS, widthsFor } from "./matrix";
 
-const names = ["problems library", "profile signed in (my sessions)"];
+const names = ["problems library", "problems picker (filters)", "profile signed in (my sessions)"];
 const screens = SCREENS.filter((s) => names.includes(s.name));
 
 for (const scheme of SCHEMES) {
@@ -24,8 +24,11 @@ for (const scheme of SCHEMES) {
 
           // FR-1: rows are hairline-divided, square, with no zebra fill and no old-style pill.
           const look = await page.evaluate(() => {
-            const row = document.querySelector("main tbody tr td");
-            const tag = document.querySelector("main [class*='tag']");
+            // Narrow (stacked cards): the divider is the row's, not its cells'.
+            const row = document.querySelector(
+              innerWidth <= 640 ? "main tbody tr:not([class*='groupRow'])" : "main tbody tr td",
+            );
+            const tag = document.querySelector("main tbody [class*='tag']");
             return {
               rowBorder: row ? getComputedStyle(row).borderBottomWidth : null,
               tagRadius: tag ? getComputedStyle(tag).borderTopLeftRadius : "0px",

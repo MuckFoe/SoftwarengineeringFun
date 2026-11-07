@@ -1,0 +1,18 @@
+{
+  "title": "Closest Neighbours To A Pivot",
+  "description": "## Task\n\nFrom a sorted list pick the `k` values nearest to a pivot, where distance is the absolute difference. If two values are equally near, the smaller one is preferred. The chosen values form a block of consecutive positions, so binary search for where the block starts instead of sorting by distance.\n\n## Input\n\n- `xs` — integers sorted in non-decreasing order. It may be empty.\n- `k` — how many values to pick, at least 0. If `k` exceeds the length of `xs`, take everything.\n- `pivot` — any integer; it need not appear in `xs`.\n\n## Output\n\nThe chosen values as a list in ascending order.\n\n## Example\n\n```python\nclosest_to_pivot([1, 2, 4, 7, 9], 2, 5)  # returns [4, 7]\nclosest_to_pivot([1, 2, 4, 7, 9], 3, 0)  # returns [1, 2, 4]\nclosest_to_pivot([3, 8], 5, 4)  # returns [3, 8]\n```\n\n## Constraints\n\n- 0 ≤ length of `xs` ≤ 10^5\n- 0 ≤ `k` ≤ 2·10^5\n- -10^9 ≤ each value, `pivot` ≤ 10^9\n",
+  "signature": "def closest_to_pivot(xs: list[int], k: int, pivot: int) -> list[int]",
+  "topic": "binary search for a window",
+  "difficulty": "medium",
+  "category": "sorting-searching",
+  "tests": [
+    { "args": [[1, 2, 4, 7, 9], 2, 5], "expected": [4, 7] },
+    { "args": [[1, 2, 4, 7, 9], 3, 0], "expected": [1, 2, 4] },
+    { "args": [[3, 8], 5, 4], "expected": [3, 8] },
+    { "args": [[], 3, 1], "expected": [] },
+    { "args": [[1, 2, 3], 0, 2], "expected": [] },
+    { "args": [[1, 1, 2, 2, 3, 3], 3, 2], "expected": [1, 2, 2] },
+    { "args": [[1, 2, 3, 4], 2, 100], "expected": [3, 4] },
+    { "args": [[1, 2, 3, 4], 2, 2], "expected": [1, 2] }
+  ]
+}

@@ -122,3 +122,145 @@ async def test_a_seed_with_an_invalid_problem_inserts_nothing(
         await load_seed(migrated, tmp_path)
 
     assert await migrated.fetchval("select count(*) from problem") == 0
+
+
+# --- Spec 018 task 5: ledger, category and difficulty backfill ------------------------------
+
+
+def _seed_dir(root: Path, n: int, *, category: str | None = "arrays", difficulty: str = "easy"):
+    """Writes starter folder `n` under root and returns its folder name."""
+    name = f"{n:03d}-problem-{n}"
+    folder = root / name
+    folder.mkdir()
+    data = {
+        "title": f"Problem {n}",
+        "description": f"Task {n}.",
+        "signature": "def add(a: int, b: int) -> int",
+        "topic": "math",
+        "difficulty": difficulty,
+        "tests": [{"args": [1, 2], "expected": 3}],
+    }
+    if category is not None:
+        data["category"] = category
+    (folder / "problem.json").write_text(json.dumps(data))
+    return name
+
+
+async def _snapshot(conn: asyncpg.Connection) -> list[tuple]:
+    rows = await conn.fetch(
+        """select id, title, description, category, difficulty, seed_key, updated_at,
+                  deleted_at from problem order by title"""
+    )
+    ledger = await conn.fetch("select seed_key, problem_id from seeded_problem order by seed_key")
+    return [tuple(r.values()) for r in rows] + [tuple(r.values()) for r in ledger]
+
+
+async def test_fr1_n_seed_folders_in_an_empty_database_give_n_problems_and_ledger_rows(
+    migrated: asyncpg.Connection, tmp_path: Path
+) -> None:
+    for n in range(1, 8):
+        _seed_dir(tmp_path, n, difficulty=("easy", "medium", "hard")[n % 3])
+
+    assert await load_seed(migrated, tmp_path) == 7
+
+    assert await migrated.fetchval("select count(*) from problem") == 7
+    assert await migrated.fetchval("select count(*) from seeded_problem") == 7
+    row = await migrated.fetchrow(
+        "select category, difficulty from problem where title = 'Problem 2'"
+    )
+    assert (row["category"], row["difficulty"]) == ("arrays", "hard")
+
+
+async def test_fr4_a_seed_folder_with_a_category_outside_the_list_is_a_seed_error(
+    migrated: asyncpg.Connection, tmp_path: Path
+) -> None:
+    _seed_dir(tmp_path, 1, category="nonsense")
+
+    with pytest.raises(SeedError, match="001-problem-1.*category"):
+        await load_seed(migrated, tmp_path)
+    assert await migrated.fetchval("select count(*) from problem") == 0
+
+
+async def test_fr2_seeding_a_legacy_database_fills_category_and_keeps_id_session_and_topic(
+    migrated: asyncpg.Connection, tmp_path: Path
+) -> None:
+    name = _seed_dir(tmp_path, 1, category="strings", difficulty="medium")
+    # A legacy row: seeded before categories existed, so no category or difficulty, and a
+    # ledger row as written by the migration.
+    pid = await migrated.fetchval(
+        """insert into problem (title, description, signature, function_name, params,
+                                return_type, is_starter, seed_key)
+           values ('Problem 1', 'Edited text', 'def add(a: int, b: int) -> int', 'add', '[]',
+                   'int', true, $1) returning id""",
+        name,
+    )
+    await migrated.execute(
+        "insert into seeded_problem (seed_key, problem_id) values ($1, $2)", name, pid
+    )
+    session_id = await migrated.fetchval(
+        "insert into session (invite_id, current_problem_id) values ('inv', $1) returning id", pid
+    )
+
+    assert await load_seed(migrated, tmp_path) == 0
+
+    row = await migrated.fetchrow("select * from problem")
+    assert row["id"] == pid
+    assert row["description"] == "Edited text"
+    assert (row["category"], row["difficulty"]) == ("strings", "medium")
+    assert "topic" not in row
+    assert (
+        await migrated.fetchval("select current_problem_id from session where id = $1", session_id)
+        == pid
+    )
+
+
+async def test_fr8_edit_kept_deleted_stays_deleted_no_duplicates_second_run_changes_nothing(
+    migrated: asyncpg.Connection, tmp_path: Path
+) -> None:
+    names = [_seed_dir(tmp_path, n) for n in range(1, 6)]
+    await load_seed(migrated, tmp_path)
+    # Legacy state: category and difficulty not yet set on the rows.
+    await migrated.execute("update problem set category = null, difficulty = null")
+    await migrated.execute(
+        "update problem set title = 'Edited title' where seed_key = $1", names[0]
+    )
+    await migrated.execute(
+        "delete from problem_test where problem_id = (select id from problem where seed_key = $1)",
+        names[1],
+    )
+    await migrated.execute(
+        "update seeded_problem set problem_id = null where seed_key = $1", names[1]
+    )
+    await migrated.execute("delete from problem where seed_key = $1", names[1])  # hard delete
+    new_name = _seed_dir(tmp_path, 6)
+
+    first = await load_seed(migrated, tmp_path)
+    after_first = await _snapshot(migrated)
+    second = await load_seed(migrated, tmp_path)
+
+    assert first == 1  # only the genuinely new starter
+    assert second == 0
+    assert await _snapshot(migrated) == after_first
+    titles = [r["title"] for r in await migrated.fetch("select title from problem")]
+    assert "Edited title" in titles
+    assert "Problem 2" not in titles  # deleted stays deleted
+    assert len(titles) == len(set(titles)) == 5
+    assert (
+        await migrated.fetchval("select count(*) from problem where seed_key = $1", new_name) == 1
+    )
+    assert await migrated.fetchval("select count(*) from problem where category is null") == 0
+
+
+async def test_a_seeded_problem_with_a_category_keeps_it_when_the_seed_says_otherwise(
+    migrated: asyncpg.Connection, tmp_path: Path
+) -> None:
+    name = _seed_dir(tmp_path, 1, category="arrays", difficulty="easy")
+    await load_seed(migrated, tmp_path)
+    await migrated.execute("update problem set category = 'strings', difficulty = 'hard'")
+
+    await load_seed(migrated, tmp_path)
+
+    row = await migrated.fetchrow(
+        "select category, difficulty from problem where seed_key = $1", name
+    )
+    assert (row["category"], row["difficulty"]) == ("strings", "hard")

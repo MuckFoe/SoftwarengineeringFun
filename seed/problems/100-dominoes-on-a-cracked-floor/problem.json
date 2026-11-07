@@ -1,0 +1,20 @@
+{
+  "title": "Dominoes on a Cracked Floor",
+  "description": "## Task\n\nA floor is a grid of sound tiles (`.`) and cracked tiles (`#`). Dominoes of size 1 by 2 (either orientation) must cover every sound tile exactly once, never overlap, and never touch a cracked tile. Count the different ways to do it. Floors up to 8 by 8 occur, and an empty 8 by 8 floor has millions of tilings, so listing them one by one is too slow; remember partial results.\n\n## Input\n\n- `grid` — a list of equal-length strings of `.` and `#`.\n\n## Output\n\nThe number of tilings. A floor with no sound tile has exactly 1 (the empty tiling).\n\n## Example\n\n```python\ndominoes_on_a_cracked_floor(['..', '..'])  # returns 2\ndominoes_on_a_cracked_floor(['...'])  # returns 0\ndominoes_on_a_cracked_floor(['##'])  # returns 1\n```\n\n## Constraints\n\n- 1 ≤ rows, columns ≤ 8\n- The answer fits in a normal 64-bit integer.\n\n",
+  "signature": "def dominoes_on_a_cracked_floor(grid: list[str]) -> int",
+  "topic": "tiling count with memoised frontier",
+  "difficulty": "hard",
+  "category": "recursion-backtracking",
+  "tests": [
+    { "args": [["..", ".."]], "expected": 2 },
+    { "args": [["..."]], "expected": 0 },
+    { "args": [["##"]], "expected": 1 },
+    { "args": [[".."]], "expected": 1 },
+    { "args": [["....", "....", "...."]], "expected": 11 },
+    { "args": [["...", "...", "..."]], "expected": 0 },
+    { "args": [["..#.", "....", "#...", "...."]], "expected": 0 },
+    { "args": [["........", "........", "........", "........", "........", "........", "........", "........"]], "expected": 12988816 },
+    { "args": [["........", "........", "...##...", "........", "........", "...##...", "........", "........"]], "expected": 765544 },
+    { "args": [["#.......", "........", "........", "........", "........", "........", "........", ".......#"]], "expected": 0 }
+  ]
+}

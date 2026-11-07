@@ -4,6 +4,7 @@
   "signature": "def is_balanced(s: str) -> bool",
   "topic": "stacks",
   "difficulty": "easy",
+  "category": "stacks-queues",
   "tests": [
     { "args": ["()"], "expected": true },
     { "args": ["()[]{}"], "expected": true },

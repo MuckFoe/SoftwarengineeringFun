@@ -3,17 +3,26 @@ import {
   ApiError,
   createProblem,
   deleteProblem,
+  getProblemCategories,
   getProblemForEdit,
   updateProblem,
 } from "../api/client";
-import type { FieldError, ProblemTest } from "../api/types";
+import type { Difficulty, FieldError, ProblemCategory, ProblemTest } from "../api/types";
 import { DescriptionEditor } from "../description/DescriptionEditor";
 import { ShortcutScope, useShortcut } from "../shortcuts/useShortcut";
 import { Button } from "../ui/Button";
 import { InlineMessage } from "../ui/InlineMessage";
+import { Select } from "../ui/Select";
 import { Sheet } from "../ui/Sheet";
 import { TextField } from "../ui/TextField";
 import styles from "./ProblemEditorSheet.module.css";
+
+const DIFFICULTY_OPTIONS = [
+  { value: "", label: "Not set" },
+  { value: "easy", label: "Easy" },
+  { value: "medium", label: "Medium" },
+  { value: "hard", label: "Hard" },
+];
 
 interface TestRow {
   key: string;
@@ -103,12 +112,28 @@ function EditorFields({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [signature, setSignature] = useState("");
+  const [category, setCategory] = useState("");
+  const [difficulty, setDifficulty] = useState("");
+  const [categories, setCategories] = useState<ProblemCategory[]>([]);
   const [rows, setRows] = useState<TestRow[]>([emptyRow()]);
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
   const [badRows, setBadRows] = useState<number[]>([]);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  useEffect(() => {
+    let current = true;
+    getProblemCategories().then(
+      (found) => {
+        if (current) setCategories(found);
+      },
+      () => undefined,
+    );
+    return () => {
+      current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (problemId === undefined) return;
@@ -119,6 +144,8 @@ function EditorFields({
         setTitle(problem.title);
         setDescription(problem.description);
         setSignature(problem.signature);
+        setCategory(problem.category ?? "");
+        setDifficulty(problem.difficulty ?? "");
         setRows(problem.tests.length > 0 ? rowsFromTests(problem.tests) : [emptyRow()]);
       },
       () => {
@@ -146,7 +173,15 @@ function EditorFields({
       return;
     }
     setBadRows([]);
-    const input = { title, description, signature, tests: parsed.tests };
+    // Empty means "not chosen": omitted, so an update leaves the stored value as it is.
+    const input = {
+      title,
+      description,
+      signature,
+      tests: parsed.tests,
+      ...(category !== "" && { category }),
+      ...(difficulty !== "" && { difficulty: difficulty as Difficulty }),
+    };
     setSaving(true);
     try {
       if (problemId !== undefined) await updateProblem(problemId, input);
@@ -220,6 +255,30 @@ function EditorFields({
       {field("Signature", signature, setSignature, messageFor(fieldErrors, "signature"), {
         monospace: true,
       })}
+
+      <div className={styles.pair}>
+        <div className={styles.field}>
+          <Select
+            label="Category"
+            value={category}
+            onChange={setCategory}
+            error={messageFor(fieldErrors, "category")}
+            options={[
+              { value: "", label: "Not set" },
+              ...categories.map((c) => ({ value: c.id, label: c.label })),
+            ]}
+          />
+        </div>
+        <div className={styles.field}>
+          <Select
+            label="Difficulty"
+            value={difficulty}
+            onChange={setDifficulty}
+            error={messageFor(fieldErrors, "difficulty")}
+            options={DIFFICULTY_OPTIONS}
+          />
+        </div>
+      </div>
 
       <fieldset className={styles.tests}>
         <legend className={styles.legend}>Tests</legend>

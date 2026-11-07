@@ -1,0 +1,16 @@
+{
+  "title": "Closest Tide Readings",
+  "description": "## Task\n\nA harbour logs tide heights in the order they were taken. Find the smallest absolute difference between any two readings (two different positions, equal values allowed). Sorting the readings first means the closest pair must sit side by side.\n\n## Input\n\n- `readings` — a list of integers in no particular order.\n\n## Output\n\nThe smallest absolute difference between two readings, or `-1` if there are fewer than two readings.\n\n## Example\n\n```python\nclosest_tide_gap([9, 4, 15, 6])  # returns 2\nclosest_tide_gap([7, 7, 20])  # returns 0\nclosest_tide_gap([3])  # returns -1\n```\n\n## Constraints\n\n- 0 ≤ length of `readings` ≤ 10^5\n- -10^9 ≤ each reading ≤ 10^9\n",
+  "signature": "def closest_tide_gap(readings: list[int]) -> int",
+  "topic": "sort then compare neighbours",
+  "difficulty": "easy",
+  "category": "sorting-searching",
+  "tests": [
+    { "args": [[9, 4, 15, 6]], "expected": 2 },
+    { "args": [[7, 7, 20]], "expected": 0 },
+    { "args": [[3]], "expected": -1 },
+    { "args": [[]], "expected": -1 },
+    { "args": [[-10, 10]], "expected": 20 },
+    { "args": [[1, 100, 50, 51, 99, 2]], "expected": 1 }
+  ]
+}

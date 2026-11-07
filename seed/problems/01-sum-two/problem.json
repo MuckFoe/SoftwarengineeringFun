@@ -4,6 +4,7 @@
   "signature": "def add(a: int, b: int) -> int",
   "topic": "math",
   "difficulty": "easy",
+  "category": "math-bits",
   "tests": [
     { "args": [2, 3], "expected": 5 },
     { "args": [0, 0], "expected": 0 },

@@ -4,6 +4,7 @@
   "signature": "def reverse_words(s: str) -> str",
   "topic": "strings",
   "difficulty": "easy",
+  "category": "strings",
   "tests": [
     { "args": ["hello world"], "expected": "world hello" },
     { "args": ["a b c"], "expected": "c b a" },

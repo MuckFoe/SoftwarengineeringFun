@@ -1,0 +1,176 @@
+{
+  "title": "Coupon Rail Pass",
+  "description": "## Task\n\nA rail network has `n` stations and one-way legs, each with a fare. You hold a pass with `coupons` free-ride coupons. Each coupon makes one leg free, and you may use at most `coupons` of them on a journey, on any legs you like. Find the lowest total fare from `start` to `goal`.\n\n## Input\n\n- `n` — the number of stations, numbered `0` to `n - 1`.\n- `legs` — a list of `[a, b, fare]`: a one-way leg from `a` to `b` costing `fare`. Parallel legs and loops may appear.\n- `coupons` — how many legs can be made free, a non-negative integer.\n- `start`, `goal` — the stations.\n\n## Output\n\nThe lowest total fare as an integer, or `-1` if `goal` cannot be reached. If `start` equals `goal` the answer is `0`.\n\n## Example\n\n```python\ncheapest_with_coupons(4, [[0, 1, 10], [1, 2, 7], [2, 3, 5]], 1, 0, 3)  # returns 12\ncheapest_with_coupons(4, [[0, 1, 10], [1, 2, 7], [2, 3, 5]], 2, 0, 3)  # returns 5\ncheapest_with_coupons(4, [[0, 1, 10], [1, 2, 7], [2, 3, 5]], 0, 0, 3)  # returns 22\n```\n\n## Constraints\n\n- 1 ≤ `n` ≤ 2000\n- 0 ≤ number of legs ≤ 10^4\n- 0 ≤ `coupons` ≤ 10\n- 0 ≤ `fare` ≤ 1000\n- Picking the free legs by trying all combinations is too slow on the largest tests.\n",
+  "signature": "def cheapest_with_coupons(n: int, legs: list[list[int]], coupons: int, start: int, goal: int) -> int",
+  "topic": "dijkstra on layered states",
+  "difficulty": "hard",
+  "category": "graphs-trees",
+  "tests": [
+    {
+      "args": [
+        4,
+        [
+          [
+            0,
+            1,
+            10
+          ],
+          [
+            1,
+            2,
+            7
+          ],
+          [
+            2,
+            3,
+            5
+          ]
+        ],
+        1,
+        0,
+        3
+      ],
+      "expected": 12
+    },
+    {
+      "args": [
+        4,
+        [
+          [
+            0,
+            1,
+            10
+          ],
+          [
+            1,
+            2,
+            7
+          ],
+          [
+            2,
+            3,
+            5
+          ]
+        ],
+        2,
+        0,
+        3
+      ],
+      "expected": 5
+    },
+    {
+      "args": [
+        4,
+        [
+          [
+            0,
+            1,
+            10
+          ],
+          [
+            1,
+            2,
+            7
+          ],
+          [
+            2,
+            3,
+            5
+          ]
+        ],
+        0,
+        0,
+        3
+      ],
+      "expected": 22
+    },
+    {
+      "args": [
+        3,
+        [
+          [
+            0,
+            1,
+            10
+          ],
+          [
+            1,
+            2,
+            7
+          ],
+          [
+            0,
+            2,
+            12
+          ]
+        ],
+        1,
+        0,
+        2
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        2,
+        [
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        3,
+        0,
+        1
+      ],
+      "expected": -1
+    },
+    {
+      "args": [
+        1,
+        [],
+        2,
+        0,
+        0
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        5,
+        [
+          [
+            0,
+            1,
+            4
+          ],
+          [
+            1,
+            2,
+            9
+          ],
+          [
+            2,
+            3,
+            9
+          ],
+          [
+            3,
+            4,
+            4
+          ],
+          [
+            0,
+            4,
+            30
+          ]
+        ],
+        1,
+        0,
+        4
+      ],
+      "expected": 0
+    }
+  ]
+}

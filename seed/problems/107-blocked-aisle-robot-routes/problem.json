@@ -1,0 +1,19 @@
+{
+  "title": "Blocked Aisle Robot Routes",
+  "description": "## Task\n\nA warehouse floor is a grid of `rows` by `cols` cells. A robot starts in the top-left cell and must reach the bottom-right cell, moving only one cell right or one cell down per step. Some cells hold pallets and cannot be entered. Count the distinct routes.\n\n## Input\n\n- `rows`, `cols` — the grid size.\n- `blocked` — a list of `[row, col]` pairs (0-based) that cannot be entered.\n\n## Output\n\nThe number of routes. It is 0 if the start or the goal is blocked.\n\n## Example\n\n```python\naisle_routes(3, 3, [[1, 1]])  # returns 2\naisle_routes(2, 3, [])  # returns 3\naisle_routes(2, 2, [[0, 0]])  # returns 0\n```\n\n## Constraints\n\n- 1 ≤ `rows`, `cols` ≤ 16\n- Each blocked pair lies inside the grid; pairs are distinct.\n",
+  "signature": "def aisle_routes(rows: int, cols: int, blocked: list[list[int]]) -> int",
+  "topic": "grid paths",
+  "difficulty": "easy",
+  "category": "dynamic-programming",
+  "tests": [
+    { "args": [3, 3, [[1, 1]]], "expected": 2 },
+    { "args": [2, 3, []], "expected": 3 },
+    { "args": [2, 2, [[0, 0]]], "expected": 0 },
+    { "args": [1, 1, []], "expected": 1 },
+    { "args": [1, 5, [[0, 3]]], "expected": 0 },
+    { "args": [5, 5, [[1, 2], [3, 1]]], "expected": 24 },
+    { "args": [16, 16, []], "expected": 155117520 },
+    { "args": [8, 9, [[2, 2], [4, 5], [6, 1], [0, 3]]], "expected": 1795 },
+    { "args": [3, 3, [[2, 2]]], "expected": 0 }
+  ]
+}

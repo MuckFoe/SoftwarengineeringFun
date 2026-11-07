@@ -1,0 +1,18 @@
+{
+  "title": "Burst The Lanterns Best Score",
+  "description": "## Task\n\nA row of paper lanterns hangs on a string, lantern `i` having brightness `glow[i]`. You pop them one at a time, in any order you choose. Popping lantern `i` scores `left * glow[i] * right`, where `left` and `right` are the brightness of the nearest lanterns still hanging on each side. If there is no lantern on a side, use 1 for it. Find the maximum total score from popping all of them.\n\n## Input\n\n- `glow` — a list of non-negative integers. It may be empty.\n\n## Output\n\nThe maximum total score over all pop orders.\n\n## Example\n\n```python\nlantern_score([3, 1, 5, 8])  # returns 167\nlantern_score([4])  # returns 4\nlantern_score([])  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `glow` ≤ 300\n- 0 ≤ each brightness ≤ 100\n- Trying every pop order is far too slow for the larger inputs; an interval-based method is expected.\n",
+  "signature": "def lantern_score(glow: list[int]) -> int",
+  "topic": "interval dp",
+  "difficulty": "hard",
+  "category": "dynamic-programming",
+  "tests": [
+    { "args": [[3, 1, 5, 8]], "expected": 167 },
+    { "args": [[4]], "expected": 4 },
+    { "args": [[]], "expected": 0 },
+    { "args": [[0, 0, 0]], "expected": 0 },
+    { "args": [[1, 5]], "expected": 10 },
+    { "args": [[9, 76, 64, 21]], "expected": 116718 },
+    { "args": [[56, 100, 0, 67, 53, 14, 100, 92, 61, 11, 15, 34, 1, 49, 11, 68, 80, 66, 30, 50, 28, 15, 87, 41, 77, 0, 88, 66, 53, 88, 98, 72, 74, 21, 67, 99, 81, 81, 1, 10, 22, 96, 29, 28, 22, 41, 43, 50, 7, 44, 55, 85, 16, 64, 63, 25, 89, 38, 66, 0, 98, 25, 43, 52, 26, 95, 57, 89, 29, 39, 5, 43, 94, 49, 73, 29, 52, 72, 49, 9, 11, 12, 13, 39, 69, 15, 62, 6, 91, 11, 93, 88, 78, 4, 26, 4, 92, 16, 79, 67, 29, 79, 72, 53, 50, 30, 34, 44, 19, 82, 43, 80, 58, 22, 57, 33, 65, 59, 7, 38]], "expected": 40541756 },
+    { "args": [[28, 70, 30, 62, 39, 74, 86, 82, 75, 75, 71, 47, 84, 1, 94, 70, 94, 17, 10, 15, 29, 95, 85, 82, 17, 3, 21, 64, 21, 1, 70, 34, 47, 49, 27, 62, 1, 34, 88, 32, 42, 18, 54, 34, 47, 42, 42, 19, 3, 65, 40, 95, 77, 64, 85, 1, 84, 30, 11, 61, 59, 85, 27, 62, 18, 16, 65, 59, 72, 16, 1, 41, 24, 80, 70, 87, 25, 81, 78, 80, 49, 68, 9, 85, 3, 26, 74, 39, 10, 99, 15, 22, 57, 45, 15, 26, 73, 49, 36, 26, 34, 52, 74, 15, 87, 54, 30, 33, 49, 53, 13, 55, 68, 24, 21, 18, 36, 20, 82, 85, 82, 19, 68, 100, 90, 97, 27, 64, 69, 22, 27, 31, 24, 19, 51, 10, 61, 45, 89, 41, 84, 85, 12, 29, 9, 76, 68, 3, 4, 87, 13, 74, 73, 77, 97, 11, 14, 99, 48, 31, 76, 54, 68, 44, 48, 94, 51, 73, 55, 72, 70, 89, 21, 99, 88, 69, 92, 82, 6, 39, 98, 27, 28, 22, 73, 51, 57, 30, 56, 61, 29, 95, 91, 10, 63, 55, 53, 91, 35, 93, 39, 56, 95, 34, 91, 86, 64, 90, 6, 58, 64, 46, 65, 4, 84, 61, 21, 69, 40, 39, 14, 63, 62, 10, 10, 22, 57, 57, 45, 62, 65, 36, 68, 44, 50, 80, 18, 59, 3, 81, 72, 12, 47, 37, 20, 46, 100, 41, 42, 96]], "expected": 87764882 }
+  ]
+}

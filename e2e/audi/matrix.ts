@@ -70,6 +70,23 @@ export const SCREENS: Screen[] = [
     },
   },
   {
+    // Spec 018 task 44: the picker with a category and a difficulty chosen (FR-10), narrow too.
+    name: "problems picker (filters)",
+    lowerBound: 1024,
+    narrow: true,
+    async open(page) {
+      await page.goto(appUrl("/problems"));
+      await expect(page.getByRole("button", { name: /^Start session: / }).first()).toBeVisible();
+      await page.getByRole("combobox", { name: "Category" }).click();
+      await page.getByRole("option", { name: "Strings" }).click();
+      await page.getByRole("button", { name: "Medium", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Medium", exact: true })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    },
+  },
+  {
     // Spec 017 task 17: `/` is the home screen (signed in, with a session tile).
     name: "home screen",
     lowerBound: 1024,

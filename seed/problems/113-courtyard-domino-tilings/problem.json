@@ -1,0 +1,21 @@
+{
+  "title": "Courtyard Domino Tilings",
+  "description": "## Task\n\nA courtyard is a `rows` by `cols` grid of square cells. Some cells are holes (fountains) and must stay uncovered; every other cell must be covered by a domino that spans exactly two edge-adjacent cells, with no overlaps and nothing outside the grid. Count the ways to do so, modulo 1,000,000,007.\n\n## Input\n\n- `rows`, `cols` — the grid size.\n- `holes` — a list of distinct `[row, col]` pairs (0-based) that stay uncovered.\n\n## Output\n\nThe number of valid tilings modulo 1000000007. Zero if there is none; a grid with every cell a hole has exactly one (empty) tiling.\n\n## Example\n\n```python\ncourtyard_tilings(2, 3, [])  # returns 3\ncourtyard_tilings(3, 3, [[1, 1]])  # returns 2\ncourtyard_tilings(3, 3, [])  # returns 0\n```\n\n## Constraints\n\n- 1 ≤ `rows` ≤ 12, 1 ≤ `cols` ≤ 12\n- Enumerating placements one by one is far too slow on the larger grids; process the grid cell by cell while remembering only the frontier.\n",
+  "signature": "def courtyard_tilings(rows: int, cols: int, holes: list[list[int]]) -> int",
+  "topic": "broken profile dp",
+  "difficulty": "hard",
+  "category": "dynamic-programming",
+  "tests": [
+    { "args": [2, 3, []], "expected": 3 },
+    { "args": [3, 3, [[1, 1]]], "expected": 2 },
+    { "args": [3, 3, []], "expected": 0 },
+    { "args": [1, 1, [[0, 0]]], "expected": 1 },
+    { "args": [1, 2, []], "expected": 1 },
+    { "args": [8, 8, []], "expected": 12988816 },
+    { "args": [10, 10, []], "expected": 584044562 },
+    { "args": [12, 12, []], "expected": 150536661 },
+    { "args": [6, 9, [[0, 0], [5, 8], [2, 3], [3, 2]]], "expected": 0 },
+    { "args": [2, 12, []], "expected": 233 },
+    { "args": [11, 12, [[5, 5], [6, 6]]], "expected": 0 }
+  ]
+}

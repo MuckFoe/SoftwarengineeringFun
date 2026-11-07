@@ -1,0 +1,18 @@
+{
+  "title": "Acronym Without The Small Words",
+  "description": "## Task\n\nBuild an acronym from a sentence. Take the first letter of every word that has three or more characters, turn it into uppercase, and join the letters in order. Words with one or two characters are skipped.\n\n## Input\n\n- `sentence` — words separated by one or more spaces. It may be empty or contain only spaces.\n\n## Output\n\nA string of uppercase letters, possibly empty.\n\n## Example\n\n```python\nacronym_big_words(\"the lord of the rings\")  # returns \"TLTR\"\nacronym_big_words(\"a to be or not\")  # returns \"N\"\nacronym_big_words(\"\")  # returns \"\"\n```\n\n## Constraints\n\n- 0 ≤ length of `sentence` ≤ 10^4\n- Words contain letters only; the first letter of a counted word is a letter `a`-`z` or `A`-`Z`.\n",
+  "signature": "def acronym_big_words(sentence: str) -> str",
+  "topic": "string scanning",
+  "difficulty": "easy",
+  "category": "strings",
+  "tests": [
+    { "args": ["the lord of the rings"], "expected": "TLTR" },
+    { "args": ["a to be or not"], "expected": "N" },
+    { "args": [""], "expected": "" },
+    { "args": ["   "], "expected": "" },
+    { "args": ["  spaced   out  Words here "], "expected": "SOWH" },
+    { "args": ["It is I"], "expected": "" },
+    { "args": ["abc"], "expected": "A" },
+    { "args": ["go on no way now"], "expected": "WN" }
+  ]
+}

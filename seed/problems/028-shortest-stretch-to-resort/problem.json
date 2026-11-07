@@ -1,0 +1,80 @@
+{
+  "title": "Shortest Stretch To Re-sort",
+  "description": "## Task\n\nA row of numbered lockers is almost in order. You may pick one block of neighbouring lockers and rearrange only that block into non-decreasing order. Find the shortest block that makes the whole row non-decreasing after that single rearrangement.\n\n## Input\n\n- `xs` — a list of integers; duplicates are allowed.\n\n## Output\n\nThe length of the shortest such block, or 0 if the row is already non-decreasing. Trying every block is too slow for the biggest inputs.\n\n## Example\n\n```python\nshortest_resort_window([1, 3, 5, 4, 2, 6, 7])  # returns 4\nshortest_resort_window([1, 2, 2, 3])  # returns 0\nshortest_resort_window([1, 2, 2, 2, 1])  # returns 4\n```\n\n## Constraints\n\n- 0 ≤ length of `xs` ≤ 10^5\n- -10^9 ≤ each value ≤ 10^9\n\n",
+  "signature": "def shortest_resort_window(xs: list[int]) -> int",
+  "topic": "one-pass bounds",
+  "difficulty": "medium",
+  "category": "arrays",
+  "tests": [
+    {
+      "args": [
+        [
+          1,
+          3,
+          5,
+          4,
+          2,
+          6,
+          7
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        [
+          1,
+          2,
+          2,
+          3
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        []
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          9
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          3,
+          2,
+          1
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        [
+          1,
+          2,
+          2,
+          2,
+          1
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        [
+          2,
+          1
+        ]
+      ],
+      "expected": 2
+    }
+  ]
+}

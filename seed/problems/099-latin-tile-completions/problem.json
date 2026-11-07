@@ -1,0 +1,21 @@
+{
+  "title": "Latin Tile Completions",
+  "description": "## Task\n\nA tile floor is an `n` by `n` grid. Each tile shows a number from `1` to `n`, and a number may not repeat in any row or any column (a Latin square). Some tiles are already laid and the others are empty (`0`). Count the ways to fill every empty tile so that the whole floor is valid. If the laid tiles already clash, the answer is 0. Counting by trying every cell one at a time is too slow on the larger floors; work row by row.\n\n## Input\n\n- `grid` — `n` rows of `n` integers, each `0` (empty) or in `1..n`.\n\n## Output\n\nThe number of valid completions.\n\n## Example\n\n```python\nlatin_tile_completions([[1, 0], [0, 0]])  # returns 1\nlatin_tile_completions([[0, 0], [0, 0]])  # returns 2\nlatin_tile_completions([[1, 1], [0, 0]])  # returns 0\n```\n\n## Constraints\n\n- 1 ≤ `n` ≤ 6\n- For `n` = 6 the first row is always fully laid.\n- The answer fits in a normal 64-bit integer.\n\n",
+  "signature": "def latin_tile_completions(grid: list[list[int]]) -> int",
+  "topic": "constraint backtracking with memoisation",
+  "difficulty": "hard",
+  "category": "recursion-backtracking",
+  "tests": [
+    { "args": [[[1, 0], [0, 0]]], "expected": 1 },
+    { "args": [[[0, 0], [0, 0]]], "expected": 2 },
+    { "args": [[[1, 1], [0, 0]]], "expected": 0 },
+    { "args": [[[0]]], "expected": 1 },
+    { "args": [[[0, 0, 0], [0, 0, 0], [0, 0, 0]]], "expected": 12 },
+    { "args": [[[1, 0, 0], [0, 0, 0], [0, 0, 0]]], "expected": 4 },
+    { "args": [[[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]], "expected": 576 },
+    { "args": [[[1, 2, 3, 4, 5], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]], "expected": 1344 },
+    { "args": [[[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]], "expected": 161280 },
+    { "args": [[[1, 2, 3, 4, 5, 6], [2, 3, 4, 5, 6, 1], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]], "expected": 4032 },
+    { "args": [[[1, 2, 3, 4, 5, 6], [2, 0, 0, 0, 0, 0], [3, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]], "expected": 56448 }
+  ]
+}

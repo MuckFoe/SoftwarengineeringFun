@@ -1,0 +1,20 @@
+{
+  "title": "Banned Syllable Safe Codes",
+  "description": "## Task\n\nA code is a string of exactly `n` characters made from the first `k` lowercase letters (`a` is the first letter, `b` the second, and so on). A code is safe when none of the banned syllables appears anywhere inside it as a run of consecutive characters. Count the safe codes.\n\n## Input\n\n- `n` — the code length.\n- `banned` — a list of non-empty banned syllables, each made only from the first `k` letters. It may be empty.\n- `k` — the alphabet size.\n\n## Output\n\nThe number of safe codes, modulo `1000000007`.\n\n## Example\n\n```python\ncount_safe_codes(2, [\"ab\"], 2)  # returns 3\ncount_safe_codes(3, [\"aa\"], 2)  # returns 5\ncount_safe_codes(1, [\"c\"], 3)  # returns 2\n```\n\n## Constraints\n\n- 0 ≤ `n` ≤ 5000 (`n = 0` gives one empty code, which is safe)\n- 1 ≤ `k` ≤ 5\n- 0 ≤ number of syllables ≤ 20; the syllable lengths add up to at most 60.\n- Listing every code is too slow for the largest inputs.\n",
+  "signature": "def count_safe_codes(n: int, banned: list[str], k: int) -> int",
+  "topic": "Aho-Corasick automaton dp",
+  "difficulty": "hard",
+  "category": "strings",
+  "tests": [
+    { "args": [2, ["ab"], 2], "expected": 3 },
+    { "args": [3, ["aa"], 2], "expected": 5 },
+    { "args": [1, ["c"], 3], "expected": 2 },
+    { "args": [0, ["a"], 2], "expected": 1 },
+    { "args": [4, [], 3], "expected": 81 },
+    { "args": [5, ["a", "b", "c"], 3], "expected": 0 },
+    { "args": [6, ["ab", "ba"], 2], "expected": 2 },
+    { "args": [200, ["abc", "cab", "bb"], 3], "expected": 743284545 },
+    { "args": [3000, ["abca", "bcb", "cc", "acab", "dd"], 4], "expected": 78473327 },
+    { "args": [5000, ["ab", "bcd", "dea", "ecce", "aaa", "bdbd"], 5], "expected": 551206432 }
+  ]
+}

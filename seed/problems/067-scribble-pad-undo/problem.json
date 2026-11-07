@@ -1,0 +1,17 @@
+{
+  "title": "Scribble Pad Undo",
+  "description": "## Task\n\nA scribble pad keeps the words you write in order. Each operation is either `write:<word>`, which adds the word at the end, or `undo`, which removes the most recently written word that is still on the pad. An `undo` on an empty pad does nothing. Return the words left on the pad after all operations, oldest first.\n\n## Input\n\n- `ops` — a list of strings, each either `undo` or `write:` followed by a non-empty lowercase word. It may be empty.\n\n## Output\n\nA list of the remaining words, in the order they were written.\n\n## Example\n\n```python\nscribble_pad_undo(['write:red', 'write:blue', 'undo', 'write:green'])  # returns ['red', 'green']\nscribble_pad_undo(['undo', 'undo'])  # returns []\nscribble_pad_undo(['write:a', 'undo', 'undo', 'write:b'])  # returns ['b']\n```\n\n## Constraints\n\n- 0 ≤ length of `ops` ≤ 10^4\n- Each word has 1 to 10 lowercase letters.\n",
+  "signature": "def scribble_pad_undo(ops: list[str]) -> list[str]",
+  "topic": "stack",
+  "difficulty": "easy",
+  "category": "stacks-queues",
+  "tests": [
+    { "args": [["write:red", "write:blue", "undo", "write:green"]], "expected": ["red", "green"] },
+    { "args": [[]], "expected": [] },
+    { "args": [["undo", "undo"]], "expected": [] },
+    { "args": [["write:a", "undo", "undo", "write:b"]], "expected": ["b"] },
+    { "args": [["write:x", "write:x", "write:y"]], "expected": ["x", "x", "y"] },
+    { "args": [["write:one", "undo", "write:two", "undo", "write:three"]], "expected": ["three"] },
+    { "args": [["write:w0", "write:w1", "write:w2", "write:w3", "write:w4", "write:w5", "write:w6", "write:w7", "write:w8", "write:w9", "write:w10", "write:w11", "write:w12", "write:w13", "write:w14", "write:w15", "write:w16", "write:w17", "write:w18", "write:w19", "write:w20", "write:w21", "write:w22", "write:w23", "write:w24", "write:w25", "write:w26", "write:w27", "write:w28", "write:w29", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "undo", "write:end"]], "expected": ["end"] }
+  ]
+}

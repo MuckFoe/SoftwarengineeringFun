@@ -1,0 +1,58 @@
+{
+  "title": "Matryoshka Depth",
+  "description": "## Task\n\nA box can hold plain numbers and smaller boxes, and those boxes can hold more boxes. Here a box is written as a pair of square brackets, and the numbers inside are left out, so a whole arrangement is a string of `[` and `]`. Report how deeply the boxes are nested: the outer box alone has depth 1, a box inside it makes depth 2, and so on.\n\n## Input\n\n- `boxes` — a non-empty string of `[` and `]` that is correctly balanced and made of a single outer box.\n\n## Output\n\nThe depth of the deepest box, as an integer.\n\n## Example\n\n```python\nmatryoshka_depth('[]')  # returns 1\nmatryoshka_depth('[[[]]]')  # returns 3\nmatryoshka_depth('[[][[]]]')  # returns 3\n```\n\n## Constraints\n\n- 2 ≤ length of `boxes` ≤ 10^4\n- Nesting depth ≤ 100\n",
+  "signature": "def matryoshka_depth(boxes: str) -> int",
+  "topic": "nested lists",
+  "difficulty": "easy",
+  "category": "recursion-backtracking",
+  "tests": [
+    {
+      "args": [
+        "[]"
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        "[]"
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        "[[]]"
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        "[[[[]]]]"
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        "[[[[[]]]]]"
+      ],
+      "expected": 5
+    },
+    {
+      "args": [
+        "[[][[]][[[]]]]"
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        "[[][][[]]]"
+      ],
+      "expected": 3
+    },
+    {
+      "args": [
+        "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]"
+      ],
+      "expected": 61
+    }
+  ]
+}

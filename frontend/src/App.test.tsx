@@ -202,13 +202,13 @@ describe("App dock (016 FR-16)", () => {
     ["/learn", "Learn"],
     ["/present", "Present"],
     ["/games", "Games"],
-    ["/nowhere", "Sessions"],
+    ["/nowhere", null],
   ])("mounts the dock once on %s", async (path, current) => {
     stubServer();
     renderRoute(path);
     const nav = await screen.findByRole("navigation", { name: "Areas" });
     expect(screen.getAllByRole("navigation", { name: "Areas" })).toHaveLength(1);
-    expect(nav.querySelectorAll("a")).toHaveLength(4);
+    expect(nav.querySelectorAll("a")).toHaveLength(5);
     const cur = nav.querySelector('[aria-current="page"]');
     expect(cur?.getAttribute("aria-label") ?? null).toBe(current);
   });

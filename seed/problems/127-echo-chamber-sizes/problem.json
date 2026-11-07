@@ -1,0 +1,162 @@
+{
+  "title": "Echo Chamber Sizes",
+  "description": "## Task\n\nIn a social network of `n` accounts, each pair `[a, b]` means account `a` follows account `b`. An echo chamber is a largest group of accounts in which every account can reach every other one by following a chain of follows (a single account that is in no such loop is a chamber of size 1). Every account belongs to exactly one chamber. Report the chamber sizes.\n\n## Input\n\n- `n` — the number of accounts, numbered `0` to `n - 1`.\n- `follows` — a list of `[a, b]` pairs meaning `a` follows `b`. Pairs may repeat, and `a` may equal `b`.\n\n## Output\n\nA list of chamber sizes in non-increasing order. The sizes add up to `n`.\n\n## Example\n\n```python\necho_chamber_sizes(5, [[0, 1], [1, 2], [2, 0], [2, 3]])  # returns [3, 1, 1]\necho_chamber_sizes(3, [[0, 1], [1, 2]])  # returns [1, 1, 1]\necho_chamber_sizes(2, [[0, 1], [1, 0]])  # returns [2]\n```\n\n## Constraints\n\n- 1 ≤ `n` ≤ 2 * 10^4\n- 0 ≤ number of follows ≤ 6 * 10^4\n- A single chamber can contain every account, so do not rely on deep recursion.\n- Testing every pair of accounts for mutual reachability is too slow on the largest tests.\n",
+  "signature": "def echo_chamber_sizes(n: int, follows: list[list[int]]) -> list[int]",
+  "topic": "strongly connected components",
+  "difficulty": "hard",
+  "category": "graphs-trees",
+  "tests": [
+    {
+      "args": [
+        5,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        3,
+        1,
+        1
+      ]
+    },
+    {
+      "args": [
+        3,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "args": [
+        2,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      ],
+      "expected": [
+        2
+      ]
+    },
+    {
+      "args": [
+        1,
+        []
+      ],
+      "expected": [
+        1
+      ]
+    },
+    {
+      "args": [
+        4,
+        [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "args": [
+        8,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            4,
+            5
+          ]
+        ]
+      ],
+      "expected": [
+        3,
+        3,
+        2
+      ]
+    }
+  ]
+}

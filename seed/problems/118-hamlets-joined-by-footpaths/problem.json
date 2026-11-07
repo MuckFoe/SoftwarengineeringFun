@@ -1,0 +1,112 @@
+{
+  "title": "Hamlets Joined by Footpaths",
+  "description": "## Task\n\nA valley has `n` hamlets joined by two-way footpaths. Two hamlets are in the same cluster if you can walk from one to the other along footpaths. Count the clusters. A hamlet with no footpath is a cluster of its own.\n\n## Input\n\n- `n` — the number of hamlets, numbered `0` to `n - 1`.\n- `footpaths` — a list of `[a, b]` pairs, each a two-way footpath between hamlets `a` and `b`. Pairs may repeat, and `a` may equal `b`.\n\n## Output\n\nThe number of clusters, as an integer.\n\n## Example\n\n```python\ncount_hamlet_clusters(5, [[0, 1], [1, 2], [3, 4]])  # returns 2\ncount_hamlet_clusters(4, [])  # returns 4\ncount_hamlet_clusters(3, [[0, 0], [1, 2], [2, 1]])  # returns 2\n```\n\n## Constraints\n\n- 1 ≤ `n` ≤ 10^4\n- 0 ≤ number of footpaths ≤ 2 * 10^4\n",
+  "signature": "def count_hamlet_clusters(n: int, footpaths: list[list[int]]) -> int",
+  "topic": "connected components",
+  "difficulty": "easy",
+  "category": "graphs-trees",
+  "tests": [
+    {
+      "args": [
+        5,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        4,
+        []
+      ],
+      "expected": 4
+    },
+    {
+      "args": [
+        3,
+        [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            1
+          ]
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "args": [
+        1,
+        []
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        6,
+        [
+          [
+            0,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            2,
+            1
+          ]
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "args": [
+        7,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            4,
+            5
+          ]
+        ]
+      ],
+      "expected": 4
+    }
+  ]
+}

@@ -323,6 +323,7 @@ async def test_nfr5_fr9_tests_reach_only_editors(
     listing = sweep.http(("GET", "/api/problems"), client.get("/api/problems"))
     assert any(row["id"] == p for row in listing.json())
     sweep.http(("GET", "/api/problems"), client.get("/api/problems", params={"q": tag[:8]}))
+    sweep.http(("GET", "/api/problems/categories"), client.get("/api/problems/categories"))
     public_p = sweep.http(("GET", "/api/problems/{problem_id}"), client.get(f"/api/problems/{p}"))
     assert image_url in public_p.json()["description_html"]
     image = sweep.http(("GET", "/api/images/{image_id}"), client.get(image_url))
@@ -655,7 +656,7 @@ async def test_002_fr9_starter_descriptions_reveal_no_hidden_test_values(
             " order by seed_key"
         )
     ]
-    assert len(starter_ids) == 20
+    assert len(starter_ids) == len([d for d in SEED_DIR.iterdir() if d.is_dir()])
 
     login_as(client, "editor1")
     sources: dict[str, str] = {}

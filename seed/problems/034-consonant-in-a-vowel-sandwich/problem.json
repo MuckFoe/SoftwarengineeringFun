@@ -1,0 +1,20 @@
+{
+  "title": "Consonant In A Vowel Sandwich",
+  "description": "## Task\n\nCount the letters that are squeezed between two vowels. A position counts when its letter is a consonant and the letter right before it and the letter right after it are both vowels. The vowels are `a`, `e`, `i`, `o`, `u`.\n\n## Input\n\n- `s` — a string of lowercase letters. It may be empty.\n\n## Output\n\nThe number of positions that count, as an integer.\n\n## Example\n\n```python\nsandwich_count(\"banana\")  # returns 2\nsandwich_count(\"aeiou\")  # returns 0\nsandwich_count(\"oxen\")  # returns 1\n```\n\n## Constraints\n\n- 0 ≤ length of `s` ≤ 10^5\n- `s` contains only the lowercase letters `a`-`z`.\n",
+  "signature": "def sandwich_count(s: str) -> int",
+  "topic": "string scanning",
+  "difficulty": "easy",
+  "category": "strings",
+  "tests": [
+    { "args": ["banana"], "expected": 2 },
+    { "args": ["aeiou"], "expected": 0 },
+    { "args": ["oxen"], "expected": 1 },
+    { "args": [""], "expected": 0 },
+    { "args": ["a"], "expected": 0 },
+    { "args": ["ab"], "expected": 0 },
+    { "args": ["abaca"], "expected": 2 },
+    { "args": ["bcdfg"], "expected": 0 },
+    { "args": ["aeaeae"], "expected": 0 },
+    { "args": ["eaeoxu"], "expected": 1 }
+  ]
+}

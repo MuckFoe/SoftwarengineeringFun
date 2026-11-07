@@ -1,0 +1,17 @@
+{
+  "title": "Bakery Counter Calls",
+  "description": "## Task\n\nA bakery serves customers strictly in the order they arrived. Each event is either `join:<name>`, meaning that customer joins the end of the line, or `call`, meaning the counter calls the customer at the front of the line, who leaves. If nobody is waiting when `call` happens, the call goes unanswered. For every `call`, report who answered it.\n\n## Input\n\n- `events` — a list of strings, each either `call` or `join:` followed by a non-empty lowercase name. Names may repeat. It may be empty.\n\n## Output\n\nA list with one entry per `call` event, in order: the name of the customer served, or `nobody` if the line was empty.\n\n## Example\n\n```python\nbakery_counter_calls(['join:ann', 'join:bo', 'call', 'call', 'call'])  # returns ['ann', 'bo', 'nobody']\nbakery_counter_calls(['call', 'join:cy', 'call'])  # returns ['nobody', 'cy']\n```\n\n## Constraints\n\n- 0 ≤ length of `events` ≤ 10^4\n- Each name has 1 to 10 lowercase letters.\n",
+  "signature": "def bakery_counter_calls(events: list[str]) -> list[str]",
+  "topic": "queue",
+  "difficulty": "easy",
+  "category": "stacks-queues",
+  "tests": [
+    { "args": [["join:ann", "join:bo", "call", "call", "call"]], "expected": ["ann", "bo", "nobody"] },
+    { "args": [[]], "expected": [] },
+    { "args": [["call", "join:cy", "call"]], "expected": ["nobody", "cy"] },
+    { "args": [["join:a", "join:a", "call", "join:b", "call", "call", "call"]], "expected": ["a", "a", "b", "nobody"] },
+    { "args": [["join:x", "call", "join:y", "join:z", "call"]], "expected": ["x", "y"] },
+    { "args": [["call", "call"]], "expected": ["nobody", "nobody"] },
+    { "args": [["join:n0", "join:n1", "join:n2", "join:n3", "join:n4", "join:n5", "join:n6", "join:n7", "join:n8", "join:n9", "join:n10", "join:n11", "join:n12", "join:n13", "join:n14", "join:n15", "join:n16", "join:n17", "join:n18", "join:n19", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call", "call"]], "expected": ["n0", "n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "n9", "n10", "n11", "n12", "n13", "n14", "n15", "n16", "n17", "n18", "n19", "nobody", "nobody"] }
+  ]
+}

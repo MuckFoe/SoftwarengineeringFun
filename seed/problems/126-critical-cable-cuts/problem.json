@@ -1,0 +1,221 @@
+{
+  "title": "Critical Cable Cuts",
+  "description": "## Task\n\nA data centre has `n` racks joined by two-way cables. A cable is critical if cutting that one cable leaves some pair of racks that could talk before but can no longer reach each other. Find every critical cable. Two cables between the same pair of racks back each other up, so neither of them is critical. The network may be split into several separate parts already.\n\n## Input\n\n- `n` — the number of racks, numbered `0` to `n - 1`.\n- `cables` — a list of `[a, b]` pairs, each a two-way cable. `a` and `b` differ, and the same pair can appear more than once.\n\n## Output\n\nA list of `[u, v]` pairs with `u < v`, one per critical cable, sorted in increasing order.\n\n## Example\n\n```python\ncritical_cables(5, [[0, 1], [1, 2], [2, 0], [2, 3], [3, 4]])  # returns [[2, 3], [3, 4]]\ncritical_cables(3, [[0, 1], [1, 0], [1, 2]])  # returns [[1, 2]]\ncritical_cables(2, [])  # returns []\n```\n\n## Constraints\n\n- 1 ≤ `n` ≤ 2 * 10^4\n- 0 ≤ number of cables ≤ 6 * 10^4\n- Chains of critical cables can be thousands long, so do not rely on deep recursion.\n- Cutting each cable and re-checking the whole network is too slow on the largest tests.\n",
+  "signature": "def critical_cables(n: int, cables: list[list[int]]) -> list[list[int]]",
+  "topic": "bridges, lowlink",
+  "difficulty": "hard",
+  "category": "graphs-trees",
+  "tests": [
+    {
+      "args": [
+        5,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "args": [
+        3,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "args": [
+        2,
+        []
+      ],
+      "expected": []
+    },
+    {
+      "args": [
+        1,
+        []
+      ],
+      "expected": []
+    },
+    {
+      "args": [
+        6,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            5
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ]
+      ]
+    },
+    {
+      "args": [
+        7,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "args": [
+        8,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            7
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          1
+        ],
+        [
+          6,
+          7
+        ]
+      ]
+    }
+  ]
+}

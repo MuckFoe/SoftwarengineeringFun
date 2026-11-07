@@ -1,0 +1,190 @@
+{
+  "title": "Nearest Shared Boss",
+  "description": "## Task\n\nA company's reporting lines form a tree. For two employees, their nearest shared boss is the lowest person in the chart who is above both of them or is one of them. An employee counts as their own boss for this purpose. Answer many such questions on one chart.\n\n## Input\n\n- `parents` — `parents[i]` is the boss of employee `i`, or `-1` for the head of the company. Exactly one entry is `-1`. Bosses may have larger numbers than their reports.\n- `pairs` — a list of `[a, b]` questions.\n\n## Output\n\nA list with one employee number per question, in order.\n\n## Example\n\n```python\nnearest_shared_boss([-1, 0, 0, 1, 1], [[3, 4], [3, 2], [1, 3], [2, 2]])  # returns [1, 0, 1, 2]\n```\n\n## Constraints\n\n- 1 ≤ length of `parents` ≤ 10^4\n- 0 ≤ number of `pairs` ≤ 10^4\n- The chart can be one very long chain, so walking up from both employees for every question is too slow on the largest tests.\n",
+  "signature": "def nearest_shared_boss(parents: list[int], pairs: list[list[int]]) -> list[int]",
+  "topic": "lowest common ancestor",
+  "difficulty": "medium",
+  "category": "graphs-trees",
+  "tests": [
+    {
+      "args": [
+        [
+          -1,
+          0,
+          0,
+          1,
+          1
+        ],
+        [
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            2
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "args": [
+        [
+          -1
+        ],
+        [
+          [
+            0,
+            0
+          ]
+        ]
+      ],
+      "expected": [
+        0
+      ]
+    },
+    {
+      "args": [
+        [
+          1,
+          -1
+        ],
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        1
+      ]
+    },
+    {
+      "args": [
+        [
+          -1,
+          0,
+          1,
+          2,
+          3
+        ],
+        [
+          [
+            4,
+            2
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            3,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        2,
+        0,
+        3
+      ]
+    },
+    {
+      "args": [
+        [
+          2,
+          2,
+          -1,
+          2,
+          1
+        ],
+        [
+          [
+            0,
+            1
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      ],
+      "expected": [
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "args": [
+        [
+          -1,
+          0,
+          0,
+          1,
+          1,
+          2,
+          2
+        ],
+        [
+          [
+            3,
+            4
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            0,
+            6
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        0,
+        1,
+        0
+      ]
+    }
+  ]
+}

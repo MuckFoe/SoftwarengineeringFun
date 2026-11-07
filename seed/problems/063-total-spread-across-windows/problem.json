@@ -1,0 +1,71 @@
+{
+  "title": "Total Spread Across Windows",
+  "description": "## Task\n\nFor every window of exactly `k` consecutive readings, compute its spread, which is the largest reading minus the smallest reading in that window. Return the sum of the spreads over all windows. Inputs can be large, so recomputing each window from scratch is too slow.\n\n## Input\n\n- `readings` — a list of integers.\n- `k` — the window size.\n\n## Output\n\nAn integer: the sum over all windows of `k` consecutive entries of `max - min`. If `k` is larger than the list or less than 1, return 0.\n\n## Example\n\n```python\ntotal_spread([1, 3, 2, 5], 2)  # returns 2 + 1 + 3 = 6\ntotal_spread([4, 4, 4], 3)  # returns 0\n```\n\n## Constraints\n\n- 0 ≤ length of `readings` ≤ 2 * 10^5\n- -10^9 ≤ each reading ≤ 10^9\n- 0 ≤ `k` ≤ 3 * 10^5\n",
+  "signature": "def total_spread(readings: list[int], k: int) -> int",
+  "topic": "monotonic deque",
+  "difficulty": "hard",
+  "category": "two-pointers-windows",
+  "tests": [
+    {
+      "args": [
+        [
+          1,
+          3,
+          2,
+          5
+        ],
+        2
+      ],
+      "expected": 6
+    },
+    {
+      "args": [
+        [
+          4,
+          4,
+          4
+        ],
+        3
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [],
+        1
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          5
+        ],
+        1
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          1,
+          2
+        ],
+        3
+      ],
+      "expected": 0
+    },
+    {
+      "args": [
+        [
+          9,
+          1,
+          8,
+          2
+        ],
+        0
+      ],
+      "expected": 0
+    }
+  ]
+}
