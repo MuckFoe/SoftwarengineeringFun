@@ -2,7 +2,9 @@
   position: fixed;
   left: 50%;
   bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
+  /* Idle: slid down so only a thin sliver of the pill stays at the screen edge. */
+  transform: translate(-50%, calc(100% + var(--space-16) + env(safe-area-inset-bottom) - 10px));
+  transition: transform var(--motion-fast) ease;
   z-index: var(--z-dock);
   height: var(--dock-height);
   max-width: calc(100vw - var(--space-16));
@@ -18,10 +20,16 @@
     var(--elev-3);
 }
 
+/* Pointer over the dock (or the sliver), or keyboard focus inside it, brings it up. */
+.dock:hover,
+.dock:has(:focus-visible) {
+  transform: translate(-50%, 0);
+}
+
 .item {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-8);
+  justify-content: center;
   padding: var(--space-12);
   border-radius: var(--radius-pill);
   color: var(--text-muted);
@@ -40,17 +48,21 @@
   white-space: nowrap;
   transition:
     max-width var(--motion-fast),
+    margin var(--motion-fast),
     opacity var(--motion-fast);
 }
 
+/* Icons first; once the dock is up, the labels grow in shortly after. */
 .dock:hover .label,
-.dock:focus-within .label {
+.dock:has(:focus-visible) .label {
   max-width: 8em;
+  margin-left: var(--space-8);
   opacity: 1;
+  transition-delay: 200ms;
 }
 
 .dock:hover .item,
-.dock:focus-within .item {
+.dock:has(:focus-visible) .item {
   padding: var(--space-12) var(--space-20);
 }
 
@@ -94,6 +106,7 @@ a.current:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .dock,
   .label,
   .item {
     transition: none;
