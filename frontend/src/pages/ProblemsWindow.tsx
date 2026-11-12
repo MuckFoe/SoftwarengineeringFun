@@ -16,7 +16,6 @@ import { SearchField } from "../ui/SearchField";
 import { Select } from "../ui/Select";
 import { Sidebar, SidebarSection } from "../ui/Sidebar";
 import { SourceList } from "../ui/SourceList";
-import { Tag } from "../ui/Tag";
 import { Window } from "../ui/Window";
 import { ProblemEditorSheet } from "./ProblemEditorSheet";
 import styles from "./ProblemsWindow.module.css";
@@ -36,6 +35,18 @@ const DIFFICULTIES: readonly { id: Difficulty; label: string }[] = [
   { id: "hard", label: "Hard" },
 ];
 const DIFFICULTY_LABEL = Object.fromEntries(DIFFICULTIES.map((d) => [d.id, d.label]));
+const DIFFICULTY_LEVEL: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3 };
+
+/** Three bars, filled up to the difficulty: one accent hue, read at a glance. Decorative. */
+function Meter({ level }: { level: number }) {
+  return (
+    <span className={styles.meter} aria-hidden="true">
+      {[1, 2, 3].map((n) => (
+        <span key={n} className={n <= level ? styles.barOn : styles.bar} />
+      ))}
+    </span>
+  );
+}
 const ALL = "";
 
 interface Group {
@@ -202,6 +213,17 @@ export function ProblemsWindow({ initialSheet }: Props) {
       >
         <div className={styles.content}>
           {error && <InlineMessage id="problems-error">{error}</InlineMessage>}
+          <div className={styles.intro}>
+            <p className={styles.eyebrow}>Problem library</p>
+            <p className={styles.headline}>
+              {library === "starter" ? "Starter problems" : "Pick a problem, code it together"}
+            </p>
+            <p className={styles.lede}>
+              {problems.length} problems
+              {categories.length > 0 ? ` in ${categories.length} categories` : ""}. Start a session
+              and share the link.
+            </p>
+          </div>
           <div className={styles.filters}>
             <div className={styles.search}>
               <SearchField
@@ -226,12 +248,16 @@ export function ProblemsWindow({ initialSheet }: Props) {
             <fieldset className={styles.difficulties}>
               <legend className={styles.visuallyHidden}>Difficulty</legend>
               {DIFFICULTIES.map((d) => (
-                <Tag
+                <button
                   key={d.id}
-                  label={d.label}
-                  selected={difficulty === d.id}
+                  type="button"
+                  className={styles.segment}
+                  aria-pressed={difficulty === d.id}
                   onClick={() => setDifficulty(difficulty === d.id ? null : d.id)}
-                />
+                >
+                  <Meter level={DIFFICULTY_LEVEL[d.id]} />
+                  {d.label}
+                </button>
               ))}
             </fieldset>
             {filtered && shown.length > 0 && (
@@ -256,11 +282,15 @@ export function ProblemsWindow({ initialSheet }: Props) {
               Try a different search, category or difficulty.
             </EmptyState>
           ) : (
-            <table className={styles.table}>
+            <table
+              className={groups[0]?.label ? `${styles.table} ${styles.grouped}` : styles.table}
+            >
               <thead>
                 <tr>
                   <th scope="col">Title</th>
-                  <th scope="col">Category</th>
+                  <th scope="col" className={styles.categoryCol}>
+                    Category
+                  </th>
                   <th scope="col">Difficulty</th>
                   <th scope="col">Kind</th>
                   <th scope="col">
@@ -273,19 +303,33 @@ export function ProblemsWindow({ initialSheet }: Props) {
                   {g.label && (
                     <tr className={styles.groupRow}>
                       <th scope="rowgroup" colSpan={5}>
-                        <h2 className={styles.groupTitle}>{g.label}</h2>
+                        <div className={styles.groupHead}>
+                          <h2 className={styles.groupTitle}>{g.label}</h2>
+                          <span className={styles.groupCount} aria-hidden="true">
+                            {g.items.length}
+                          </span>
+                        </div>
                       </th>
                     </tr>
                   )}
                   {g.items.map((p) => (
                     <tr key={p.id} className="anim-row-in">
                       <td className={styles.titleCell}>{p.title}</td>
-                      <td className={styles.meta}>{categoryLabel(p.category)}</td>
+                      <td className={`${styles.meta} ${styles.categoryCol}`}>
+                        {categoryLabel(p.category)}
+                      </td>
                       <td className={styles.meta}>
-                        {p.difficulty ? DIFFICULTY_LABEL[p.difficulty] : ""}
+                        {p.difficulty ? (
+                          <span className={styles.difficulty}>
+                            <Meter level={DIFFICULTY_LEVEL[p.difficulty]} />
+                            {DIFFICULTY_LABEL[p.difficulty]}
+                          </span>
+                        ) : (
+                          ""
+                        )}
                       </td>
                       <td className={styles.kind}>
-                        {p.is_starter ? <span className={styles.badge}>Starter</span> : ""}
+                        {p.is_starter ? <span className={styles.tag}>Starter</span> : ""}
                       </td>
                       <td className={styles.actions}>
                         {isEditor && (

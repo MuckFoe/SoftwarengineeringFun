@@ -150,6 +150,11 @@
   --motion-fast: 150ms;
   --motion-sweep: 600ms;
   --motion-dock-delay: 250ms;
+  --motion-dock: 260ms;
+  --motion-dock-stagger: 20ms;
+  --ease-dock: cubic-bezier(0.32, 0.72, 0, 1);
+  --dock-nub-width: 56px;
+  --dock-nub-height: 6px;
   --spin-duration: 800ms;
   --pulse-duration: 1200ms;
   --z-header: 30;

@@ -54,8 +54,14 @@ export function ProfileWindow({ onSignedOut = () => window.location.reload() }: 
     );
   } else if (me.status !== "loading") {
     content = (
-      <section className={styles.section} aria-labelledby="profile-signed-out">
-        <h2 id="profile-signed-out" className={styles.heading}>
+      <section
+        className={`${styles.card} ${styles.signedOut}`}
+        aria-labelledby="profile-signed-out"
+      >
+        <span className={styles.avatar} aria-hidden="true">
+          <Icon name="person" size={28} />
+        </span>
+        <h2 id="profile-signed-out" className={styles.headline}>
           You're not signed in
         </h2>
         <p className={styles.text}>Sign in or register to keep your sessions and preferences.</p>
@@ -109,17 +115,36 @@ function AccountSection({ me, onSignedOut }: { me: SignedIn; onSignedOut: () => 
   }
 
   return (
-    <section className={styles.section} aria-labelledby="profile-account">
-      <h2 id="profile-account" className={styles.heading}>
-        Account
-      </h2>
-      <dl className={styles.fields}>
-        <dt>Username</dt>
-        <dd>{me.name}</dd>
-        <dt>Roles</dt>
-        <dd>{me.roles.length > 0 ? me.roles.join(", ") : "none"}</dd>
-      </dl>
-      <Button className={styles.signOut} variant="bordered" busy={signingOut} onClick={signOut}>
+    <section className={`${styles.card} ${styles.account}`} aria-labelledby="profile-account">
+      <span className={styles.avatar} aria-hidden="true">
+        {me.name.slice(0, 1).toUpperCase()}
+      </span>
+      <div className={styles.identity}>
+        <h2 id="profile-account" className={styles.eyebrow}>
+          Account
+        </h2>
+        <dl className={styles.fields}>
+          <dt className={styles.visuallyHidden}>Username</dt>
+          <dd className={styles.name}>{me.name}</dd>
+          <dt className={styles.visuallyHidden}>Roles</dt>
+          <dd className={styles.roles}>
+            {me.roles.length > 0
+              ? me.roles.map((role) => (
+                  <span key={role} className={styles.role}>
+                    {role}
+                  </span>
+                ))
+              : "none"}
+          </dd>
+        </dl>
+      </div>
+      <Button
+        className={styles.signOut}
+        variant="bordered"
+        size="xs"
+        busy={signingOut}
+        onClick={signOut}
+      >
         Sign out
       </Button>
     </section>
@@ -141,24 +166,31 @@ function PreferencesSection() {
   const [chatVisible, setChatVisible] = useChatVisible();
 
   return (
-    <section className={styles.section} aria-labelledby="profile-preferences">
-      <h2 id="profile-preferences" className={styles.heading}>
+    <section className={styles.card} aria-labelledby="profile-preferences">
+      <h2 id="profile-preferences" className={styles.cardTitle}>
         Preferences
       </h2>
-      <div className={styles.prefRow}>
-        <span aria-hidden="true">Appearance</span>
-        <SegmentedControl
-          label="Appearance"
-          value={choice}
-          onChange={setChoice}
-          options={APPEARANCE_OPTIONS}
-        />
+      <div className={styles.prefs}>
+        <div className={styles.prefRow}>
+          <div className={styles.prefText} aria-hidden="true">
+            <span className={styles.prefLabel}>Appearance</span>
+            <span className={styles.prefHint}>Light, dark, or follow your system</span>
+          </div>
+          <SegmentedControl
+            label="Appearance"
+            value={choice}
+            onChange={setChoice}
+            options={APPEARANCE_OPTIONS}
+          />
+        </div>
+        <div className={styles.prefRow}>
+          <Checkbox
+            label="Show chat beside the description"
+            checked={chatVisible}
+            onChange={setChatVisible}
+          />
+        </div>
       </div>
-      <Checkbox
-        label="Show chat beside the description"
-        checked={chatVisible}
-        onChange={setChatVisible}
-      />
     </section>
   );
 }

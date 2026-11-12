@@ -280,6 +280,7 @@ async def test_app_page_allows_only_same_origin_frames(client: TestClient) -> No
         response = client.get(path)
         assert response.status_code == 200, path
         assert response.headers["content-security-policy"] == "frame-src 'self'", path
+        assert response.headers["cache-control"] == "no-cache", path
 
 
 # --- AC-5: removal ----------------------------------------------------------------------------

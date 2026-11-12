@@ -8,21 +8,27 @@
   display: flex;
   align-items: center;
   gap: var(--space-8);
-  min-height: 24px;
-  padding: var(--space-4) var(--space-8);
-  border-radius: var(--radius-0);
+  min-height: 36px;
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-pill);
   color: var(--text-interactive);
   font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
   cursor: default;
+  transition:
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease;
 }
 
 .row:hover {
-  background: var(--neutral-700);
+  background: var(--surface-2);
 }
 
+/* Selected: a tonal accent pill with a bar of accent at its start, not a hard filled block. */
 .row[aria-selected="true"] {
-  background: var(--action-primary-fill);
-  color: var(--action-primary-text);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: inset var(--bw-3) 0 0 var(--accent);
 }
 
 .row:focus-visible {

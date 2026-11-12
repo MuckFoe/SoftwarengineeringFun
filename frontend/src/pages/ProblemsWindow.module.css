@@ -1,27 +1,88 @@
-/* The filter row speaks the header's control language: 36 px quiet outlined pills that light
-   up on hover, accent-filled when chosen. */
+/* Problems (spec 018 look, reworked): an intro, one floating filter bar, then the library as a
+   card with a section per category. Everything is a pill or a card; regions part by tone. */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--space-32) var(--page-margin);
+  padding-bottom: calc(var(--dock-height) + var(--space-48));
+}
+
+/* --- Intro -------------------------------------------------------------------------------- */
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.eyebrow {
+  margin: 0;
+  font: var(--fs-label-2) / var(--lh-label-2) var(--font-copy);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  font-weight: 700;
+  font-stretch: calc(var(--wdth-display) * 1%);
+  color: var(--text-interactive);
+}
+
+.lede {
+  margin: 0;
+  font: var(--fs-copy-1) / var(--lh-copy-1) var(--font-copy);
+  color: var(--text-muted);
+}
+
+/* --- Filter bar ----------------------------------------------------------------------------- */
+
+/* One floating bar that stays in reach while the list scrolls. */
+.filters {
+  position: sticky;
+  top: var(--space-12);
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8);
+  border: var(--bw-1) solid var(--edge-light);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--elev-2);
+}
+
 .search {
-  flex: 0 1 18rem;
+  flex: 1 1 14rem;
   min-width: min(100%, 12rem);
 }
 
 .search input {
-  height: 36px;
-  padding-left: 36px;
-  border: var(--bw-1) solid var(--divider);
-  background: transparent;
+  height: 40px;
+  padding-left: 40px;
+  border: 0;
+  background: var(--surface-2);
   color: var(--text);
-  transition:
-    background-color var(--motion-fast) ease,
-    border-color var(--motion-fast) ease;
+  font: var(--fs-copy-1) / var(--lh-copy-1) var(--font-copy);
+  transition: background-color var(--motion-fast) ease;
 }
 
 .search input:hover {
-  background: var(--surface);
+  background: var(--surface-3);
 }
 
-.search input:focus {
-  border-color: var(--accent);
+.search input::placeholder {
+  color: var(--text-muted);
 }
 
 .search > div > span:first-child {
@@ -32,137 +93,9 @@
   right: var(--space-12);
 }
 
-.content {
-  padding: var(--space-16) var(--page-margin);
-}
-
-.table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  background: var(--surface);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-  font-family: var(--font-copy);
-  font-size: var(--fs-copy-1);
-  line-height: var(--lh-copy-1);
-  color: var(--text);
-}
-
-.table th {
-  padding: var(--space-8) var(--space-16);
-  border-bottom: 1px solid var(--divider);
-  text-align: left;
-  font-weight: 500;
-  color: var(--form-caption);
-}
-
-.table td {
-  padding: var(--space-8) var(--space-16);
-  border-bottom: 1px solid var(--divider);
-}
-
-.table tbody tr {
-  transition: background-color var(--motion-fast) ease;
-}
-
-.table tbody tr:hover {
-  background: var(--neutral-700);
-}
-
-.titleCell {
-  width: 100%;
-}
-
-.kind {
-  white-space: nowrap;
-}
-
-/* Kind is a label, not a control: a small tonal pill, no border. */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  height: 24px;
-  padding: 0 var(--space-12);
-  border-radius: var(--radius-pill);
-  background: var(--surface-2);
-  color: var(--text-muted);
-  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-8);
-  white-space: nowrap;
-}
-
-/* Start session: the header's quiet pill, in the accent only when the row is pointed at. */
-.actions .start {
-  height: 36px;
-  min-height: 36px;
-  min-width: 0;
-  padding: 0 var(--space-16);
-  border-color: var(--divider);
-  color: var(--text-muted);
-}
-
-.table tbody tr:hover .start,
-.actions .start:hover:not(:disabled),
-.actions .start:focus-visible {
-  border-color: var(--accent);
-  background: transparent;
-  color: var(--accent-hover);
-}
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-16);
-  margin-bottom: var(--space-16);
-}
-
 .category {
-  min-width: min(100%, 14rem);
-}
-
-.difficulties {
-  margin: 0;
-  border: 0;
-  padding: 0;
-  min-width: 0;
-  display: flex;
-  gap: var(--space-8);
-}
-
-.difficulties [aria-pressed] {
-  height: 36px;
-  padding: 0 var(--space-16);
-  border: var(--bw-1) solid var(--divider);
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text-muted);
-  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
-  transition:
-    background-color var(--motion-fast) ease,
-    border-color var(--motion-fast) ease,
-    color var(--motion-fast) ease;
-}
-
-.difficulties [aria-pressed]:hover {
-  border-color: var(--divider);
-  background: var(--surface);
-  color: var(--text);
-}
-
-/* A chosen chip stays accent-filled under the pointer (the base hover tone made it unreadable). */
-.difficulties button[aria-pressed="true"],
-.difficulties button[aria-pressed="true"]:hover {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--on-accent);
+  flex: 0 0 auto;
+  min-width: 11rem;
 }
 
 /* The label names the combobox for assistive tech; on screen "All categories" says it. */
@@ -176,55 +109,322 @@
 }
 
 .category :global(.ui-select-trigger) {
-  height: 36px;
-  min-height: 36px;
+  gap: var(--space-12);
+  height: 40px;
+  min-height: 40px;
   padding: 0 var(--space-16);
-  border: var(--bw-1) solid var(--divider);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text);
+  font: var(--fs-copy-1) / var(--lh-copy-1) var(--font-copy);
+  transition: background-color var(--motion-fast) ease;
+}
+
+.category :global(.ui-select-trigger:hover),
+.category :global(.ui-select-trigger[aria-expanded="true"]) {
+  border: 0;
+  background: var(--surface-3);
+  color: var(--text-interactive);
+}
+
+/* Difficulty: one segmented pill; the chosen segment is the accent. */
+.difficulties {
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+
+.segment {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  height: 32px;
+  padding: 0 var(--space-12);
+  border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--text);
+  color: var(--text-muted);
   font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease;
 }
 
-.category :global(.ui-select-trigger:hover) {
-  border: var(--bw-1) solid var(--divider);
+.segment:hover {
   background: var(--surface);
+  color: var(--text-interactive);
 }
 
-.category :global(.ui-select-trigger[aria-expanded="true"]) {
-  border: var(--bw-1) solid var(--accent);
+.segment:focus-visible {
+  outline: var(--bw-focus) solid var(--focus);
+  outline-offset: 0;
+}
+
+.segment[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--glow);
 }
 
 .count {
   margin-left: auto;
-  font-family: var(--font-copy);
-  font-size: var(--fs-copy-2);
-  line-height: var(--lh-copy-2);
-  color: var(--form-caption);
-}
-
-.meta {
+  padding: 0 var(--space-12);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
   white-space: nowrap;
-  color: var(--form-caption);
 }
 
-.groupRow th {
+/* --- Difficulty meter ----------------------------------------------------------------------- */
+
+.meter {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  height: 12px;
+}
+
+.bar,
+.barOn {
+  width: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-4);
+}
+
+.bar:nth-child(1),
+.barOn:nth-child(1) {
+  height: 6px;
+}
+
+.bar:nth-child(2),
+.barOn:nth-child(2) {
+  height: 9px;
+}
+
+.bar:nth-child(3),
+.barOn:nth-child(3) {
+  height: 12px;
+}
+
+.barOn {
+  background: currentColor;
+}
+
+.difficulty {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.difficulty .barOn {
+  background: var(--accent);
+}
+
+/* --- Library ------------------------------------------------------------------------------- */
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  padding: var(--space-8) var(--space-8) var(--space-16);
+  background: var(--surface);
+  border: var(--bw-1) solid var(--edge-light);
+  border-radius: var(--radius-card);
+  box-shadow: var(--elev-card);
+  font: var(--fs-copy-1) / var(--lh-copy-1) var(--font-copy);
+  color: var(--text);
+}
+
+.table thead th {
+  padding: var(--space-8) var(--space-16);
+  text-align: left;
+  font: var(--fs-label-3) / var(--lh-label-3) var(--font-copy);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.table td {
+  height: 56px;
+  padding: 0 var(--space-16);
+  border-bottom: 1px solid var(--divider);
+  background-clip: padding-box;
+  transition: background-color var(--motion-fast) ease;
+}
+
+.table tbody tr {
+  transition: background-color var(--motion-fast) ease;
+}
+
+.table tbody tr:last-child td {
+  border-bottom-color: transparent;
+}
+
+/* Row hover: a tonal, rounded band (the cells carry it, so the corners can round). */
+.table tbody tr:hover td {
   background: var(--surface-2);
+}
+
+.table tbody tr:hover td:first-child {
+  border-radius: var(--radius-pill) 0 0 var(--radius-pill);
+}
+
+.table tbody tr:hover td:last-child {
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+}
+
+/* Grouped, every section already names its category, so the column steps aside. */
+.grouped .categoryCol {
+  display: none;
+}
+
+.table .groupRow th {
+  padding: var(--space-32) var(--space-16) var(--space-8);
+  text-align: left;
+}
+
+.table tbody:first-of-type .table .groupRow th {
+  padding-top: var(--space-16);
+}
+
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
 }
 
 .groupTitle {
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--fs-copy-1);
-  line-height: var(--lh-copy-1);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
   font-weight: 700;
-  color: var(--text);
+  font-stretch: calc(var(--wdth-display) * 1%);
+  color: var(--text-interactive);
 }
 
-/* Narrow (about 390px): each problem becomes a stacked card so nothing scrolls sideways. */
+.groupCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 var(--space-8);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.titleCell {
+  width: 100%;
+  font-weight: 600;
+  color: var(--text-interactive);
+}
+
+.meta {
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: var(--fs-copy-2);
+}
+
+.kind {
+  white-space: nowrap;
+}
+
+/* Kind is a label, not a control: a small tonal pill. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--space-12);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-8);
+  height: 56px;
+  white-space: nowrap;
+}
+
+/* Start session: quiet at rest; the pointed-at row's turns into the primary, glowing pill. */
+.actions .start {
+  height: 36px;
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 var(--space-16);
+  border-color: var(--divider);
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+  transition:
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease,
+    color var(--motion-fast) ease;
+}
+
+.table tbody tr:hover .start,
+.table tbody tr:focus-within .start,
+.actions .start:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--glow);
+}
+
+.actions .start:active:not(:disabled) {
+  border-color: var(--accent-press);
+  background: var(--accent-press);
+  box-shadow: none;
+}
+
+/* --- Narrow (about 390 px): each problem becomes a stacked card ------------------------------ */
 @media (max-width: 40rem) {
-  .search {
+  .content {
+    padding-top: var(--space-16);
+  }
+
+  .headline {
+    font-size: var(--fs-h2);
+    line-height: var(--lh-h2);
+  }
+
+  .filters {
+    position: static;
+  }
+
+  .search,
+  .category {
     flex-basis: 100%;
+  }
+
+  .difficulties {
+    flex: 1 1 auto;
+  }
+
+  .segment {
+    flex: 1;
+    justify-content: center;
   }
 
   .table thead {
@@ -243,14 +443,23 @@
     display: block;
   }
 
+  .grouped .categoryCol {
+    display: none;
+  }
+
   .table td {
+    height: auto;
     border-bottom: 0;
-    padding: var(--space-4) var(--space-16);
+    padding: var(--space-4) var(--space-8);
+  }
+
+  .table tbody tr:hover td {
+    background: transparent;
   }
 
   .table tbody tr:not(.groupRow) {
     border-bottom: 1px solid var(--divider);
-    padding: var(--space-8) 0;
+    padding: var(--space-12) 0;
   }
 
   .titleCell {
@@ -258,6 +467,7 @@
   }
 
   .actions {
+    height: auto;
     flex-wrap: wrap;
     justify-content: flex-start;
   }

@@ -244,7 +244,12 @@ def create_app(settings: Settings) -> FastAPI:
             # checked against the embedder's frame-src and blocked (AC-16).
             response = FileResponse(
                 FRONTEND_DIST / "index.html",
-                headers={"Content-Security-Policy": "frame-src 'self'"},
+                # no-cache: the shell names the hashed bundles, so a stale copy keeps showing the
+                # previous deploy. The browser revalidates it (ETag) on every load.
+                headers={
+                    "Content-Security-Policy": "frame-src 'self'",
+                    "Cache-Control": "no-cache",
+                },
             )
         await response(scope, receive, send)
 

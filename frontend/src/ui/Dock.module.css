@@ -1,14 +1,41 @@
-.dock {
+/*
+ * The dock (spec 016 FR-16), one movement in and one out.
+ *
+ * At rest only a small glowing nub shows. Pointing anywhere in the dock's zone (or keyboard
+ * focus inside) grows the nub into the full pill: the pill's clip-path opens from the nub while
+ * the items ripple in from the middle outwards. Leaving waits a beat, then the pill closes back
+ * into the nub and the items fade over the very same duration and curve, so nothing runs ahead.
+ * A pill slides under the current area when the route changes.
+ */
+
+/* The zone holds the dock and the gap below it. It takes no hits itself, so the page under the
+   closed dock stays clickable; only its reach (below) and the open pill do. */
+.zone {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
-  /* Idle: slid down so only a sliver of the pill stays at the screen edge. */
-  transform: translate(-50%, calc(100% + var(--space-16) + env(safe-area-inset-bottom) - 18px));
-  /* Leaving waits a beat before sliding away. */
-  transition: transform var(--motion-fast) ease var(--motion-dock-delay);
+  bottom: 0;
+  transform: translateX(-50%);
   z-index: var(--z-dock);
-  height: var(--dock-height);
   max-width: calc(100vw - var(--space-16));
+  padding: 0 0 calc(var(--space-16) + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+/* The reach: a small target around the nub, from the screen edge up to the pill's middle, so
+   the nub needn't be hit exactly. Hovering it hovers the zone, which opens the dock. */
+.zone::before {
+  content: "";
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  bottom: 0;
+  height: calc(var(--space-16) + var(--dock-height) / 2 + var(--space-8));
+  pointer-events: auto;
+}
+
+.dock {
+  position: relative;
+  height: var(--dock-height);
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -19,39 +46,80 @@
   box-shadow:
     inset 0 1px 0 var(--edge-light),
     var(--elev-3);
+  pointer-events: auto;
+
+  /* Rest: clipped down to the nub at the bottom centre. Clipping also stops hits, so the
+     closed dock's links can't be clicked blind. */
+  clip-path: inset(
+    calc(100% - var(--dock-nub-height)) calc(50% - var(--dock-nub-width) / 2) 0 round
+      var(--radius-pill)
+  );
+  transition: clip-path var(--motion-dock) var(--ease-dock) var(--motion-dock-delay);
 }
 
-/* A little invisible reach above the pill so grazing its top edge doesn't flicker it away. */
-.dock::before {
+/* The nub: the accent, glowing softly, fading as the pill opens around it. */
+.dock::after {
   content: "";
   position: absolute;
-  z-index: -1; /* behind the buttons, or it swallows their clicks */
-  inset: calc(-1 * var(--space-8)) 0 0;
+  left: 50%;
+  bottom: 0;
+  width: var(--dock-nub-width);
+  height: var(--dock-nub-height);
+  transform: translateX(-50%);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  box-shadow: var(--glow);
+  pointer-events: none;
+  transition: opacity var(--motion-dock) var(--ease-dock) var(--motion-dock-delay);
 }
 
-/* Pointer over the dock (or the sliver), or keyboard focus inside it, brings it up. */
+/* Open: pointer anywhere in the zone, or keyboard focus inside. The clip grows past the pill
+   so its shadow shows. Opening starts at once; only closing waits. */
+.zone:hover > .dock,
 .dock:hover,
 .dock:has(:focus-visible) {
-  transform: translate(-50%, 0);
-  /* Coming up is instant. */
+  clip-path: inset(
+    calc(-1 * var(--space-24)) calc(-1 * var(--space-24)) calc(-1 * var(--space-24)) round
+      var(--radius-pill)
+  );
   transition-delay: calc(var(--motion-dock-delay) * 0);
 }
 
-/* Idle shows just the pill's nub: the items (and the blue current one) stay hidden. They fade
-   on exactly the pill's timing, so showing and hiding are one movement, not icons first and the
-   slide after. `.item` sets its own transition list, so the opacity entry lives there. */
-.dock > * {
+.zone:hover > .dock::after,
+.dock:hover::after,
+.dock:has(:focus-visible)::after {
   opacity: 0;
-  --dock-fade-delay: var(--motion-dock-delay);
+  transition-delay: calc(var(--motion-dock-delay) * 0);
 }
 
-.dock:hover > *,
-.dock:has(:focus-visible) > * {
+/* The sliding "you are here" pill. */
+.indicator {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: var(--spot-w, 0);
+  height: calc(var(--dock-height) - var(--space-20));
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  box-shadow: var(--glow);
+  opacity: 0;
+  transform: translate(var(--spot-x, 0), -50%);
+  pointer-events: none;
+}
+
+.indicator[data-shown] {
   opacity: 1;
-  --dock-fade-delay: calc(var(--motion-dock-delay) * 0);
+}
+
+.indicator[data-placed] {
+  transition:
+    transform var(--motion-dock) var(--ease-dock),
+    width var(--motion-dock) var(--ease-dock),
+    opacity var(--motion-dock) var(--ease-dock);
 }
 
 .item {
+  position: relative; /* above the indicator */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -60,35 +128,55 @@
   border-radius: var(--radius-pill);
   color: var(--text-muted);
   font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  font-weight: 600;
   text-decoration: none;
+
+  /* Rest: hidden a little low. Closing: all together, on the pill's own timing. */
+  opacity: 0;
+  transform: translateY(var(--space-8));
   transition:
-    opacity var(--motion-fast) ease var(--dock-fade-delay),
-    background var(--motion-fast),
-    color var(--motion-fast);
+    opacity var(--motion-dock) var(--ease-dock) var(--motion-dock-delay),
+    transform var(--motion-dock) var(--ease-dock) var(--motion-dock-delay),
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease;
+}
+
+/* Opening: a ripple from the middle item out to the ends. */
+.zone:hover .item,
+.dock:hover .item,
+.dock:has(:focus-visible) .item {
+  opacity: 1;
+  transform: none;
+  transition-delay:
+    calc(var(--ripple, 0) * var(--motion-dock-stagger)),
+    calc(var(--ripple, 0) * var(--motion-dock-stagger)), calc(var(--motion-dock-delay) * 0),
+    calc(var(--motion-dock-delay) * 0);
 }
 
 a.item:hover {
-  color: var(--accent-hover);
+  background: var(--surface-2);
+  color: var(--text-interactive);
 }
 
 a.item:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: var(--bw-2) solid var(--accent);
+  outline-offset: var(--bw-2);
 }
 
-.current {
-  color: var(--on-accent);
-  background: var(--accent);
-}
-
+/* The indicator paints the current item's pill; the item only sets its text colour. */
+.current,
 a.current:hover {
+  background: transparent;
   color: var(--on-accent);
-  background: var(--accent-hover);
 }
 
 .disabled {
-  opacity: 0.5;
   cursor: not-allowed;
+}
+
+.zone:hover .disabled,
+.dock:hover .disabled {
+  opacity: 0.5;
 }
 
 .reason {
@@ -112,6 +200,8 @@ a.current:hover {
 
 @media (prefers-reduced-motion: reduce) {
   .dock,
+  .dock::after,
+  .indicator[data-placed],
   .item {
     transition: none;
   }

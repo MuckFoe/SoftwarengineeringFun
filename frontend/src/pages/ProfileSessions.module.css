@@ -1,22 +1,49 @@
+/* The profile's sessions: a card like the problem library, each session a calm row. */
 .section {
   display: flex;
   flex-direction: column;
   gap: var(--space-16);
+  padding: var(--space-24);
+  border: var(--bw-1) solid var(--edge-light);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--elev-card);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
 }
 
 .heading {
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--fs-h4);
-  line-height: var(--lh-h4);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
   font-weight: 700;
-  font-stretch: 130%;
+  font-stretch: calc(var(--wdth-display) * 1%);
   color: var(--text);
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 var(--space-8);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .empty {
   margin: 0;
-  color: var(--form-caption);
+  color: var(--text-muted);
 }
 
 .table {
@@ -25,68 +52,133 @@
   border-spacing: 0;
   background: var(--surface);
   border-radius: var(--radius-card);
-  overflow: hidden;
-  font-family: var(--font-copy);
-  font-size: var(--fs-copy-1);
-  line-height: var(--lh-copy-1);
+  font: var(--fs-copy-1) / var(--lh-copy-1) var(--font-copy);
   color: var(--text);
 }
 
 .table th {
-  padding: var(--space-8) var(--space-16);
-  border-bottom: 1px solid var(--divider);
+  padding: var(--space-8) var(--space-12);
   text-align: left;
-  font-weight: 500;
-  color: var(--form-caption);
+  font: var(--fs-label-3) / var(--lh-label-3) var(--font-copy);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
 .table td {
-  padding: var(--space-8) var(--space-16);
+  height: 56px;
+  padding: 0 var(--space-12);
   border-bottom: 1px solid var(--divider);
+  background-clip: padding-box;
   vertical-align: middle;
+  transition: background-color var(--motion-fast) ease;
 }
 
 .table tbody tr {
   transition: background-color var(--motion-fast) ease;
 }
 
-.table tbody tr:hover {
-  background: var(--neutral-700);
+.table tbody tr:last-child td {
+  border-bottom-color: transparent;
+}
+
+.table tbody tr:hover td {
+  background: var(--surface-2);
+}
+
+.table tbody tr:hover td:first-child {
+  border-radius: var(--radius-pill) 0 0 var(--radius-pill);
+}
+
+.table tbody tr:hover td:last-child {
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
 }
 
 .secondary {
-  color: var(--form-caption);
+  color: var(--text-muted);
+  font-size: var(--fs-copy-2);
   white-space: nowrap;
+}
+
+.kind {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.kindIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-32);
+  height: var(--space-32);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--accent);
 }
 
 .titleCell {
   width: 100%;
+  font-weight: 600;
 }
 
 .link {
   color: var(--text-interactive);
   text-decoration: none;
+  transition: color var(--motion-fast) ease;
 }
 
 .link:hover {
-  text-decoration: underline;
+  color: var(--accent);
 }
 
 .link:focus-visible {
   outline: var(--bw-focus) solid var(--focus);
-  outline-offset: 2px;
+  outline-offset: var(--bw-2);
 }
 
+/* A wrapper inside the cell: a flex cell would leave the table and break the row's lines. */
 .badges {
   display: flex;
   gap: var(--space-8);
   white-space: nowrap;
 }
 
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--space-12);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  font-weight: 600;
+}
+
 .actions {
   white-space: nowrap;
   text-align: right;
+}
+
+.actions > * + * {
+  margin-left: var(--space-8);
+}
+
+.table .rowAction {
+  height: 32px;
+  min-height: 32px;
+  min-width: 0;
+  border-color: var(--divider);
+  color: var(--text-muted);
+}
+
+.table .rowAction:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: transparent;
+  color: var(--accent);
 }
 
 .visuallyHidden {
@@ -96,4 +188,44 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+@media (max-width: 40rem) {
+  .section {
+    padding: var(--space-16);
+  }
+
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+  }
+
+  .table td {
+    height: auto;
+    border-bottom: 0;
+    padding: var(--space-4) 0;
+  }
+
+  .table tbody tr {
+    padding: var(--space-12) 0;
+    border-bottom: 1px solid var(--divider);
+  }
+
+  .table tbody tr:hover td {
+    background: transparent;
+  }
+
+  .actions {
+    text-align: left;
+  }
 }

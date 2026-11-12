@@ -22,7 +22,7 @@ for (const scheme of SCHEMES) {
             .toBe(scheme);
           await checkScreen(page, watch, scheme);
 
-          // FR-1: rows are hairline-divided, square, with no zebra fill and no old-style pill.
+          // Rows are hairline-divided; badges are tonal pills (the reworked library look).
           const look = await page.evaluate(() => {
             // Narrow (stacked cards): the divider is the row's, not its cells'.
             const row = document.querySelector(
@@ -31,11 +31,11 @@ for (const scheme of SCHEMES) {
             const tag = document.querySelector("main tbody [class*='tag']");
             return {
               rowBorder: row ? getComputedStyle(row).borderBottomWidth : null,
-              tagRadius: tag ? getComputedStyle(tag).borderTopLeftRadius : "0px",
+              tagRadius: tag ? getComputedStyle(tag).borderTopLeftRadius : null,
             };
           });
           expect(look.rowBorder).toBe("1px");
-          expect(look.tagRadius).toBe("0px");
+          if (look.tagRadius !== null) expect(look.tagRadius).not.toBe("0px");
         });
       });
     }

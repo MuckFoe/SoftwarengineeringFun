@@ -3,8 +3,8 @@ import { Link } from "react-router";
 import { getMySessions, hideMySession } from "../api/client";
 import type { RecentSession } from "../api/types";
 import { Button } from "../ui/Button";
+import { Icon, type IconName } from "../ui/Icon";
 import { InlineMessage } from "../ui/InlineMessage";
-import { Tag } from "../ui/Tag";
 import styles from "./ProfileSessions.module.css";
 
 const KIND_LABEL: Record<RecentSession["kind"], string> = {
@@ -12,6 +12,13 @@ const KIND_LABEL: Record<RecentSession["kind"], string> = {
   learning: "Learning",
   presentation: "Presentation",
   chess: "Chess",
+};
+
+const KIND_ICON: Record<RecentSession["kind"], IconName> = {
+  coding: "pencil",
+  learning: "doc",
+  presentation: "people",
+  chess: "play",
 };
 
 const KIND_ROUTE: Record<RecentSession["kind"], string> = {
@@ -85,9 +92,16 @@ export function ProfileSessions({ now = Date.now }: Props) {
 
   return (
     <section className={styles.section} aria-labelledby="profile-sessions">
-      <h2 id="profile-sessions" className={styles.heading}>
-        Sessions
-      </h2>
+      <div className={styles.head}>
+        <h2 id="profile-sessions" className={styles.heading}>
+          Sessions
+        </h2>
+        {sessions && sessions.length > 0 && (
+          <span className={styles.count} aria-hidden="true">
+            {sessions.length}
+          </span>
+        )}
+      </div>
       {error && <InlineMessage id="profile-sessions-error">{error}</InlineMessage>}
       {sessions?.length === 0 && <p className={styles.empty}>No recent sessions</p>}
       {sessions && sessions.length > 0 && (
@@ -106,7 +120,14 @@ export function ProfileSessions({ now = Date.now }: Props) {
           <tbody>
             {sessions.map((s) => (
               <tr key={keyOf(s)} className="anim-row-in">
-                <td className={styles.secondary}>{KIND_LABEL[s.kind]}</td>
+                <td className={styles.secondary}>
+                  <span className={styles.kind}>
+                    <span className={styles.kindIcon} aria-hidden="true">
+                      <Icon name={KIND_ICON[s.kind]} />
+                    </span>
+                    {KIND_LABEL[s.kind]}
+                  </span>
+                </td>
                 <td className={styles.titleCell}>
                   <Link className={styles.link} to={`${KIND_ROUTE[s.kind]}${s.invite_id}`}>
                     {s.title}
@@ -117,13 +138,17 @@ export function ProfileSessions({ now = Date.now }: Props) {
                     {relative(s.last_activity_at, at)}
                   </time>
                 </td>
-                <td className={styles.badges}>
-                  {s.stale && <Tag label="Stale" />}
-                  {s.hosted_by_me && <Tag label="Hosted by you" />}
+                <td>
+                  <div className={styles.badges}>
+                    {s.stale && <span className={styles.tag}>Stale</span>}
+                    {s.hosted_by_me && <span className={styles.tag}>Hosted by you</span>}
+                  </div>
                 </td>
                 <td className={styles.actions}>
                   <Button
                     variant="bordered"
+                    size="xs"
+                    className={styles.rowAction}
                     label={`Hide ${s.title}`}
                     busy={hiding === keyOf(s)}
                     onClick={() => void hide(s)}
