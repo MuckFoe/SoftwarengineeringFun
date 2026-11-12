@@ -74,6 +74,7 @@ The page loads its markdown renderer from cdnjs, so it needs network access.
 | 017 | [Home screen with live session tiles](017-home-screen-tiles/spec.md) | Landing screen with a live greeting, Start session tile and tiles for sessions and games with code and board previews | validated | 0 |
 | 018 | [Problem catalogue of 150](018-problem-catalogue-150/spec.md) | Grow the starter set to 150 problems (50 easy, 50 medium, 50 hard, existing 20 included), each in one category, with category and difficulty browsing and filtering | draft | 0 |
 | 019 | [Delete sessions from the profile](019-delete-sessions/spec.md) | Hosts (and admins) delete a session for everyone from the profile list, with confirmation; participants are told and disconnected, the invite link shows it was deleted | approved | 0 |
+| 020 | [Next-step hints from the self-hosted model](020-next-step-hints/spec.md) | Coding sessions only: any participant (guests too) asks, with an optional one-line note, for a short hint toward the next step from the user's own self-hosted model (never a cloud service); shared with everyone, escalating per problem, never a complete solution or hidden tests (checked by the app); one request per session at a time; stored with the session; on whenever a model is configured; graceful when the model is down | draft | 0 |
 
 **Status** is one of `draft` (written, not approved), `approved` (every
 `[NEEDS CLARIFICATION]` resolved and the spec signed off), `planned`, `in
