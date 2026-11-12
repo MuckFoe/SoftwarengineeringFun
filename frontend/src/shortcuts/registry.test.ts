@@ -113,6 +113,8 @@ describe("SHORTCUTS", () => {
       const taken = new Set(EDITOR_KEYMAP[combo].map((c) => canonical(c, mac)));
       for (const s of SHORTCUTS) {
         if (!EDITOR_SCOPES.includes(s.scope) || EDITOR_OVERRIDES.includes(s.id)) continue;
+        // These step aside while the editor has focus, so the editor's binding still works.
+        if (s.yieldsToEditor) continue;
         expect(taken.has(canonical(s[combo], mac)), `${s.id} vs CodeMirror`).toBe(false);
       }
     });

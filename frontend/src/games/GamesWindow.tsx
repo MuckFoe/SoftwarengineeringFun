@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { AppHeader } from "../ui/AppHeader";
+import { AreaTitle } from "../ui/AreaTitle";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { InlineMessage } from "../ui/InlineMessage";
@@ -46,7 +47,7 @@ export function GamesWindow() {
     <Window
       toolbar={
         <AppHeader label="Games">
-          <h1 className={styles.title}>Games</h1>
+          <AreaTitle title="Games" />
         </AppHeader>
       }
     >

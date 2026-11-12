@@ -37,16 +37,18 @@
   transition-delay: calc(var(--motion-dock-delay) * 0);
 }
 
-/* Idle shows just the pill's nub: the items (and the blue current one) stay hidden. */
+/* Idle shows just the pill's nub: the items (and the blue current one) stay hidden. They fade
+   on exactly the pill's timing, so showing and hiding are one movement, not icons first and the
+   slide after. `.item` sets its own transition list, so the opacity entry lives there. */
 .dock > * {
   opacity: 0;
-  transition: opacity var(--motion-fast) ease var(--motion-dock-delay);
+  --dock-fade-delay: var(--motion-dock-delay);
 }
 
 .dock:hover > *,
 .dock:has(:focus-visible) > * {
   opacity: 1;
-  transition-delay: calc(var(--motion-dock-delay) * 0);
+  --dock-fade-delay: calc(var(--motion-dock-delay) * 0);
 }
 
 .item {
@@ -60,6 +62,7 @@
   font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
   text-decoration: none;
   transition:
+    opacity var(--motion-fast) ease var(--dock-fade-delay),
     background var(--motion-fast),
     color var(--motion-fast);
 }

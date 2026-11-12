@@ -4,7 +4,9 @@ import { useMe } from "../auth/useMe";
 import { apiPath } from "../base";
 import { StaleSessionsList } from "../components/StaleSessionsList";
 import { AppHeader } from "../ui/AppHeader";
+import { AreaTitle } from "../ui/AreaTitle";
 import { Button } from "../ui/Button";
+import { HeaderButton } from "../ui/HeaderButton";
 import { InlineMessage } from "../ui/InlineMessage";
 import { Sidebar } from "../ui/Sidebar";
 import { Window } from "../ui/Window";
@@ -91,14 +93,13 @@ export function LearnWindow() {
       }
       toolbar={
         <AppHeader label="Learn">
-          <Button
-            variant="plain"
+          <HeaderButton
             icon="sidebar"
             label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
             aria-pressed={sidebarOpen}
             onClick={() => setSidebarOpen((open) => !open)}
           />
-          <h1 className={styles.title}>Learn</h1>
+          <AreaTitle title="Learn" />
           <span className={styles.spacer} />
         </AppHeader>
       }

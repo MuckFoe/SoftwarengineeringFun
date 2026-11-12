@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useMe } from "../auth/useMe";
 import { AppHeader } from "../ui/AppHeader";
+import { AreaTitle } from "../ui/AreaTitle";
 import { Button } from "../ui/Button";
+import { HeaderButton } from "../ui/HeaderButton";
 import { InlineMessage } from "../ui/InlineMessage";
 import { Sidebar, SidebarSection } from "../ui/Sidebar";
 import { SourceList } from "../ui/SourceList";
@@ -111,19 +113,18 @@ export function PresentWindow() {
       }
       toolbar={
         <AppHeader label="Present">
-          <Button
-            variant="plain"
+          <HeaderButton
             icon="sidebar"
             label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
             aria-pressed={sidebarOpen}
             onClick={() => setSidebarOpen((open) => !open)}
           />
-          <h1 className={styles.title}>Present</h1>
+          <AreaTitle title="Present" />
           <span className={styles.spacer} />
           {isEditor && (
-            <Button variant="plain" icon="plus" onClick={() => setEditing({ mode: "add" })}>
+            <HeaderButton icon="plus" onClick={() => setEditing({ mode: "add" })}>
               Add presentation
-            </Button>
+            </HeaderButton>
           )}
         </AppHeader>
       }

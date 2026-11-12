@@ -127,11 +127,14 @@ afterEach(() => {
 });
 
 describe("ProblemsWindow", () => {
-  it("is a window: sidebar, toolbar with search, appearance and account, and a problem table", async () => {
+  it("is a window: sidebar, toolbar with appearance and account, a filter row with search, and a problem table", async () => {
     await renderWindow();
     expect(screen.getByRole("navigation", { name: "Sidebar" })).toBeTruthy();
     const toolbar = screen.getByRole("toolbar", { name: "Problems" });
-    expect(within(toolbar).getByRole("searchbox", { name: "Search problems" })).toBeTruthy();
+    // The header keeps one search (Jump to anything); the title search sits with the filters.
+    expect(within(toolbar).queryByRole("searchbox", { name: "Search problems" })).toBeNull();
+    expect(screen.getByRole("searchbox", { name: "Search problems" })).toBeTruthy();
+    expect(within(toolbar).getByRole("heading", { level: 1, name: "Problems" })).toBeTruthy();
     expect(within(toolbar).getByRole("button", { name: "Appearance" })).toBeTruthy();
     expect(within(toolbar).getByRole("link", { name: "Ed" })).toBeTruthy();
     expect(rows()).toHaveLength(12);

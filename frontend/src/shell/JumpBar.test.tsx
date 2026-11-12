@@ -50,10 +50,10 @@ describe("JumpBar (016 FR-15)", () => {
     expect(index.opens.every((o) => o === false)).toBe(true);
   });
 
-  it("opens on Ctrl+K with the combobox focused, and prevents the browser default", () => {
+  it("opens on Ctrl+Space with the combobox focused, and prevents the browser default", () => {
     setup();
     const ev = new KeyboardEvent("keydown", {
-      key: "k",
+      key: " ",
       ctrlKey: true,
       cancelable: true,
       bubbles: true,
@@ -119,7 +119,7 @@ describe("JumpBar (016 FR-15)", () => {
     before.focus();
     act(() => {
       window.dispatchEvent(
-        new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }),
+        new KeyboardEvent("keydown", { key: " ", ctrlKey: true, bubbles: true }),
       );
     });
     fireEvent.keyDown(screen.getByRole("combobox"), { key: "Escape" });
@@ -127,12 +127,34 @@ describe("JumpBar (016 FR-15)", () => {
     expect(document.activeElement).toBe(before);
   });
 
-  it("Ctrl+K again closes it", () => {
+  it("leaves Ctrl+Space to the code editor while it has focus", () => {
+    setup();
+    const editor = document.createElement("div");
+    editor.className = "cm-editor";
+    const content = document.createElement("div");
+    content.tabIndex = 0;
+    editor.append(content);
+    document.body.append(editor);
+    const ev = new KeyboardEvent("keydown", {
+      key: " ",
+      ctrlKey: true,
+      cancelable: true,
+      bubbles: true,
+    });
+    act(() => {
+      content.dispatchEvent(ev);
+    });
+    expect(ev.defaultPrevented).toBe(false);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    editor.remove();
+  });
+
+  it("Ctrl+Space again closes it", () => {
     setup();
     const press = () =>
       act(() => {
         window.dispatchEvent(
-          new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }),
+          new KeyboardEvent("keydown", { key: " ", ctrlKey: true, bubbles: true }),
         );
       });
     press();

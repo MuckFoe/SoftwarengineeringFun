@@ -16,7 +16,7 @@ const KIND_LABEL: Record<JumpItem["kind"], string> = {
 
 /**
  * "Jump to anything" (spec 016 FR-15): a header trigger and a command-palette dialog opened by
- * ⌘K / Ctrl+K (registry id `jump`). Matching is local, over lists the app already fetched.
+ * Ctrl+Space (registry id `jump`). Matching is local, over lists the app already fetched.
  */
 export function JumpBar() {
   const [open, setOpen] = useState(false);

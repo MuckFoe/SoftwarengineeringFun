@@ -7,6 +7,7 @@ import { useChatVisible } from "../components/chatVisibility";
 import type { Choice } from "../theme/appearance";
 import { useAppearance } from "../theme/useAppearance";
 import { AppHeader } from "../ui/AppHeader";
+import { AreaTitle } from "../ui/AreaTitle";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
 import { Icon } from "../ui/Icon";
@@ -81,7 +82,7 @@ export function ProfileWindow({ onSignedOut = () => window.location.reload() }: 
             <Icon name="chevronLeft" />
             Back
           </Link>
-          <h1 className={styles.title}>Profile</h1>
+          <AreaTitle title="Profile" />
           <span className={styles.spacer} />
         </AppHeader>
       }

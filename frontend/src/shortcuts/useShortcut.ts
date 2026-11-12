@@ -57,6 +57,7 @@ class ShortcutRuntime {
     }
     for (const s of SHORTCUTS) {
       if (!this.active(s.scope) || !matches(e, this.mac ? s.mac : s.other, this.mac)) continue;
+      if (s.yieldsToEditor && inEditor(e.target)) continue;
       const latest = this.handlers.get(s.id)?.at(-1);
       if (!latest) continue;
       e.preventDefault();
@@ -73,6 +74,11 @@ function handlesOwnReturn(target: EventTarget | null): boolean {
     target instanceof HTMLElement &&
     (target.isContentEditable || !!target.closest("textarea, button, a[href], select"))
   );
+}
+
+/** Focus is inside a CodeMirror editor. */
+function inEditor(target: EventTarget | null): boolean {
+  return target instanceof Element && !!target.closest(".cm-editor");
 }
 
 const RuntimeContext = createContext<ShortcutRuntime | null>(null);

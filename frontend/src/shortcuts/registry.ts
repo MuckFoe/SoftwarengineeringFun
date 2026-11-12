@@ -37,6 +37,8 @@ export interface Shortcut {
   mac: Combo;
   other: Combo;
   scope: Scope;
+  /** The code editor binds this combo too; with focus inside the editor, the editor keeps it. */
+  yieldsToEditor?: boolean;
 }
 
 export const SHORTCUTS: readonly Shortcut[] = [
@@ -134,8 +136,11 @@ export const SHORTCUTS: readonly Shortcut[] = [
   {
     id: "jump",
     label: "Jump to anything",
-    mac: { key: "k", mod: true },
-    other: { key: "k", mod: true },
+    // Ctrl+Space everywhere: ⌘Space is Spotlight on macOS and never reaches the page. Inside the
+    // code editor Ctrl+Space stays the editor's "show completions" (see `yieldsToEditor`).
+    mac: { key: " ", ctrl: true },
+    other: { key: " ", ctrl: true },
+    yieldsToEditor: true,
     scope: "global",
   },
   {

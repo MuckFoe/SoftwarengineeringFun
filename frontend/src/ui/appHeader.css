@@ -205,3 +205,28 @@
     padding: 0;
   }
 }
+
+/* A screen's title as its area icon (AreaTitle); the text is for assistive tech only. */
+.app-header .app-header-area {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  color: var(--text);
+}
+
+.app-header .app-header-area-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.app-header .app-header-pill[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+}
