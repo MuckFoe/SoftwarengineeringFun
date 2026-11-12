@@ -21,6 +21,7 @@ import pytest
 
 from app import clock
 from tests.fakes.fake_giphy import FakeGiphy
+from tests.fakes.fake_llm import FakeLlm
 
 
 def _server_dsn(database: str) -> str:
@@ -89,6 +90,17 @@ def frozen_clock(monkeypatch: pytest.MonkeyPatch) -> FrozenClock:
 def fake_giphy() -> Iterator[FakeGiphy]:
     """A fake GIPHY on a real local port; `.base_url` plus its controls. Stopped afterwards."""
     fake = FakeGiphy().start()
+    try:
+        yield fake
+    finally:
+        fake.stop()
+
+
+@pytest.fixture
+def fake_llm() -> Iterator[FakeLlm]:
+    """A fake model on a real local port; `.base_url` (with `/v1`) plus its controls.
+    Stopped afterwards."""
+    fake = FakeLlm().start()
     try:
         yield fake
     finally:

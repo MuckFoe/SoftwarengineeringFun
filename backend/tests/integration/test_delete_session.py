@@ -1,11 +1,13 @@
 """Spec 019 task 9: `DELETE /api/me/sessions/{kind}/{invite}` (FR-2, FR-6, FR-7, FR-9, FR-11,
-FR-12, FR-14; AC-2, AC-5, AC-6, AC-8–AC-12).
+FR-12, FR-14; AC-2, AC-5, AC-6, AC-8–AC-12). Spec 020 task 15: a deleted session's hints go
+with it, and a hint in flight is cancelled (FR-16, AC-14).
 
 Real Postgres, the real app, real WebSockets and the real test Keycloak (hold the stack lock).
 Sessions are seeded with `test_deletion_repo`'s helpers (one row in every table of the purge
 list) or started through the real endpoints when a socket has to join them.
 """
 
+import asyncio
 import dataclasses
 import json
 import secrets
@@ -21,7 +23,10 @@ from starlette.websockets import WebSocketDisconnect
 
 from app import db as app_db
 from app.config import Settings
+from app.hints import service as hints_service
 from app.main import create_app
+from app.sessions import hub as hub_module
+from tests.fakes.fake_llm import FakeLlm
 from tests.integration.keycloak_fixtures import (  # noqa: F401  (pytest fixtures)
     Keycloak,
     _admin_client,
@@ -71,6 +76,25 @@ async def client(keycloak: Keycloak, database_url: str) -> AsyncIterator[TestCli
         session_cookie_key=_COOKIE_KEY,
         database_url=database_url,
         runner_url="http://unused",
+    )
+    with TestClient(create_app(settings)) as test_client:
+        yield test_client
+
+
+@pytest.fixture
+def hint_client(keycloak: Keycloak, database_url: str, client: TestClient, fake_llm: FakeLlm):  # noqa: F811
+    """A second app on the same database with hints on, against the fake model."""
+    settings = Settings(
+        oidc_issuer=keycloak.issuer,
+        oidc_client_id=keycloak.client_id,
+        oidc_client_secret=keycloak.client_secret,
+        session_cookie_key=_COOKIE_KEY,
+        database_url=database_url,
+        runner_url="http://unused",
+        hint_llm_base_url=fake_llm.base_url,
+        hint_llm_model="fake-model",
+        hint_llm_timeout_seconds=3,
+        hint_deadline_seconds=4,
     )
     with TestClient(create_app(settings)) as test_client:
         yield test_client
@@ -376,3 +400,66 @@ async def test_ac12_chess_players_get_session_closed_and_close_4411(
                 "reason": reason,
             }
             assert player.expect_close() == 4411
+
+
+# --- Spec 020 AC-14: a deleted session's hints go with it --------------------------------------
+
+
+async def _hint_rows(db: asyncpg.Connection, sid: uuid.UUID) -> int:
+    return await db.fetchval("select count(*) from session_hint where session_id = $1", sid)
+
+
+async def test_020_ac14_deleting_a_session_deletes_its_hints(
+    client: TestClient, db: asyncpg.Connection, jars, subs
+) -> None:
+    sid, invite = await _seed(db, "coding", subs["newuser"], subs["other"])
+    other_sid, _ = await _seed(db, "coding", subs["newuser"], subs["other"])
+    for session_id in (sid, other_sid):
+        problem_id = await db.fetchval(
+            "select current_problem_id from session where id = $1", session_id
+        )
+        for number in (1, 2):
+            await db.execute(
+                """insert into session_hint (session_id, problem_id, number, asked_by, body)
+                   values ($1, $2, $3, 'Ada', 'Try the empty case.')""",
+                session_id,
+                problem_id,
+                number,
+            )
+
+    response = _delete(client, "coding", invite, jars["newuser"])
+
+    assert response.status_code == 204, response.text
+    assert await _hint_rows(db, sid) == 0
+    assert await _hint_rows(db, other_sid) == 2  # only that session's hints
+
+
+async def test_020_ac14_a_pending_hint_is_cancelled_and_writes_and_broadcasts_nothing(
+    hint_client: TestClient,
+    db: asyncpg.Connection,
+    fake_llm: FakeLlm,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    host = cookie_header(signed_in_jar(hint_client, "newuser"))
+    invite = _start(hint_client, "coding", await _problem_and_lesson(db), host)
+    sid = await db.fetchval("select id from session where invite_id = $1", invite)
+    fake_llm.delay(1.0)
+    with _connected(hint_client, "coding", invite, "Host", host) as ws:
+        ws.send_text(json.dumps({"type": "hint_request"}))
+        while ws.receive_json()["type"] != "hint_started":
+            pass
+
+        response = _delete(hint_client, "coding", invite, host)
+
+        assert response.status_code == 204, response.text
+        assert hints_service.pending(sid) is None
+        frames = []
+        with pytest.raises(WebSocketDisconnect):
+            while True:
+                frames.append(ws.receive_json()["type"])
+        assert "session_deleted" in frames
+        assert not {"hint_ready", "hint_failed"} & set(frames)
+
+    await asyncio.sleep(1.3)  # past the model answering: a live task would store it now
+    assert await _hint_rows(db, sid) == 0
+    assert hub_module.peek_hub(sid) is None

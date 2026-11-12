@@ -275,6 +275,12 @@ export interface WelcomeMessage {
   chat: ChatMessage[];
   /** The session's latest run with its own input, or null (spec 011). Absent from older servers. */
   scratch_run?: Run | null;
+  /** A model is configured (spec 020 FR-1, FR-2). Absent from older servers: treat as false. */
+  hints_enabled?: boolean;
+  /** Every hint of this session, all problems, by (problem, number) (spec 020). Absent: []. */
+  hints?: Hint[];
+  /** A hint being prepared, for late joiners (spec 020 FR-8). Absent: null. */
+  hint_pending?: HintPending | null;
 }
 
 export interface PresenceMessage {
@@ -374,6 +380,56 @@ export type ScratchRunRefusedMessage =
   | { type: "scratch_run_refused"; reason: "in_progress"; by: string }
   | { type: "scratch_run_refused"; reason: "stale" };
 
+/** A model-generated hint on one problem of the session (spec 020 FR-6, FR-15). */
+export interface Hint {
+  id: string;
+  problem_id: string;
+  /** Numbered within the problem, from 1. */
+  number: number;
+  asked_by: string;
+  note: string | null;
+  body: string;
+  created_at: string;
+}
+
+/** A hint being prepared (spec 020 FR-5, FR-8); `warming` once `hint_warming` was sent (FR-14a). */
+export interface HintPending {
+  problem_id: string;
+  by: string;
+  note: string | null;
+  warming: boolean;
+}
+
+/** Someone asked for a hint; broadcast (spec 020 FR-5). */
+export interface HintStartedMessage {
+  type: "hint_started";
+  pending: HintPending;
+}
+
+/** The model is cold and the hint takes longer; broadcast (spec 020 FR-14a). */
+export interface HintWarmingMessage {
+  type: "hint_warming";
+  problem_id: string;
+}
+
+/** The hint is ready; broadcast (spec 020 FR-6). */
+export interface HintReadyMessage {
+  type: "hint_ready";
+  hint: Hint;
+}
+
+/** No hint this time; broadcast (spec 020 FR-10, FR-14). */
+export interface HintFailedMessage {
+  type: "hint_failed";
+  problem_id: string;
+  reason: "unavailable" | "withheld";
+}
+
+/** A `hint_request` that did not start, to the sender only (spec 020 FR-2, FR-3, FR-8). */
+export type HintRefusedMessage =
+  | { type: "hint_refused"; reason: "in_progress"; by: string }
+  | { type: "hint_refused"; reason: "stale" | "problem_deleted" | "disabled" };
+
 export type ServerMessage =
   | WelcomeMessage
   | PresenceMessage
@@ -389,7 +445,12 @@ export type ServerMessage =
   | ScratchRunStartedMessage
   | ScratchRunOutputMessage
   | ScratchRunEndMessage
-  | ScratchRunRefusedMessage;
+  | ScratchRunRefusedMessage
+  | HintStartedMessage
+  | HintWarmingMessage
+  | HintReadyMessage
+  | HintFailedMessage
+  | HintRefusedMessage;
 
 export interface RunMessage {
   type: "run";
@@ -426,7 +487,14 @@ export interface ScratchRunMessage {
   input: string;
 }
 
+/** Ask the model for a hint on the current problem (spec 020 FR-5); the server normalizes `note`. */
+export interface HintRequestMessage {
+  type: "hint_request";
+  note?: string;
+}
+
 export type ClientMessage =
+  | HintRequestMessage
   | ScratchRunMessage
   | RunMessage
   | SwitchProblemMessage

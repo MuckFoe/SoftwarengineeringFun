@@ -5,6 +5,7 @@ import {
   createSession,
   deleteMySession,
   getChat,
+  getHints,
   getMySessions,
   getProblemForEdit,
   getSession,
@@ -17,7 +18,15 @@ import {
   updateProblem,
   uploadImage,
 } from "./client";
-import type { Me, ProblemInput, RecentSession } from "./types";
+import type {
+  ClientMessage,
+  Hint,
+  Me,
+  ProblemInput,
+  RecentSession,
+  ServerMessage,
+  WelcomeMessage,
+} from "./types";
 
 // The backend is not part of this unit; only the HTTP boundary is stubbed so the
 // status-to-error mapping can be checked in isolation.
@@ -222,6 +231,88 @@ describe("removeChatMessage", () => {
     const missing = await caught(removeChatMessage("inv1", 42));
     expect(missing.status).toBe(404);
     expect(missing.error).toEqual({ kind: "not_found" });
+  });
+});
+
+// ---- Spec 020: hints ----
+
+describe("getHints (spec 020 FR-15, AC-13)", () => {
+  const hints: Hint[] = [
+    {
+      id: "h1",
+      problem_id: "p1",
+      number: 1,
+      asked_by: "Ana",
+      note: "stuck on empty input",
+      body: "Think about the empty list.",
+      created_at: "2026-11-12T09:00:00Z",
+    },
+    {
+      id: "h2",
+      problem_id: "p1",
+      number: 2,
+      asked_by: "Ben",
+      note: null,
+      body: "Use `len(xs)`.",
+      created_at: "2026-11-12T09:01:00Z",
+    },
+  ];
+
+  it("GETs the session's hints and returns them", async () => {
+    const fetchMock = stubFetch(200, { hints });
+    await expect(getHints("inv/1")).resolves.toEqual({ hints });
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("/api/sessions/inv%2F1/hints");
+    expect(init?.method).toBe("GET");
+  });
+
+  it("maps a 404 to not_found", async () => {
+    stubFetch(404, { error: "not_found" });
+    const err = await caught(getHints("wrong"));
+    expect(err.status).toBe(404);
+    expect(err.error).toEqual({ kind: "not_found" });
+  });
+
+  it("maps a 410 session_deleted to session_deleted", async () => {
+    stubFetch(410, { error: "session_deleted" });
+    const err = await caught(getHints("gone"));
+    expect(err.status).toBe(410);
+    expect(err.error).toEqual({ kind: "session_deleted" });
+  });
+});
+
+describe("hint message contract (spec 020)", () => {
+  it("types every hint frame in ServerMessage and ClientMessage", () => {
+    const hint = {
+      id: "h1",
+      problem_id: "p1",
+      number: 1,
+      asked_by: "Ana",
+      note: null,
+      body: "b",
+      created_at: "t",
+    };
+    const pending = { problem_id: "p1", by: "Ana", note: null, warming: false };
+    const server: ServerMessage[] = [
+      { type: "hint_started", pending },
+      { type: "hint_warming", problem_id: "p1" },
+      { type: "hint_ready", hint },
+      { type: "hint_failed", problem_id: "p1", reason: "unavailable" },
+      { type: "hint_failed", problem_id: "p1", reason: "withheld" },
+      { type: "hint_refused", reason: "in_progress", by: "Ana" },
+      { type: "hint_refused", reason: "stale" },
+      { type: "hint_refused", reason: "problem_deleted" },
+      { type: "hint_refused", reason: "disabled" },
+    ];
+    const client: ClientMessage[] = [{ type: "hint_request" }, { type: "hint_request", note: "x" }];
+    const welcome: Partial<WelcomeMessage> = {
+      hints_enabled: true,
+      hints: [hint],
+      hint_pending: pending,
+    };
+    expect(server).toHaveLength(9);
+    expect(client).toHaveLength(2);
+    expect(welcome.hints).toHaveLength(1);
   });
 });
 

@@ -39,6 +39,9 @@ const GIPHY_SPECS: RegExp[] = [
   /\/audi\/gif\.spec\.ts$/,
   /\/audi\/matrix-gif\.spec\.ts$/,
   /\/present-session-extras\.spec\.ts$/,
+  // Spec 020: the fake model's `POST /cold` is one-shot global state; the look matrix's
+  // warming-up screen (matrix-gif.spec.ts) uses it too.
+  /\/hints\.spec\.ts$/,
 ];
 const LAST_SPECS: RegExp[] = [
   // Wall-clock p95 latency: any concurrent load skews it.

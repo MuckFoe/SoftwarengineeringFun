@@ -7,6 +7,7 @@ import type {
   DescriptionPreview,
   EditableProblem,
   FieldError,
+  Hint,
   HomePreview,
   HomeSnapshot,
   Me,
@@ -196,6 +197,10 @@ export const getChat = (inviteId: string) =>
   request<ChatHistory>("GET", `/sessions/${enc(inviteId)}/chat`);
 export const removeChatMessage = (inviteId: string, messageId: number) =>
   request<void>("DELETE", `/sessions/${enc(inviteId)}/chat/${messageId}`);
+
+/** Every hint of the session, all problems (spec 020 FR-15); 404 not_found, 410 session_deleted. */
+export const getHints = (inviteId: string) =>
+  request<{ hints: Hint[] }>("GET", `/sessions/${enc(inviteId)}/hints`);
 
 /** URL for the session WebSocket, relative to the current page's origin. */
 export function sessionWsUrl(inviteId: string, name: string, loc: Location = window.location) {

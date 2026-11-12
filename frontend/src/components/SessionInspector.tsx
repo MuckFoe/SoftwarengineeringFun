@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { SplitPane } from "../ui/SplitPane";
 import { ChatPane, type ChatPaneProps } from "./ChatPane";
 import { DescriptionPane } from "./DescriptionPane";
@@ -11,26 +12,36 @@ export interface SessionInspectorProps {
   chatVisible: boolean;
   /** Passed through to ChatPane (readOnly true in a stale session). */
   chat: ChatPaneProps;
+  /** Model hints for the current problem (spec 020), below the description in its section. */
+  hints?: ReactNode;
 }
 
 /**
  * The session's side area (spec 008 FR-1, FR-2, FR-8, FR-9): the description above the
  * chat, each its own region, split by a resizable divider. A hidden chat stays mounted,
- * collapsed, aria-hidden and inert, and the description fills the area.
+ * collapsed, aria-hidden and inert, and the description fills the area. Model hints sit
+ * below the description, beside the current problem (spec 020 FR-1).
  */
-export function SessionInspector({ descriptionHtml, chatVisible, chat }: SessionInspectorProps) {
+export function SessionInspector({
+  descriptionHtml,
+  chatVisible,
+  chat,
+  hints,
+}: SessionInspectorProps) {
   const chatRegion = (
     <section aria-label="Chat" className={styles.chat}>
       <ChatPane {...chat} visible={chatVisible} />
     </section>
   );
-  if (descriptionHtml === undefined) return chatRegion;
+  // Hints already given stay visible even when the description can't be loaded (spec 020 FR-15).
+  if (descriptionHtml === undefined && !hints) return chatRegion;
   return (
     <SplitPane
       top={
         // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be reachable by keyboard.
         <section aria-label="Description" tabIndex={0} className={styles.description}>
-          <DescriptionPane html={descriptionHtml} />
+          {descriptionHtml !== undefined && <DescriptionPane html={descriptionHtml} />}
+          {hints}
         </section>
       }
       bottom={chatRegion}

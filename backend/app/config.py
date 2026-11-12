@@ -58,6 +58,19 @@ class Settings:
     chess_abandon_seconds: float = 120.0
     # Spec 015: where the brand assets (fonts, icons, logo, brand.css) are mounted.
     brand_assets_dir: str = "/app/brand-assets"
+    # Next-step hints (spec 020). Unset base URL means hints are off everywhere (FR-2).
+    # The base URL is OpenAI-compatible and includes /v1.
+    hint_llm_base_url: str | None = None
+    hint_llm_model: str | None = None
+    hint_llm_api_key: str | None = field(default=None, repr=False)
+    hint_llm_timeout_seconds: float = 20.0
+    # The model call's timeout when the model is cold (FR-14a).
+    hint_llm_cold_timeout_seconds: float = 110.0
+    # Sent as reasoning_effort; "" omits it.
+    hint_llm_reasoning_effort: str = "none"
+    # Whole-pipeline deadlines, not read from the environment; tests construct smaller ones.
+    hint_deadline_seconds: float = 28.0
+    hint_cold_deadline_seconds: float = 118.0
 
 
 def load_settings(env: Mapping[str, str] | None = None) -> Settings:
@@ -68,6 +81,20 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
     base_path = env.get("BASE_PATH") or ""
     if not BASE_PATH_RE.fullmatch(base_path):
         raise ConfigError(f"BASE_PATH must look like /collab, got {base_path!r}")
+    hint_llm_base_url = env.get("HINTS_LLM_BASE_URL") or None
+    hint_llm_model = env.get("HINTS_LLM_MODEL") or None
+    if hint_llm_base_url and not hint_llm_model:
+        raise ConfigError("HINTS_LLM_MODEL is required when HINTS_LLM_BASE_URL is set")
+    hint_llm_timeout = _timeout_below(
+        env, "HINTS_LLM_TIMEOUT_SECONDS", default=20.0, deadline=Settings.hint_deadline_seconds
+    )
+    hint_llm_cold_timeout = _timeout_below(
+        env,
+        "HINTS_LLM_COLD_TIMEOUT_SECONDS",
+        default=110.0,
+        deadline=Settings.hint_cold_deadline_seconds,
+    )
+    reasoning_effort = env.get("HINTS_LLM_REASONING_EFFORT")
     return Settings(
         oidc_issuer=env["OIDC_ISSUER"],
         oidc_client_id=env["OIDC_CLIENT_ID"],
@@ -88,6 +115,12 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         present_host_grace_seconds=_positive_float(env, "PRESENT_HOST_GRACE_SECONDS", default=60.0),
         chess_abandon_seconds=_positive_float(env, "CHESS_ABANDON_SECONDS", default=120.0),
         brand_assets_dir=env.get("BRAND_ASSETS_DIR") or "/app/brand-assets",
+        hint_llm_base_url=hint_llm_base_url,
+        hint_llm_model=hint_llm_model,
+        hint_llm_api_key=env.get("HINTS_LLM_API_KEY") or None,
+        hint_llm_timeout_seconds=hint_llm_timeout,
+        hint_llm_cold_timeout_seconds=hint_llm_cold_timeout,
+        hint_llm_reasoning_effort="none" if reasoning_effort is None else reasoning_effort,
     )
 
 
@@ -111,3 +144,10 @@ def _positive_float(env: Mapping[str, str], name: str, *, default: float) -> flo
     if not (math.isfinite(number) and number > 0):
         raise ConfigError(f"{name} must be a positive number of seconds, got {value!r}")
     return number
+
+
+def _timeout_below(env: Mapping[str, str], name: str, *, default: float, deadline: float) -> float:
+    timeout = _positive_float(env, name, default=default)
+    if timeout >= deadline:
+        raise ConfigError(f"{name} must be below the {deadline:g} second deadline, got {timeout:g}")
+    return timeout

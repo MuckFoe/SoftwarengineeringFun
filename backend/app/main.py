@@ -29,6 +29,9 @@ from app.games.chess.api import router as chess_router
 from app.games.chess.ws import router as chess_ws_router
 from app.gifs.giphy import GiphyClient
 from app.gifs.ratelimit import POSTS_PER_MINUTE, SEARCHES_PER_MINUTE, SlidingWindowLimiter
+from app.hints import service as hints_service
+from app.hints.api import router as hints_router
+from app.hints.llm import LlmClient
 from app.home.api import router as home_router
 from app.learn import stale as learn_stale
 from app.learn.api import router as learn_router
@@ -79,6 +82,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.giphy = GiphyClient(settings.giphy_base_url, settings.giphy_api_key)
     app.state.gif_search_limiter = SlidingWindowLimiter(SEARCHES_PER_MINUTE, 60, _limiter_now)
     app.state.gif_post_limiter = SlidingWindowLimiter(POSTS_PER_MINUTE, 60, _limiter_now)
+    # Spec 020 FR-1, FR-2: hints only with a model configured.
+    app.state.hint_llm = (
+        LlmClient(
+            settings.hint_llm_base_url,
+            settings.hint_llm_model or "",
+            settings.hint_llm_api_key,
+            settings.hint_llm_reasoning_effort,
+        )
+        if settings.hint_llm_base_url
+        else None
+    )
 
     async def _on_problem_deleted(problem_id: uuid.UUID) -> None:
         async with pool.acquire() as conn:
@@ -101,6 +115,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await drain_gif_tasks()
         await drain_present_gif_tasks()
         await app.state.giphy.aclose()
+        await hints_service.drain()
+        if app.state.hint_llm is not None:
+            await app.state.hint_llm.aclose()
         await pool.close()
 
 
@@ -138,6 +155,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(images_router)
     app.include_router(sessions_router)
     app.include_router(chat_router)
+    app.include_router(hints_router)
     app.include_router(sessions_ws_router)
     app.include_router(learn_router)
     app.include_router(learn_ws_router)

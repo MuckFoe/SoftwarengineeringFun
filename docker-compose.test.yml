@@ -99,3 +99,28 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
+
+  # Spec 020: the fake OpenAI-compatible model (backend/tests/fakes/fake_llm.py, stdlib only)
+  # for the E2E stack. The api container reaches it through host.docker.internal
+  # (e2e/global-setup.ts sets HINTS_LLM_BASE_URL to its /v1 and HINTS_LLM_MODEL=fake-model).
+  # The control port (recorded requests, reset, one-shot cold) stays up on its own port.
+  # TEST_LLM_PORT (default 58380) and TEST_LLM_CONTROL_PORT (default 58381) are the host ports.
+  llm:
+    image: python:3.12-slim
+    command:
+      - python
+      - /fake/fake_llm.py
+      - --host=0.0.0.0
+      - --port=8080
+      - --control-port=8081
+      - --model=fake-model
+    volumes:
+      - ./backend/tests/fakes/fake_llm.py:/fake/fake_llm.py:ro
+    ports:
+      - "127.0.0.1:${TEST_LLM_PORT:-58380}:8080"
+      - "127.0.0.1:${TEST_LLM_CONTROL_PORT:-58381}:8081"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health')"]
+      interval: 1s
+      timeout: 3s
+      retries: 30

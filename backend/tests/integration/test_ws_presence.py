@@ -154,7 +154,9 @@ class _HeldSocket:
     def __init__(self, pool: asyncpg.Pool) -> None:
         self.app = SimpleNamespace(
             state=SimpleNamespace(
-                pool=pool, settings=SimpleNamespace(runner_url="http://unused", base_path="")
+                pool=pool,
+                settings=SimpleNamespace(runner_url="http://unused", base_path=""),
+                hint_llm=None,  # spec 020: hints off, as without a configured model
             )
         )
         self.session: dict = {}  # signed out (spec 012: the socket reads its cookie session)

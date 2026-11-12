@@ -230,3 +230,54 @@
   background: var(--surface);
   color: var(--text);
 }
+
+/* Narrow, for screens with many controls (stackNarrow): the logo, jump bar, appearance and
+   account on the first row, the screen's own controls as 36 px icons on a second row of their
+   own, the title taking what is left. Their text stays for screen readers (app-header-pill-text). */
+@media (max-width: 40rem) {
+  .app-header.is-stacked {
+    height: auto;
+    padding-block: var(--space-8);
+  }
+
+  .app-header.is-stacked > .brand {
+    position: absolute;
+    top: var(--space-8);
+    left: var(--page-margin);
+    height: 36px;
+    z-index: 1;
+  }
+
+  .app-header.is-stacked .app-header-controls {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: var(--space-8);
+  }
+
+  .app-header.is-stacked .app-header-controls > .app-header-spacer {
+    display: none;
+  }
+
+  .app-header.is-stacked .app-header-start {
+    order: 1;
+    flex: 1 1 100%;
+    gap: var(--space-4);
+  }
+
+  .app-header.is-stacked .app-header-start > * {
+    flex: none;
+  }
+
+  .app-header.is-stacked .app-header-start > h1 {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .app-header.is-stacked .app-header-start > button {
+    width: 36px;
+    min-width: 0;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+  }
+}

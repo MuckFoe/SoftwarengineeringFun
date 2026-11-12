@@ -148,3 +148,84 @@ def test_fr16_present_host_grace_read_from_env():
 def test_fr16_present_host_grace_rejects_non_positive_or_non_number(value):
     with pytest.raises(ConfigError, match="PRESENT_HOST_GRACE_SECONDS"):
         load_settings({**REQUIRED, "PRESENT_HOST_GRACE_SECONDS": value})
+
+
+# Spec 020: next-step hints from the self-hosted model.
+
+HINTS = {
+    **REQUIRED,
+    "HINTS_LLM_BASE_URL": "http://ollama.local:11434/v1",
+    "HINTS_LLM_MODEL": "qwen3:8b",
+}
+
+
+@pytest.mark.parametrize("env", [REQUIRED, {**REQUIRED, "HINTS_LLM_BASE_URL": ""}])
+def test_020_ac1_hints_off_when_base_url_unset_or_empty(env):
+    assert load_settings(env).hint_llm_base_url is None
+
+
+def test_020_hint_settings_defaults():
+    s = load_settings(HINTS)
+    assert s.hint_llm_base_url == "http://ollama.local:11434/v1"
+    assert s.hint_llm_model == "qwen3:8b"
+    assert s.hint_llm_api_key is None
+    assert s.hint_llm_timeout_seconds == 20
+    assert s.hint_llm_cold_timeout_seconds == 110
+    assert s.hint_llm_reasoning_effort == "none"
+    assert s.hint_deadline_seconds == 28
+    assert s.hint_cold_deadline_seconds == 118
+
+
+def test_020_hint_settings_read_from_env():
+    s = load_settings(
+        {
+            **HINTS,
+            "HINTS_LLM_API_KEY": "k",
+            "HINTS_LLM_TIMEOUT_SECONDS": "3",
+            "HINTS_LLM_COLD_TIMEOUT_SECONDS": "6",
+            "HINTS_LLM_REASONING_EFFORT": "low",
+        }
+    )
+    assert s.hint_llm_api_key == "k"
+    assert s.hint_llm_timeout_seconds == 3
+    assert s.hint_llm_cold_timeout_seconds == 6
+    assert s.hint_llm_reasoning_effort == "low"
+
+
+def test_020_empty_reasoning_effort_omits_it():
+    s = load_settings({**HINTS, "HINTS_LLM_REASONING_EFFORT": ""})
+    assert s.hint_llm_reasoning_effort == ""
+
+
+@pytest.mark.parametrize("model", [None, ""])
+def test_020_base_url_without_model_raises(model):
+    env = {k: v for k, v in HINTS.items() if k != "HINTS_LLM_MODEL"}
+    if model is not None:
+        env["HINTS_LLM_MODEL"] = model
+    with pytest.raises(ConfigError, match="HINTS_LLM_MODEL"):
+        load_settings(env)
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("HINTS_LLM_TIMEOUT_SECONDS", "0"),
+        ("HINTS_LLM_TIMEOUT_SECONDS", "-1"),
+        ("HINTS_LLM_TIMEOUT_SECONDS", "soon"),
+        ("HINTS_LLM_TIMEOUT_SECONDS", "28"),
+        ("HINTS_LLM_TIMEOUT_SECONDS", "30"),
+        ("HINTS_LLM_COLD_TIMEOUT_SECONDS", "0"),
+        ("HINTS_LLM_COLD_TIMEOUT_SECONDS", "-5"),
+        ("HINTS_LLM_COLD_TIMEOUT_SECONDS", "nan"),
+        ("HINTS_LLM_COLD_TIMEOUT_SECONDS", "118"),
+        ("HINTS_LLM_COLD_TIMEOUT_SECONDS", "200"),
+    ],
+)
+def test_020_timeout_not_positive_or_not_below_deadline_raises(name, value):
+    with pytest.raises(ConfigError, match=name):
+        load_settings({**HINTS, name: value})
+
+
+def test_020_hint_api_key_not_in_repr():
+    s = load_settings({**HINTS, "HINTS_LLM_API_KEY": "llm-s3cr3t"})
+    assert "llm-s3cr3t" not in repr(s)

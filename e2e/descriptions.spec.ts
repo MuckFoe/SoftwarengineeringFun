@@ -134,8 +134,9 @@ test("FR3, FR6: an image between paragraphs 2 and 3 is shown between them, besid
   await expect
     .poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
     .toBe(1);
+  // The hints panel (spec 020) sits under the description; its live region is not prose.
   const order = await panel.evaluate((root) =>
-    [...root.querySelectorAll("p")].map((p) => (p.querySelector("img") ? "IMG" : p.textContent)),
+    [...root.querySelectorAll("p:not([role=status])")].map((p) => (p.querySelector("img") ? "IMG" : p.textContent)),
   );
   expect(order).toEqual(["First paragraph.", "Second paragraph.", "IMG", "Third paragraph."]);
 

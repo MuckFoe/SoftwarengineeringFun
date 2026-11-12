@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as syncProtocol from "y-protocols/sync";
 import * as Y from "yjs";
-import type { Me, Problem, RunResult, ServerMessage, WelcomeMessage } from "../api/types";
+import type { Hint, Me, Problem, RunResult, ServerMessage, WelcomeMessage } from "../api/types";
 import type { SocketFactory, SocketLike } from "../collab/provider";
 import { ShortcutsProvider } from "../shortcuts/useShortcut";
 import { SessionWindow } from "./SessionWindow";
@@ -58,6 +58,9 @@ function json(status: number, body: unknown) {
   });
 }
 
+/** What `GET /api/sessions/{invite}/hints` answers (spec 020); a stale window asks for it. */
+const stubHints: { value: Hint[] } = { value: [] };
+
 function stubServer(
   getResponses: Response[],
   reactivateResponse: Response = json(200, {}),
@@ -70,6 +73,9 @@ function stubServer(
     const method = init?.method ?? "GET";
     const api = `${mockedBase.value}api`;
     if (me && method === "GET" && url.pathname === `${api}/me`) return json(200, me);
+    if (method === "GET" && url.pathname.endsWith("/hints")) {
+      return json(200, { hints: stubHints.value });
+    }
     if (method === "GET" && url.pathname.startsWith(`${api}/sessions/`)) {
       return responses.shift() ?? json(404, { error: "not_found" });
     }
@@ -108,6 +114,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   localStorage.clear();
   mockedBase.value = "/";
+  stubHints.value = [];
 });
 
 describe("SessionWindow", () => {
@@ -529,6 +536,61 @@ describe("SessionWindow, layout (spec 003)", () => {
     serverSends(socket, welcome());
     fireEvent.click(screen.getByRole("button", { name: "Hide sidebar" }));
     expect(screen.queryByRole("navigation", { name: "Sidebar" })).toBeNull();
+  });
+});
+
+describe("SessionWindow, narrow width (about 390 px)", () => {
+  const narrow = (matches: boolean) =>
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: matches && query === "(max-width: 40rem)",
+      media: query,
+      addEventListener() {},
+      removeEventListener() {},
+    }));
+
+  it("stacks the header, its controls on a second row, Run and Invite collapsing to their icons", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    const toolbar = screen.getByRole("toolbar", { name: "Session" });
+    expect(toolbar.closest(".app-header")?.classList.contains("is-stacked")).toBe(true);
+    for (const name of ["Run", "Invite"]) {
+      const button = within(toolbar).getByRole("button", { name });
+      expect(button.querySelector(".app-header-pill-text")?.textContent).toBe(name);
+    }
+  });
+
+  it("starts with the sidebar closed, since there it would cover the editor", async () => {
+    narrow(true);
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    expect(screen.queryByRole("navigation", { name: "Sidebar" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Show sidebar" })).toBeTruthy();
+  });
+
+  it("starts with the sidebar open when wider", async () => {
+    narrow(false);
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    expect(screen.getByRole("navigation", { name: "Sidebar" })).toBeTruthy();
+  });
+
+  it("the editor's scroll area holds a tab stop, so it scrolls by keyboard (axe scrollable-region-focusable)", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    const content = document.querySelector(".cm-scroller .cm-content");
+    expect(content?.getAttribute("tabindex")).toBe("0");
+    expect(content?.getAttribute("contenteditable")).toBe("true");
+    expect(content?.getAttribute("aria-label")).toBe("Code");
+  });
+
+  it("the stale session's read-only editor holds a tab stop too", async () => {
+    stubServer([json(423, { error: "stale", can_reactivate: false })]);
+    renderPage();
+    await screen.findByText(/gone stale/i);
+    const content = document.querySelector(".cm-scroller .cm-content");
+    expect(content?.getAttribute("tabindex")).toBe("0");
+    expect(content?.getAttribute("contenteditable")).toBe("false");
+    expect(content?.getAttribute("aria-label")).toBe("Code");
   });
 });
 
@@ -1219,5 +1281,214 @@ describe("SessionWindow, deleted (spec 019 FR-7, FR-8)", () => {
 
     await screen.findByRole("heading", { name: "This session was deleted" });
     expect(screen.queryByText(/deleted it\./)).toBeNull();
+  });
+});
+
+describe("SessionWindow, hints (spec 020)", () => {
+  const hint = (over: Partial<Hint> = {}): Hint => ({
+    id: "h1",
+    problem_id: "p1",
+    number: 1,
+    asked_by: "Ben",
+    note: null,
+    body: "Think about what you have already seen.",
+    created_at: "2026-11-12T10:00:00Z",
+    ...over,
+  });
+  const description = () => screen.getByRole("region", { name: "Description" });
+  const hintButton = () => within(description()).queryByRole("button", { name: "Hint" });
+  const hintHeadings = () =>
+    within(description())
+      .queryAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent);
+  /** Visible text only: the polite live region repeats some lines as announcements. */
+  const VISIBLE = { selector: ":not([role=status])" };
+  const sentJson = (socket: FakeSocket) =>
+    socket.sent.filter((m): m is string => typeof m === "string").map((m) => JSON.parse(m));
+
+  it("AC-1: hints_enabled shows Hint in the Description section", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ hints_enabled: true }));
+    expect(hintButton()).toBeTruthy();
+  });
+
+  it("AC-1: hints_enabled false, or absent from an older server, shows no Hint", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    expect(hintButton()).toBeNull();
+    serverSends(socket, welcome({ hints_enabled: false }));
+    expect(hintButton()).toBeNull();
+  });
+
+  it("AC-2: a deleted current problem shows no Hint, and its hints stay listed", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ hints_enabled: true, hints: [hint()] }));
+    serverSends(socket, { type: "problem_deleted", problem_id: "p1" });
+    expect(hintButton()).toBeNull();
+    expect(hintHeadings()).toEqual(["Hint 1"]);
+  });
+
+  it("AC-2: a stale session shows its problem's hints from getHints, read-only", async () => {
+    stubHints.value = [
+      hint({ id: "h2", number: 2, body: "Second." }),
+      hint(),
+      hint({ id: "hx", problem_id: "p2", body: "Other problem." }),
+    ];
+    const fetchFn = stubServer(
+      [json(423, { error: "stale", can_reactivate: false, problem_id: "p1" })],
+      json(200, {}),
+      () => json(200, SUM_TWO),
+    );
+    renderPage(fakeSocketFactory().factory);
+    await screen.findByText(/gone stale/i);
+
+    await within(await screen.findByRole("region", { name: "Description" })).findByText("Second.");
+    expect(hintHeadings()).toEqual(["Hint 1", "Hint 2"]);
+    expect(screen.queryByText("Other problem.")).toBeNull();
+    expect(hintButton()).toBeNull();
+    expect(
+      fetchFn.mock.calls.some(([input]) => String(input).endsWith("/api/sessions/abc/hints")),
+    ).toBe(true);
+  });
+
+  it("AC-3/AC-6: asking sends hint_request with the note; hint_started shows who asked; hint_ready shows the hint", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ hints_enabled: true }));
+
+    fireEvent.click(hintButton() as HTMLElement);
+    fireEvent.change(within(description()).getByLabelText("What are you stuck on? (optional)"), {
+      target: { value: "stuck on empty input" },
+    });
+    fireEvent.click(within(description()).getByRole("button", { name: "Ask" }));
+    expect(sentJson(socket)).toContainEqual({
+      type: "hint_request",
+      note: "stuck on empty input",
+    });
+
+    serverSends(socket, {
+      type: "hint_started",
+      pending: { problem_id: "p1", by: "Ada", note: "stuck on empty input", warming: false },
+    });
+    expect(within(description()).getByText("Preparing hint…")).toBeTruthy();
+    expect(within(description()).getByText(/Asked by Ada/)).toBeTruthy();
+    expect((hintButton() as HTMLButtonElement).disabled).toBe(true);
+
+    serverSends(socket, {
+      type: "hint_ready",
+      hint: hint({ asked_by: "Ada", note: "stuck on empty input" }),
+    });
+    expect(within(description()).queryByText("Preparing hint…")).toBeNull();
+    expect(hintHeadings()).toEqual(["Hint 1"]);
+    expect(within(description()).getByText("Model hint")).toBeTruthy();
+    expect((hintButton() as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("AC-6: hint_refused in_progress shows that a hint is already being prepared", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ hints_enabled: true }));
+    serverSends(socket, { type: "hint_refused", reason: "in_progress", by: "Ben" });
+    expect(
+      within(description()).getByText("A hint is already being prepared", VISIBLE),
+    ).toBeTruthy();
+  });
+
+  it("FR-8: a late joiner sees the welcome's pending hint", async () => {
+    const socket = await joinAsAda();
+    serverSends(
+      socket,
+      welcome({
+        hints_enabled: true,
+        hint_pending: { problem_id: "p1", by: "Ben", note: null, warming: true },
+      }),
+    );
+    expect(
+      within(description()).getByText("Model is warming up. This hint takes longer.", VISIBLE),
+    ).toBeTruthy();
+    expect((hintButton() as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("AC-11: only the current problem's hints are shown; a switch shows the other problem's", async () => {
+    const socket = await joinAsAda();
+    serverSends(
+      socket,
+      welcome({
+        hints_enabled: true,
+        hints: [
+          hint(),
+          hint({ id: "h2", number: 2, body: "A two." }),
+          hint({ id: "h3", problem_id: "p2", body: "B one." }),
+        ],
+      }),
+    );
+    expect(hintHeadings()).toEqual(["Hint 1", "Hint 2"]);
+    expect(within(description()).queryByText("B one.")).toBeNull();
+
+    serverSends(socket, {
+      type: "problem_switched",
+      problem: REVERSE_LIST,
+      by: "Ben",
+      state: { accepted: false },
+    });
+    expect(hintHeadings()).toEqual(["Hint 1"]);
+    expect(within(description()).getByText("B one.")).toBeTruthy();
+  });
+
+  it("problem_switched clears the hint notice", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ hints_enabled: true }));
+    serverSends(socket, { type: "hint_failed", problem_id: "p1", reason: "unavailable" });
+    expect(
+      within(description()).getByText("Hints are unavailable right now", VISIBLE),
+    ).toBeTruthy();
+    serverSends(socket, {
+      type: "problem_switched",
+      problem: REVERSE_LIST,
+      by: "Ben",
+      state: { accepted: false },
+    });
+    expect(
+      within(description()).queryByText("Hints are unavailable right now", VISIBLE),
+    ).toBeNull();
+  });
+
+  it("AC-12: hint_failed shows the matching notice and re-enables Hint; hint_started clears it", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ hints_enabled: true }));
+    const started = () =>
+      serverSends(socket, {
+        type: "hint_started",
+        pending: { problem_id: "p1", by: "Ben", note: null, warming: false },
+      });
+
+    started();
+    serverSends(socket, { type: "hint_failed", problem_id: "p1", reason: "unavailable" });
+    expect(
+      within(description()).getByText("Hints are unavailable right now", VISIBLE),
+    ).toBeTruthy();
+    expect(within(description()).queryByText("Preparing hint…")).toBeNull();
+    expect((hintButton() as HTMLButtonElement).disabled).toBe(false);
+
+    started();
+    expect(
+      within(description()).queryByText("Hints are unavailable right now", VISIBLE),
+    ).toBeNull();
+    serverSends(socket, { type: "hint_failed", problem_id: "p1", reason: "withheld" });
+    expect(
+      within(description()).getByText("No hint could be given this time", VISIBLE),
+    ).toBeTruthy();
+  });
+
+  it("AC-12a: hint_warming switches the pending line to warming up", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ hints_enabled: true }));
+    serverSends(socket, {
+      type: "hint_started",
+      pending: { problem_id: "p1", by: "Ben", note: null, warming: false },
+    });
+    serverSends(socket, { type: "hint_warming", problem_id: "p1" });
+    expect(
+      within(description()).getByText("Model is warming up. This hint takes longer.", VISIBLE),
+    ).toBeTruthy();
+    expect(within(description()).queryByText("Preparing hint…")).toBeNull();
   });
 });

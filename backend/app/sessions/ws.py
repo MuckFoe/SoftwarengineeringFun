@@ -31,6 +31,8 @@ from app.chat import service as chat_service
 from app.chat.rules import MAX_CHAT_CHARS, ChatError
 from app.deletion import repo as deletion_repo
 from app.gifs import service as gif_service
+from app.hints import repo as hints_repo
+from app.hints import service as hints_service
 from app.problems import repo as problems_repo
 from app.problems.markdown import render_description
 from app.runs import repo as runs_repo
@@ -117,8 +119,9 @@ async def close_deleted(session_id: uuid.UUID, by: Literal["host", "admin"]) -> 
 
 async def cancel_runs(app: FastAPI, session_id: uuid.UUID) -> None:
     """Spec 019 FR-6, after a deletion commits and before its hub is closed: cancels the
-    session's graded run and scratch run in flight, so neither writes to the database nor
-    broadcasts (which would recreate a hub) afterwards. Nothing in flight is a no-op."""
+    session's graded run, scratch run and hint (spec 020 FR-16) in flight, so none writes to
+    the database nor broadcasts (which would recreate a hub) afterwards. Nothing in flight is
+    a no-op."""
     _RUNNING.discard(session_id)
     task = _RUN_TASK_BY_SESSION.pop(session_id, None)
     if task is not None:
@@ -127,6 +130,7 @@ async def cancel_runs(app: FastAPI, session_id: uuid.UUID) -> None:
     manager = getattr(app.state, "scratch_manager", None)
     if manager is not None:
         await manager.discard(session_id)
+    await hints_service.cancel(session_id)
 
 
 def _forget_run_task(session_id: uuid.UUID, task: asyncio.Task) -> None:
@@ -495,6 +499,11 @@ async def _handle_text(
         _RUN_TASKS.add(task)
         _RUN_TASK_BY_SESSION[session.id] = task
         task.add_done_callback(functools.partial(_forget_run_task, session.id))
+    elif msg_type == "hint_request":
+        # Spec 020 FR-5, FR-8: refused to the sender, or reserved and produced as a task.
+        await hints_service.request(
+            websocket.app, websocket, session, hub, actor, payload.get("note")
+        )
 
 
 async def _handle_binary(
@@ -606,6 +615,9 @@ async def session_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
 
         problems = await _problems_progress(conn, session.id, problem.id)
         chat = [chat_service.message_dict(m) for m in await chat_service.history(conn, session.id)]
+        hints = [
+            hints_repo.hint_dict(h) for h in await hints_repo.list_for_session(conn, session.id)
+        ]
         # Last await before the send, so the snapshot and the live messages that follow it
         # leave no gap (FR-10; the client dedupes by `seq`).
         scratch = await get_scratch_manager(websocket.app).snapshot(session.id)
@@ -624,6 +636,10 @@ async def session_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
                 "run_in_progress": session.id in _RUNNING,
                 "chat": chat,
                 "scratch_run": scratch_manager.run_payload(scratch) if scratch else None,
+                # Spec 020 FR-1, FR-2, FR-8, FR-15.
+                "hints_enabled": websocket.app.state.hint_llm is not None,
+                "hints": hints,
+                "hint_pending": hints_service.pending(session.id),
             }
         )
         # `welcome` already carries the current presence list, so the new participant

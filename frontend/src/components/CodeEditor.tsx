@@ -16,6 +16,17 @@ interface Props {
 }
 
 /**
+ * The editor's name and tab stop (spec 008 NFR-2). The tab stop is on the content, inside the
+ * scroll area, so the scroll area (`.cm-scroller`) holds a focusable element and long lines
+ * can be scrolled by keyboard (axe scrollable-region-focusable). An editable content is in the
+ * tab order already, so this adds no stop; a read-only one becomes reachable.
+ */
+export const editorAccess = EditorView.contentAttributes.of({
+  "aria-label": "Code",
+  tabindex: "0",
+});
+
+/**
  * Binds CodeMirror (Python) to the session's shared `Y.Text` for this problem, with
  * remote cursors labelled by awareness `name` (FR-16, FR-18, FR-20).
  *
@@ -38,8 +49,7 @@ export function CodeEditor({ doc, awareness, problemId }: Props) {
         indentUnit.of("    "),
         editorTabKeymap,
         editorTheme,
-        // A name for the textbox, so screen readers announce it (spec 008 NFR-2).
-        EditorView.contentAttributes.of({ "aria-label": "Code" }),
+        editorAccess,
         yCollab(ytext, awareness, { undoManager: false }),
       ],
     });

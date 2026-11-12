@@ -60,6 +60,15 @@ services:
       # Spec 007: GIF search. Unset key -> GIF search answers gif_unavailable.
       GIPHY_API_KEY: ${GIPHY_API_KEY:-}
       GIPHY_BASE_URL: ${GIPHY_BASE_URL:-https://api.giphy.com}
+      # Spec 020: next-step hints from an OpenAI-compatible model. Unset base URL -> hints off.
+      # The base URL includes /v1. The real address and model live only in the operator's .env.
+      HINTS_LLM_BASE_URL: ${HINTS_LLM_BASE_URL:-}
+      HINTS_LLM_MODEL: ${HINTS_LLM_MODEL:-}
+      HINTS_LLM_API_KEY: ${HINTS_LLM_API_KEY:-}
+      HINTS_LLM_TIMEOUT_SECONDS: ${HINTS_LLM_TIMEOUT_SECONDS:-}
+      HINTS_LLM_COLD_TIMEOUT_SECONDS: ${HINTS_LLM_COLD_TIMEOUT_SECONDS:-}
+      # No colon: unset keeps the default "none"; set to empty omits reasoning_effort.
+      HINTS_LLM_REASONING_EFFORT: ${HINTS_LLM_REASONING_EFFORT-none}
       # Empty: the built-in default (60 s). The e2e stack shortens it so one test need not wait a minute.
       PRESENT_HOST_GRACE_SECONDS: ${PRESENT_HOST_GRACE_SECONDS:-}
     volumes:

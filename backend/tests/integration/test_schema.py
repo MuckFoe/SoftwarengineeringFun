@@ -85,6 +85,7 @@ async def test_migrations_applied_twice_apply_once(db: asyncpg.Connection) -> No
         "0010_problem_category.sql",
         "0011_session_host_and_deletion.sql",
         "0012_participant_host_index.sql",
+        "0013_session_hint.sql",
     ]
 
 

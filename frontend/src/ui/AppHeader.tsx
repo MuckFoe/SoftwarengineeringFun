@@ -16,6 +16,7 @@ export function AppHeader({
   appName = "Collab",
   label,
   actions,
+  stackNarrow = false,
   children,
 }: {
   appName?: string;
@@ -23,12 +24,19 @@ export function AppHeader({
   label: string;
   /** Screen-specific controls placed right beside the jump bar and appearance toggle. */
   actions?: ReactNode;
+  /** At narrow width (about 390 px), put `children` on a second row of their own, as icons:
+   * for screens with more controls than fit beside the logo and account. */
+  stackNarrow?: boolean;
   children?: ReactNode;
 }) {
   const live = useAnyLive();
 
   return (
-    <div className={live ? "app-header is-live" : "app-header"}>
+    <div
+      className={["app-header", live && "is-live", stackNarrow && "is-stacked"]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <BrandLogo appName={appName} />
       <Toolbar label={label} variant="bare">
         <div className="app-header-start">{children}</div>

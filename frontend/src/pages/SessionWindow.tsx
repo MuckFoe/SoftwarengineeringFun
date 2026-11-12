@@ -3,20 +3,28 @@ import { EditorState } from "@codemirror/state";
 import { basicSetup, EditorView } from "codemirror";
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
-import { ApiError, getProblem, getSession, reactivateSession } from "../api/client";
-import type { Participant, Problem, ProblemProgress, WsErrorCode } from "../api/types";
+import { ApiError, getHints, getProblem, getSession, reactivateSession } from "../api/client";
+import type {
+  Hint,
+  HintPending,
+  Participant,
+  Problem,
+  ProblemProgress,
+  WsErrorCode,
+} from "../api/types";
 import { useMe } from "../auth/useMe";
 import { BASE } from "../base";
 import { useChat } from "../chat/useChat";
 import { type ClosedEvent, CollabProvider, type SocketFactory } from "../collab/provider";
 import type { ChatGifs } from "../components/ChatPane";
-import { CodeEditor } from "../components/CodeEditor";
+import { CodeEditor, editorAccess } from "../components/CodeEditor";
 import { useChatVisible } from "../components/chatVisibility";
 import { editorTheme } from "../components/editorTheme";
 import { PresenceList } from "../components/PresenceList";
 import { ProblemSourceList } from "../components/ProblemSourceList";
 import { RunPanel } from "../components/RunPanel";
 import { type ChatPaneProps, SessionInspector } from "../components/SessionInspector";
+import { type HintNotice, HintsPanel } from "../hints/HintsPanel";
 import { ScratchPanel } from "../scratch/ScratchPanel";
 import {
   initialScratchState,
@@ -88,6 +96,18 @@ interface Joined {
   notice: string | null;
   /** The run with the session's own input (spec 011). */
   scratch: ScratchState;
+  /** Every hint of the session, all problems (spec 020 FR-15); shown filtered to the current one. */
+  hints: Hint[];
+  /** A model is configured (spec 020 FR-1, FR-2). */
+  hintsEnabled: boolean;
+  /** A hint being prepared for the session (FR-5, FR-8, FR-14a). */
+  hintPending: HintPending | null;
+  hintNotice: HintNotice | null;
+}
+
+/** One problem's hints, by number (spec 020 FR-13). */
+function hintsFor(hints: Hint[], problemId: string): Hint[] {
+  return hints.filter((h) => h.problem_id === problemId).sort((a, b) => a.number - b.number);
 }
 
 function nameProblem(raw: string): string | null {
@@ -227,8 +247,44 @@ export function SessionWindow({ createSocket }: Props) {
         running: msg.run_in_progress,
         notice: null,
         scratch: { ...initialScratchState, run: msg.scratch_run ?? null },
+        // Absent from older servers: no model, no hints (spec 020 contract).
+        hints: msg.hints ?? [],
+        hintsEnabled: msg.hints_enabled ?? false,
+        hintPending: msg.hint_pending ?? null,
+        hintNotice: null,
       });
     });
+    // A new request clears the last notice, so a second failure in a row is announced again.
+    provider.on("hint_started", (msg) =>
+      update(() => ({ hintPending: msg.pending, hintNotice: null })),
+    );
+    provider.on("hint_warming", () =>
+      update((prev) => ({
+        hintPending: prev.hintPending ? { ...prev.hintPending, warming: true } : null,
+      })),
+    );
+    provider.on("hint_ready", (msg) =>
+      update((prev) => ({
+        hints: prev.hints.some((h) => h.id === msg.hint.id)
+          ? prev.hints
+          : [...prev.hints, msg.hint],
+        hintPending: null,
+        hintNotice: null,
+      })),
+    );
+    provider.on("hint_failed", (msg) =>
+      update(() => ({ hintPending: null, hintNotice: msg.reason })),
+    );
+    provider.on("hint_refused", (msg) =>
+      update((prev) => {
+        if (msg.reason === "in_progress") return { hintNotice: "in_progress" };
+        // The button was out of date: hide it as the server says (FR-2, FR-3).
+        if (msg.reason === "disabled") return { hintsEnabled: false };
+        if (msg.reason === "problem_deleted")
+          return { problem: { ...prev.problem, deleted: true } };
+        return {};
+      }),
+    );
     const scratch = (action: ScratchAction) =>
       update((prev) => ({ scratch: scratchReducer(prev.scratch, action) }));
     provider.on("scratch_run_started", (msg) => scratch({ type: "started", run: msg.run }));
@@ -251,6 +307,7 @@ export function SessionWindow({ createSocket }: Props) {
         problem: msg.problem,
         progress: { ...prev.progress, [msg.problem.id]: msg.state },
         notice: null,
+        hintNotice: null,
       })),
     );
     provider.on("problem_deleted", (msg) =>
@@ -338,6 +395,7 @@ export function SessionWindow({ createSocket }: Props) {
   if (page.kind === "stale") {
     return (
       <StaleWindow
+        invite={invite ?? ""}
         canReactivate={page.canReactivate}
         problemId={page.problemId}
         error={reactivateError}
@@ -447,6 +505,7 @@ function DeletedState({ by }: { by: DeletedBy }) {
 }
 
 interface StaleProps {
+  invite: string;
   canReactivate: boolean;
   /** The problem the session is on (spec 008 FR-9); "" if the server didn't say. */
   problemId: string;
@@ -461,9 +520,27 @@ interface StaleProps {
  * The problem's description sits above the read-only chat once it has loaded; until
  * then, or if it can't be loaded, the chat fills the side area alone (spec 008 FR-9).
  */
-function StaleWindow({ canReactivate, problemId, error, chat, onReactivate }: StaleProps) {
+function StaleWindow({ invite, canReactivate, problemId, error, chat, onReactivate }: StaleProps) {
   const [descriptionHtml, setDescriptionHtml] = useState<string | undefined>(undefined);
+  const [hints, setHints] = useState<Hint[]>([]);
   const [chatVisible, setChatVisible] = useChatVisible();
+
+  // Hints already given stay visible, read-only (spec 020 FR-3, FR-15).
+  useEffect(() => {
+    if (!invite || !problemId) return;
+    let current = true;
+    getHints(invite).then(
+      (body) => {
+        if (current) setHints(hintsFor(body.hints, problemId));
+      },
+      () => {
+        // Not loaded: no hints shown, as with no hints.
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [invite, problemId]);
 
   useEffect(() => {
     if (!problemId) return;
@@ -490,15 +567,26 @@ function StaleWindow({ canReactivate, problemId, error, chat, onReactivate }: St
             descriptionHtml={descriptionHtml}
             chatVisible={chatVisible}
             chat={chatProps(chat)}
+            hints={
+              hints.length > 0 && (
+                <HintsPanel
+                  hints={hints}
+                  canAsk={false}
+                  pending={null}
+                  notice={null}
+                  onAsk={() => {}}
+                />
+              )
+            }
           />
         </Inspector>
       }
       toolbar={
-        <AppHeader label="Session">
+        <AppHeader label="Session" stackNarrow>
           <h1 className={styles.title}>Stale session</h1>
           <span className={styles.spacer} />
           <Button variant="primary" icon="play" disabled>
-            Run
+            <span className="app-header-pill-text">Run</span>
           </Button>
           {/* No inspector toggle here, so the chat toggle alone (spec 008 FR-2, FR-4). */}
           <Button
@@ -547,6 +635,7 @@ function ReadOnlyEditor() {
         basicSetup,
         python(),
         editorTheme,
+        editorAccess,
         EditorState.readOnly.of(true),
         EditorView.editable.of(false),
       ],
@@ -578,7 +667,11 @@ interface JoinedProps {
 
 function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: JoinedProps) {
   const { problem } = joined;
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // At narrow width the sidebar would cover most of the editor, so it starts closed there.
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () =>
+      typeof window.matchMedia !== "function" || !window.matchMedia("(max-width: 40rem)").matches,
+  );
   const [runPanelOpen, setRunPanelOpen] = useState(true);
   const [scratchOpen, setScratchOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(true);
@@ -631,7 +724,7 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
           </Sidebar>
         }
         toolbar={
-          <AppHeader label="Session">
+          <AppHeader label="Session" stackNarrow>
             <Button
               variant="plain"
               icon="sidebar"
@@ -649,10 +742,10 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
               disabled={joined.running || problem.deleted}
               onClick={run}
             >
-              Run
+              <span className="app-header-pill-text">Run</span>
             </Button>
             <Button variant="plain" icon="link" onClick={() => void copyInvite()}>
-              Invite
+              <span className="app-header-pill-text">Invite</span>
             </Button>
             <Button
               variant="plain"
@@ -690,6 +783,15 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
               descriptionHtml={problem.description_html}
               chatVisible={chatVisible}
               chat={chatProps(chat, gifs)}
+              hints={
+                <HintsPanel
+                  hints={hintsFor(joined.hints, problem.id)}
+                  canAsk={joined.hintsEnabled && !problem.deleted}
+                  pending={joined.hintPending}
+                  notice={joined.hintNotice}
+                  onAsk={(note) => provider.send({ type: "hint_request", note })}
+                />
+              }
             />
           </Inspector>
         }

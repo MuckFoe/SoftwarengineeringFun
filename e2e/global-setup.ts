@@ -176,6 +176,8 @@ async function canReuseStack(token: string): Promise<boolean> {
     if (!existsSync(envPath) || !existsSync(statePath)) return false;
     // An .env from before the shortened host grace: rebuild from scratch once.
     if (!readFileSync(envPath, "utf8").includes("PRESENT_HOST_GRACE_SECONDS=")) return false;
+    // An .env from before hints (spec 020): rebuild once so the api gets HINTS_LLM_*.
+    if (!readFileSync(envPath, "utf8").includes("HINTS_LLM_BASE_URL=")) return false;
     const envSecret = /^OIDC_CLIENT_SECRET=(.*)$/m.exec(readFileSync(envPath, "utf8"))?.[1];
     const client = await clientUuid(token);
     const current = (await (await adminFetch(token, `/clients/${client}/client-secret`)).json()) as {
@@ -280,6 +282,12 @@ export default async function globalSetup(): Promise<void> {
     `PRESENT_HOST_GRACE_SECONDS=10`,
     `GIPHY_API_KEY=test-key-not-secret`,
     `GIPHY_BASE_URL=http://host.docker.internal:${process.env.TEST_GIPHY_PORT ?? "58280"}`,
+    // Spec 020: docker-compose.test.yml's fake model, on the host. Short timeouts so the
+    // slow and cold cases finish fast; the cold deadline stays at its code default.
+    `HINTS_LLM_BASE_URL=http://host.docker.internal:${process.env.TEST_LLM_PORT ?? "58380"}/v1`,
+    `HINTS_LLM_MODEL=fake-model`,
+    `HINTS_LLM_TIMEOUT_SECONDS=3`,
+    `HINTS_LLM_COLD_TIMEOUT_SECONDS=6`,
     "",
   ].join("\n");
   writeFileSync(path.join(REPO_ROOT, ".env"), env);

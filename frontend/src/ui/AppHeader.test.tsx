@@ -37,6 +37,28 @@ describe("AppHeader (FR-6, FR-7, FR-11)", () => {
     expect(screen.getByRole("link", { name: /profile/i })).toBeTruthy();
   });
 
+  it("with stackNarrow, is-stacked puts the screen's controls on a second row at narrow width", () => {
+    const { container, unmount } = render(
+      <MemoryRouter>
+        <ShortcutsProvider>
+          <AppHeader label="Header" stackNarrow>
+            <button type="button">Extra</button>
+          </AppHeader>
+        </ShortcutsProvider>
+      </MemoryRouter>,
+    );
+    expect(container.querySelector(".app-header")?.classList.contains("is-stacked")).toBe(true);
+    unmount();
+    const plain = renderHeader();
+    expect(plain.container.querySelector(".app-header")?.classList.contains("is-stacked")).toBe(
+      false,
+    );
+    const narrow = css.match(/@media \(max-width: 40rem\)\s*\{[^@]*\.app-header\.is-stacked[^@]*/g);
+    const block = narrow?.join("\n") ?? "";
+    expect(block).toMatch(/\.app-header\.is-stacked\s*\{[^}]*height:\s*auto/);
+    expect(block).toMatch(/\.app-header\.is-stacked \.app-header-start\s*\{[^}]*flex:\s*1 1 100%/);
+  });
+
   it("is 56 px tall with page-margin padding, and uses tokens only", () => {
     expect(css).toMatch(/height:\s*56px|height:\s*var\(--space-56\)/);
     expect(css).toMatch(/padding:[^;]*var\(--page-margin\)/);
