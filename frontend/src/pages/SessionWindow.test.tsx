@@ -715,6 +715,9 @@ describe("SessionWindow, description inspector (spec 003 FR-14)", () => {
     expect(screen.getByRole("region", { name: "Chat" })).toBeTruthy();
     const strip = screen.getByRole("button", { name: "Description" });
     act(() => strip.focus());
+    // Focus alone does not open it (2026-11-12): only a press does.
+    expect(strip.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(strip);
     expect(strip.getAttribute("aria-expanded")).toBe("true");
     expect(screen.getByRole("region", { name: "Description" })).toBeTruthy();
     fireEvent.keyDown(document.activeElement as HTMLElement, { key: "Escape" });

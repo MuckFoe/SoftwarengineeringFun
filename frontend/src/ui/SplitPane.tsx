@@ -26,6 +26,12 @@ export interface SplitPaneProps {
    * keeping at least this many px for the bottom part. Overrides `defaultTopFraction`.
    */
   fitTop?: number;
+  /**
+   * Until the divider is first moved, the bottom part is exactly this many px tall (so it can
+   * line up with something beside it), whatever the container's height. Overrides `fitTop`
+   * and `defaultTopFraction`; the minimums still apply.
+   */
+  fixBottom?: number;
   /** Accessible name of the divider, e.g. "Resize description and chat". */
   dividerLabel: string;
   /**
@@ -64,6 +70,7 @@ export function SplitPane({
   minBottom,
   defaultTopFraction,
   fitTop,
+  fixBottom,
   dividerLabel,
   stack,
 }: SplitPaneProps) {
@@ -74,7 +81,7 @@ export function SplitPane({
   const topRef = useRef<HTMLDivElement>(null);
   // null: not moved yet, and the top part fits its content (fitTop).
   const [topFraction, setTopFraction] = useState<number | null>(
-    fitTop === undefined ? (defaultTopFraction ?? 0.5) : null,
+    fitTop === undefined && fixBottom === undefined ? (defaultTopFraction ?? 0.5) : null,
   );
   // The top content's own height, whatever height it is shown at (fitTop only).
   const [content, setContent] = useState(0);
@@ -131,7 +138,9 @@ export function SplitPane({
   // With a known height, the shown share respects both minimums even after a resize.
   const wantedTop =
     topFraction === null
-      ? Math.min(content || height / 2, height - (fitTop ?? 0))
+      ? fixBottom !== undefined
+        ? height - fixBottom
+        : Math.min(content || height / 2, height - (fitTop ?? 0))
       : topFraction * height;
   const shownFraction =
     height > 0 ? clampTop(wantedTop, height, minTop, minBottom) / height : (topFraction ?? 0.5);

@@ -119,8 +119,8 @@
   outline-offset: 2px;
 }
 
-/* Output / Tests tabs in the run results panel's header: a compact strip of pill tabs (v2
-   shapes); the result under it scrolls in the panel's body. */
+/* Output / Tests tabs in the run results' bar (the pill that heads the panel): pill tabs on
+   the bar's own tone; the result under it scrolls in the panel's body. */
 .resultsTabs {
   flex: none;
 }
@@ -129,23 +129,29 @@
   display: inline-flex;
   gap: var(--space-2);
   height: auto;
-  padding: var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--neutral-700);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .resultsTabs :global(.ui-tab) {
-  height: var(--space-24);
+  height: var(--space-20);
   padding: 0 var(--space-12);
   border: 0;
   border-radius: var(--radius-pill);
+  color: var(--text-muted);
   font: var(--fs-label-2) / var(--lh-label-2) var(--font-copy);
   transition: background-color var(--dur-fast) ease-out;
+}
+
+.resultsTabs :global(.ui-tab:hover) {
+  color: var(--text);
 }
 
 .resultsTabs :global(.ui-tab[aria-selected="true"]) {
   border: 0;
   background: var(--canvas);
+  color: var(--text);
   box-shadow: var(--elev-1);
 }
 

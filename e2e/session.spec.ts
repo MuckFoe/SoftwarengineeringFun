@@ -21,9 +21,9 @@ test("AC-11: sidebar with problems and participants, editor in main, toolbar act
   request,
 }) => {
   await joinNewSession(page, request);
-  // The sidebar starts unpinned, a strip, so the editor gets the room; hovering it peeks.
+  // The sidebar starts unpinned, a strip, so the editor gets the room; pressing it opens it.
   await expect(page.getByRole("navigation", { name: "Sidebar" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Sidebar", exact: true }).hover();
+  await page.getByRole("button", { name: "Sidebar", exact: true }).click();
 
   const sidebar = page.getByRole("navigation", { name: "Sidebar" });
   await expect(sidebar.getByRole("region", { name: "Problems" })).toBeVisible();
@@ -35,8 +35,8 @@ test("AC-11: sidebar with problems and participants, editor in main, toolbar act
 
   const panel = page.getByRole("region", { name: "Run results" });
   await expect(panel).toBeVisible();
-  // Leaving the strip and its peek closes the peek.
-  await page.getByRole("main").hover();
+  // A press elsewhere closes it.
+  await page.getByRole("main").click();
   await expect(sidebar).toHaveCount(0);
   await panel.getByRole("button", { name: "Unpin run results" }).click();
   await expect(panel).toHaveCount(0);

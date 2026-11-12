@@ -21,14 +21,16 @@ export const themeSpec = {
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--focus)" },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
     { backgroundColor: "color-mix(in srgb, var(--focus) 30%, transparent)" },
-  ".cm-activeLine": { backgroundColor: "var(--neutral-700)" },
+  // No current-line band: it ran to the editor's edge, behind the panels' rounded bars. The
+  // current line's number still stands out in the gutter.
+  ".cm-activeLine": { backgroundColor: "transparent" },
   ".cm-gutters": {
     backgroundColor: "var(--surface-1)",
     color: "var(--form-caption)",
     borderRight: "1px solid var(--divider)",
   },
   ".cm-activeLineGutter": {
-    backgroundColor: "var(--neutral-700)",
+    backgroundColor: "transparent",
     color: "var(--text)",
   },
   ".cm-foldPlaceholder": {

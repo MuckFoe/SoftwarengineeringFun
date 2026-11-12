@@ -99,6 +99,9 @@ const RESULTS_TABS = [
   { id: "tests", label: "Tests" },
 ] as const;
 
+/** The pinned run results' height, bar included; the pinned chat matches it (2026-11-12). */
+const RESULTS_HEIGHT_PX = 220;
+
 type Chat = ReturnType<typeof useChat>;
 
 /** Everything shown once joined, kept current from the session's messages. */
@@ -837,6 +840,8 @@ function JoinedWindow({
             chatVisible={pins.chat.pinned}
             chat={chatProps(chat, gifs)}
             pins={pins}
+            // Pinned beside pinned run results, the chat's bar lines up with theirs.
+            chatHeight={outputPinned ? RESULTS_HEIGHT_PX : undefined}
             hints={
               <HintsPanel
                 hints={hintsFor(joined.hints, problem.id)}
@@ -854,6 +859,7 @@ function JoinedWindow({
             title="Run results"
             icon="bottomPanel"
             edge="bottom"
+            size={`${RESULTS_HEIGHT_PX}px`}
             region
             pinned={outputPinned}
             onPinnedChange={setOutputPinned}

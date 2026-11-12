@@ -6,7 +6,7 @@
   width: var(--column-width);
   min-height: 0;
   height: 100%;
-  background: var(--surface-2);
+  background: var(--surface-1); /* the panels' tone: nothing lighter shows between them */
 }
 
 /* Both unpinned: only the two labelled strips remain. */

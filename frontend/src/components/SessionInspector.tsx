@@ -34,6 +34,12 @@ export interface SessionInspectorProps {
    * only tells the chat whether it is on screen.
    */
   pins?: { description: PanelPin; chat: PanelPin };
+  /**
+   * With both pinned: the chat panel's height in px (its bar included) until the divider is
+   * moved, so its bar lines up with a bottom panel of that height beside it. Overrides the
+   * description fitting its content.
+   */
+  chatHeight?: number;
 }
 
 /**
@@ -48,6 +54,7 @@ export function SessionInspector({
   chat,
   hints,
   pins,
+  chatHeight,
 }: SessionInspectorProps) {
   const chatRegion = (
     <section aria-label="Chat" className={styles.chat}>
@@ -78,6 +85,7 @@ export function SessionInspector({
     minBottom: 160 + header,
     fitTop: (chat.messages.length > 0 ? 280 : 160) + header,
     dividerLabel: "Resize description and chat",
+    fixBottom: pins ? chatHeight : undefined,
   };
 
   if (pins) {

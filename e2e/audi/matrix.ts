@@ -222,8 +222,8 @@ export const SCREENS: Screen[] = [
     },
   },
   {
-    // 2026-11-12 pinnable panels: all unpinned to strips, the description's peek open (by
-    // keyboard focus on its strip, so it stays open while the checks run).
+    // 2026-11-12 pinnable panels: all unpinned to strips, the description opened by a press
+    // on its strip.
     name: "session panels unpinned, peek open",
     lowerBound: 1024,
     narrow: true,
@@ -235,8 +235,9 @@ export const SCREENS: Screen[] = [
       for (const name of ["Unpin description", "Unpin chat", "Unpin run results"]) {
         await page.getByRole("button", { name }).click();
       }
-      await page.getByRole("main").hover();
-      await page.getByRole("button", { name: "Description", exact: true }).focus();
+      await page.getByRole("button", { name: "Description", exact: true }).click();
+      // Focus inside holds it open whatever the pointer does while the checks resize.
+      await page.getByRole("button", { name: "Pin description" }).focus();
       await expect(
         page.getByRole("complementary", { name: "Inspector" }).getByRole("region", {
           name: "Description",

@@ -2,12 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PinnableColumn } from "./PinnableColumn";
-import {
-  PEEK_CLOSE_DELAY_MS,
-  PEEK_OPEN_DELAY_MS,
-  PinnablePanel,
-  type PinnablePanelHandle,
-} from "./PinnablePanel";
+import { PEEK_CLOSE_DELAY_MS, PinnablePanel, type PinnablePanelHandle } from "./PinnablePanel";
 import { loadPinned, PIN_STORAGE_PREFIX, savePinned, usePinned } from "./usePinned";
 
 beforeEach(() => {
@@ -45,11 +40,12 @@ function focus(el: HTMLElement | null) {
 /** Text that is in the accessibility tree (not inside a closed, aria-hidden peek). */
 const shown = (text: string) => screen.getByText(text).closest('[aria-hidden="true"]') === null;
 
+/** The bar's toggle while unpinned: the strip, and the opened panel's header title. */
 const strip = () => screen.getByRole("button", { name: "Chat" });
 const field = () => screen.queryByRole("textbox", { name: "Message" });
 
 describe("PinnablePanel pinned", () => {
-  it("renders a header with its title and a pressed Unpin toggle, and no strip", () => {
+  it("renders its bar with the title and a pressed Unpin toggle, and no strip toggle", () => {
     render(<Chat />);
     expect(screen.getByRole("heading", { name: "Chat" })).toBeTruthy();
     const pin = screen.getByRole("button", { name: "Unpin chat" });
@@ -82,33 +78,39 @@ describe("PinnablePanel pinned", () => {
     render(<Chat />);
     fireEvent.change(field() as HTMLInputElement, { target: { value: "draft" } });
     fireEvent.click(screen.getByRole("button", { name: "Unpin chat" }));
-    fireEvent.focus(strip());
+    fireEvent.click(strip());
     fireEvent.click(screen.getByRole("button", { name: "Pin chat" }));
     expect((field() as HTMLInputElement).value).toBe("draft");
   });
 });
 
 describe("PinnablePanel unpinned", () => {
-  it("the strip is a named button; focus opens the peek with a Pin toggle", () => {
+  it("the strip is a named toggle; focus alone does not open it", () => {
     render(<Chat defaultPinned={false} />);
     expect(field()).toBeNull();
     focus(strip());
-    expect(strip().getAttribute("aria-expanded")).toBe("true");
+    expect(strip().getAttribute("aria-expanded")).toBe("false");
     expect(strip().getAttribute("aria-controls")).toBeTruthy();
-    expect(field()).toBeTruthy();
-    const pin = screen.getByRole("button", { name: "Pin chat" });
-    expect(pin.getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("heading", { name: "Chat" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Pin chat" })).toBeNull();
   });
 
-  it("click (touch, mouse) and Enter on the strip open the peek", () => {
+  it("a click, tap, Enter or Space on the strip opens it, the bar heading it with Pin; again closes it", () => {
     render(<Chat defaultPinned={false} />);
     fireEvent.click(strip());
     expect(strip().getAttribute("aria-expanded")).toBe("true");
+    expect(field()).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Pin chat" }).getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+    fireEvent.click(strip());
+    expect(strip().getAttribute("aria-expanded")).toBe("false");
+    expect(field()).toBeNull();
   });
 
-  it("stays open while focus moves inside; Escape closes it and returns focus to the strip", () => {
+  it("stays open while focus moves inside; Escape closes it and returns focus to the bar", () => {
     render(<Chat defaultPinned={false} />);
-    focus(strip());
+    fireEvent.click(strip());
     const input = field() as HTMLInputElement;
     focus(input);
     expect(strip().getAttribute("aria-expanded")).toBe("true");
@@ -118,18 +120,19 @@ describe("PinnablePanel unpinned", () => {
     expect(field()).toBeNull();
   });
 
-  it("an Escape the content handled itself does not close the peek", () => {
+  it("an Escape the content handled itself does not close it", () => {
     render(<Chat defaultPinned={false} />);
-    focus(strip());
+    fireEvent.click(strip());
     const input = field() as HTMLInputElement;
     input.addEventListener("keydown", (e) => e.preventDefault());
     fireEvent.keyDown(input, { key: "Escape" });
     expect(strip().getAttribute("aria-expanded")).toBe("true");
   });
 
-  it("focus leaving the strip and peek closes it", () => {
+  it("focus leaving it closes it", () => {
     render(<Chat defaultPinned={false} />);
-    focus(strip());
+    fireEvent.click(strip());
+    focus(field());
     focus(screen.getByRole("button", { name: "Elsewhere" }));
     expect(strip().getAttribute("aria-expanded")).toBe("false");
   });
@@ -141,22 +144,36 @@ describe("PinnablePanel unpinned", () => {
     expect(strip().getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("hovering the strip peeks after a short delay; leaving closes it after a delay", () => {
+  it("hovering never opens it", () => {
     vi.useFakeTimers();
     render(<Chat defaultPinned={false} />);
     fireEvent.pointerEnter(strip());
-    expect(strip().getAttribute("aria-expanded")).toBe("false");
     act(() => {
-      vi.advanceTimersByTime(PEEK_OPEN_DELAY_MS);
+      vi.advanceTimersByTime(PEEK_CLOSE_DELAY_MS * 2);
     });
-    expect(strip().getAttribute("aria-expanded")).toBe("true");
-    fireEvent.pointerLeave(strip().parentElement as HTMLElement);
+    expect(strip().getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("closes about 2 s after the pointer leaves it, not before, and not while it is back", () => {
+    vi.useFakeTimers();
+    render(<Chat defaultPinned={false} />);
+    const root = strip().closest("[data-state]") as HTMLElement;
+    fireEvent.pointerEnter(root);
+    fireEvent.pointerDown(strip());
+    fireEvent.click(strip());
+    fireEvent.pointerLeave(root);
     act(() => {
       vi.advanceTimersByTime(PEEK_CLOSE_DELAY_MS - 1);
     });
     expect(strip().getAttribute("aria-expanded")).toBe("true");
+    fireEvent.pointerEnter(root);
     act(() => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(PEEK_CLOSE_DELAY_MS * 2);
+    });
+    expect(strip().getAttribute("aria-expanded")).toBe("true");
+    fireEvent.pointerLeave(root);
+    act(() => {
+      vi.advanceTimersByTime(PEEK_CLOSE_DELAY_MS);
     });
     expect(strip().getAttribute("aria-expanded")).toBe("false");
   });
@@ -164,21 +181,20 @@ describe("PinnablePanel unpinned", () => {
   it("the pointer leaving does not close it while focus is inside", () => {
     vi.useFakeTimers();
     render(<Chat defaultPinned={false} />);
-    fireEvent.pointerEnter(strip());
-    act(() => {
-      vi.advanceTimersByTime(PEEK_OPEN_DELAY_MS);
-    });
-    focus(field() as HTMLInputElement);
-    fireEvent.pointerLeave(strip().parentElement as HTMLElement);
+    const root = strip().closest("[data-state]") as HTMLElement;
+    fireEvent.click(strip());
+    focus(field());
+    fireEvent.pointerEnter(root);
+    fireEvent.pointerLeave(root);
     act(() => {
       vi.advanceTimersByTime(PEEK_CLOSE_DELAY_MS * 2);
     });
     expect(strip().getAttribute("aria-expanded")).toBe("true");
   });
 
-  it("Pin in the peek pins it, keeping focus on the toggle", () => {
+  it("Pin in the open panel pins it, keeping focus on the toggle", () => {
     render(<Chat defaultPinned={false} />);
-    focus(strip());
+    fireEvent.click(strip());
     const pin = screen.getByRole("button", { name: "Pin chat" });
     focus(pin);
     fireEvent.click(pin);
@@ -334,7 +350,7 @@ describe("PinnableColumn", () => {
     expect(column.getAttribute("data-collapsed")).toBe("true");
     const description = screen.getByRole("button", { name: "Description" });
     expect(screen.getByRole("button", { name: "Chat" })).toBeTruthy();
-    focus(description);
+    fireEvent.click(description);
     expect(shown("Problem text")).toBe(true);
     expect(shown("Messages")).toBe(false);
   });

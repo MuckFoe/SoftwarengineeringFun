@@ -28,7 +28,7 @@ export interface PinnableColumnProps {
   /** The divider while both are pinned (see SplitPane). */
   split: Pick<
     SplitPaneProps,
-    "minTop" | "minBottom" | "defaultTopFraction" | "fitTop" | "dividerLabel"
+    "minTop" | "minBottom" | "defaultTopFraction" | "fitTop" | "fixBottom" | "dividerLabel"
   >;
 }
 

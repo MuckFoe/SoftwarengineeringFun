@@ -65,6 +65,27 @@ describe("SplitPane", () => {
 
   const value = (el: HTMLElement) => Number(el.getAttribute("aria-valuenow"));
 
+  it("fixBottom: until moved, the bottom part is exactly that tall; the divider still moves it", () => {
+    render(
+      <SplitPane
+        top={<p>description</p>}
+        bottom={<p>chat</p>}
+        bottomOpen
+        minTop={120}
+        minBottom={160}
+        fitTop={160}
+        fixBottom={220}
+        dividerLabel="Resize description and chat"
+      />,
+    );
+    const divider = screen.getByRole("separator", { name: "Resize description and chat" });
+    const top = screen.getByText("description").parentElement as HTMLElement;
+    // 600 px container (jsdom: a 0 px divider): 380 px for the top, 220 px for the bottom.
+    expect(top.style.flexBasis).toBe("380px");
+    fireEvent.keyDown(divider, { key: "ArrowUp" });
+    expect(top.style.flexBasis).toBe("364px");
+  });
+
   it("renders an accessible, focusable divider", () => {
     render(<Split />);
     const divider = screen.getByRole("separator", { name: "Resize description and chat" });

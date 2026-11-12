@@ -45,6 +45,12 @@
   cursor: row-resize;
   /* A touch drag moves the divider, not the page. */
   touch-action: none;
+  /* No resting line: the panel bar below already separates the parts. The line shows only
+     while the divider is pointed at, so it can still be found and dragged. */
+  background: none;
+}
+
+.divider:hover {
   background: linear-gradient(var(--divider), var(--divider)) center / 100% 1px no-repeat;
 }
 

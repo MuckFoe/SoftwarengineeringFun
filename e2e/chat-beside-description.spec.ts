@@ -268,10 +268,12 @@ test("FR-6: unpinning and pinning both panels brings back the divider where it w
   await expect(chatStrip(page)).toBeVisible();
   expect((await box(inspector(page))).width).toBeLessThanOrEqual(40);
 
-  // Hovering a strip peeks its panel; leaving closes it again.
+  // A press on a strip opens its panel, hovering alone does not; a press elsewhere closes it.
   await descriptionStrip.hover();
+  await expect(descriptionStrip).toHaveAttribute("aria-expanded", "false");
+  await descriptionStrip.click();
   await expect(description(page)).toBeVisible();
-  await page.getByRole("main").hover();
+  await page.getByRole("main").click();
   await expect(description(page)).toBeHidden();
 
   await descriptionStrip.click();
