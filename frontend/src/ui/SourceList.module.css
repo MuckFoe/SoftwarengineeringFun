@@ -26,7 +26,7 @@
 /* Selected: a tonal accent pill with a bar of accent at its start, not a hard filled block. */
 .row[aria-selected="true"] {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
   box-shadow: inset var(--bw-3) 0 0 var(--accent);
 }

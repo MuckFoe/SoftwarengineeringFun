@@ -190,7 +190,7 @@
   padding: 0 var(--space-12);
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--accent);
+  color: var(--accent-text);
   font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
   font-weight: 600;
   text-transform: capitalize;

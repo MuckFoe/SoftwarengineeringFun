@@ -291,6 +291,7 @@ const V2_COLOUR = [
   "--accent",
   "--accent-hover",
   "--accent-press",
+  "--accent-text",
   "--on-accent",
   "--glow",
   "--danger",
@@ -343,7 +344,7 @@ describe("v2 tokens (spec 016 task 1)", () => {
   it("FR-1: the accent family is blue-hued in both themes", () => {
     for (const path of ["light", "dark"] as Path[]) {
       const got = resolve(path);
-      for (const n of ["--accent", "--accent-hover", "--accent-press"]) {
+      for (const n of ["--accent", "--accent-hover", "--accent-press", "--accent-text"]) {
         const { h, s } = hue(got.get(n) ?? "#000000");
         expect([path, n, h >= 200 && h <= 250 && s > 0.4]).toEqual([path, n, true]);
       }

@@ -1,6 +1,8 @@
 /* Design tokens: the sole definition site of visual values (spec 015 plan 1.2, restyled by spec 016 task 1:
    blue accent, pill and card radii, glow, edge-light, motion, z-index, dock).
-   Values are pinned to src/styles/kit-values.json by tokens.test.ts. */
+   Values are pinned to src/styles/kit-values.json by tokens.test.ts.
+   --accent-text is the accent for text on accent tints (color-mix of --accent): the fill
+   accent drops under 4.5:1 there in light, so tinted labels, counts and rows use this. */
 
 :root {
   --radius-0: 0;
@@ -135,6 +137,7 @@
   --accent: #1f5fff;
   --accent-hover: #1a4fd6;
   --accent-press: #1540ad;
+  --accent-text: #1a4fd6;
   --on-accent: #ffffff;
   --danger: #c8102e;
   --edge-light: #ffffffcc;
@@ -227,6 +230,7 @@
   --accent: #1f5fff;
   --accent-hover: #1a4fd6;
   --accent-press: #1540ad;
+  --accent-text: #1a4fd6;
   --on-accent: #ffffff;
   --danger: #c8102e;
   --edge-light: #ffffffcc;
@@ -302,6 +306,7 @@
   --accent: #6c9bff;
   --accent-hover: #8ab0ff;
   --accent-press: #5586f0;
+  --accent-text: #8ab0ff;
   --on-accent: #0a0c11;
   --danger: #ff6b7d;
   --edge-light: #ffffff40;
@@ -378,6 +383,7 @@
     --accent: #6c9bff;
     --accent-hover: #8ab0ff;
     --accent-press: #5586f0;
+    --accent-text: #8ab0ff;
     --on-accent: #0a0c11;
     --danger: #ff6b7d;
     --edge-light: #ffffff40;

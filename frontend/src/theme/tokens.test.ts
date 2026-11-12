@@ -46,7 +46,7 @@ describe("theme tokens", () => {
     const accentLike = [...light.keys()].filter((n) => /accent|tint|brand|primary/.test(n));
     expect(accentLike.length).toBeGreaterThan(0);
     for (const name of accentLike)
-      expect(name).toMatch(/^--(action-primary-[a-z-]+|accent(-hover|-press)?|on-accent)$/);
+      expect(name).toMatch(/^--(action-primary-[a-z-]+|accent(-hover|-press|-text)?|on-accent)$/);
     expect(light.has("--action-primary-fill")).toBe(true);
     expect(base).toMatch(/accent-color:\s*var\(--action-primary-fill\)/);
   });

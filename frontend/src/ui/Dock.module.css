@@ -3,13 +3,15 @@
  *
  * At rest only a small glowing nub shows. Pointing anywhere in the dock's zone (or keyboard
  * focus inside) grows the nub into the full pill: the pill's clip-path opens from the nub while
- * the items ripple in from the middle outwards. Leaving waits a beat, then the pill closes back
+ * the items ripple in from the middle outwards. The pill's look (fill, shadow, clip) is a backdrop
+ * layer behind the items, so the items themselves are never clipped: each stays its own hit
+ * target (pointing at one opens the dock like the reach does), and the zone never sits over them. Leaving waits a beat, then the pill closes back
  * into the nub and the items fade over the very same duration and curve, so nothing runs ahead.
  * A pill slides under the current area when the route changes.
  */
 
 /* The zone holds the dock and the gap below it. It takes no hits itself, so the page under the
-   closed dock stays clickable; only its reach (below) and the open pill do. */
+   closed dock stays clickable; only its reach (below), the items and the open pill do. */
 .zone {
   position: fixed;
   left: 50%;
@@ -35,21 +37,30 @@
 
 .dock {
   position: relative;
+  isolation: isolate; /* the backdrop's negative z-index stays inside the dock */
   height: var(--dock-height);
   box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: var(--space-4);
   padding: 0 var(--space-8);
+  border-radius: var(--radius-pill);
+  /* Rest: only the items take hits, so the page between and around them stays clickable. */
+  pointer-events: none;
+}
+
+/* The pill itself, behind the items. Rest: clipped down to the nub at the bottom centre. */
+.dock::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background: var(--surface);
   border-radius: var(--radius-pill);
   box-shadow:
     inset 0 1px 0 var(--edge-light),
     var(--elev-3);
-  pointer-events: auto;
-
-  /* Rest: clipped down to the nub at the bottom centre. Clipping also stops hits, so the
-     closed dock's links can't be clicked blind. */
+  pointer-events: none;
   clip-path: inset(
     calc(100% - var(--dock-nub-height)) calc(50% - var(--dock-nub-width) / 2) 0 round
       var(--radius-pill)
@@ -73,11 +84,17 @@
   transition: opacity var(--motion-dock) var(--ease-dock) var(--motion-dock-delay);
 }
 
-/* Open: pointer anywhere in the zone, or keyboard focus inside. The clip grows past the pill
-   so its shadow shows. Opening starts at once; only closing waits. */
+/* Open: pointer anywhere in the zone, or keyboard focus inside. The whole pill takes hits, and
+   the clip grows past it so its shadow shows. Opening starts at once; only closing waits. */
 .zone:hover > .dock,
 .dock:hover,
 .dock:has(:focus-visible) {
+  pointer-events: auto;
+}
+
+.zone:hover > .dock::before,
+.dock:hover::before,
+.dock:has(:focus-visible)::before {
   clip-path: inset(
     calc(-1 * var(--space-24)) calc(-1 * var(--space-24)) calc(-1 * var(--space-24)) round
       var(--radius-pill)
@@ -92,7 +109,7 @@
   transition-delay: calc(var(--motion-dock-delay) * 0);
 }
 
-/* The sliding "you are here" pill. */
+/* The sliding "you are here" pill. It shows only while the dock is open, on the pill's timing. */
 .indicator {
   position: absolute;
   top: 50%;
@@ -105,17 +122,21 @@
   opacity: 0;
   transform: translate(var(--spot-x, 0), -50%);
   pointer-events: none;
-}
-
-.indicator[data-shown] {
-  opacity: 1;
+  transition: opacity var(--motion-dock) var(--ease-dock) var(--motion-dock-delay);
 }
 
 .indicator[data-placed] {
   transition:
     transform var(--motion-dock) var(--ease-dock),
     width var(--motion-dock) var(--ease-dock),
-    opacity var(--motion-dock) var(--ease-dock);
+    opacity var(--motion-dock) var(--ease-dock) var(--motion-dock-delay);
+}
+
+.zone:hover .indicator[data-shown],
+.dock:hover .indicator[data-shown],
+.dock:has(:focus-visible) .indicator[data-shown] {
+  opacity: 1;
+  transition-delay: calc(var(--motion-dock-delay) * 0);
 }
 
 .item {
@@ -130,6 +151,7 @@
   font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
   font-weight: 600;
   text-decoration: none;
+  pointer-events: auto;
 
   /* Rest: hidden a little low. Closing: all together, on the pill's own timing. */
   opacity: 0;
@@ -199,8 +221,9 @@ a.current:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dock,
+  .dock::before,
   .dock::after,
+  .indicator,
   .indicator[data-placed],
   .item {
     transition: none;

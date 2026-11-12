@@ -322,7 +322,7 @@
   padding: 0 var(--space-8);
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
+  color: var(--accent-text);
   font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -352,7 +352,7 @@
   padding: 0 var(--space-12);
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--accent);
+  color: var(--accent-text);
   font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
   font-weight: 600;
 }

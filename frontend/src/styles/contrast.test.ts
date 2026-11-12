@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   APPEARANCES,
+  type Colour,
   contrastRatio,
   evaluatePair,
   PAIRS,
@@ -114,6 +115,36 @@ describe.each(APPEARANCES)("contrast thresholds in %s appearance", (appearance) 
     it(`${pair.name} >= ${need}:1`, () => {
       const { ratio } = evaluatePair(pair, appearance);
       expect(ratio).toBeGreaterThanOrEqual(need);
+    });
+  }
+});
+
+// Text on accent tints: labels, counts, badges and selected rows draw --accent-text on
+// color-mix(in srgb, var(--accent) N%, transparent), N up to 16, over the page or a surface.
+// The fill accent itself drops under 4.5:1 there in light (axe), so it is checked as well.
+const TINT_PCT = [12, 16];
+const tintOf =
+  (pct: number): Colour =>
+  (fill) =>
+    `${fill("--accent")}${Math.round((pct / 100) * 255)
+      .toString(16)
+      .padStart(2, "0")}`;
+const TINT_PAIRS: Pair[] = ["--bg", "--surface", "--surface-2"].flatMap((base) =>
+  TINT_PCT.map(
+    (pct): Pair => ({
+      name: `accent text on ${pct}% accent tint over ${base}`,
+      kind: "text",
+      fg: "--accent-text",
+      bg: tintOf(pct),
+      base,
+    }),
+  ),
+);
+
+describe.each(APPEARANCES)("text on accent tints in %s appearance", (appearance) => {
+  for (const pair of TINT_PAIRS) {
+    it(`${pair.name} >= 4.5:1`, () => {
+      expect(evaluatePair(pair, appearance).ratio).toBeGreaterThanOrEqual(THRESHOLD.text);
     });
   }
 });

@@ -264,6 +264,10 @@
       "light": "#1540AD",
       "dark": "#5586F0"
     },
+    "--accent-text": {
+      "light": "#1A4FD6",
+      "dark": "#8AB0FF"
+    },
     "--on-accent": {
       "light": "#FFFFFF",
       "dark": "#0A0C11"
