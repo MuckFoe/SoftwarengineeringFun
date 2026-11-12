@@ -145,6 +145,28 @@ export const SCREENS: Screen[] = [
     },
   },
   {
+    // Spec 019 task 13: a hosted session's Delete opens the confirmation dialog (FR-1, FR-4).
+    name: "profile with delete dialog",
+    lowerBound: 1024,
+    narrow: true,
+    async open(page, _request, users) {
+      const u = workerUser(users);
+      const browser = page.context().browser();
+      if (!browser) throw new Error("no browser");
+      // Only this worker's account: the first sign-in then takes this browser's appearance.
+      await resetPreferences(browser, u);
+      await signIn(page, u.username, u.password);
+      // Started signed in (page.request carries the cookie), so this user hosts it (FR-0).
+      const invite = await createSession(page.request);
+      await page.goto(appUrl(`/s/${invite}`));
+      await expect(page.getByRole("main").getByRole("textbox")).toContainText("pass");
+      await page.goto(appUrl("/profile?from=%2F"));
+      // Newest first: the session just started.
+      await page.getByRole("button", { name: "Delete Sum Two Numbers" }).first().click();
+      await expect(page.getByRole("dialog", { name: "Delete Sum Two Numbers?" })).toBeVisible();
+    },
+  },
+  {
     name: "learn area",
     lowerBound: 1024,
     async open(page) {

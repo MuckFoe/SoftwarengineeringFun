@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
 from app.auth.deps import User, current_user, require_role
+from app.deletion import repo as deletion_repo
 from app.sessions import repo, service
 
 router = APIRouter(prefix="/api/sessions")
@@ -20,6 +21,29 @@ router = APIRouter(prefix="/api/sessions")
 async def get_conn(request: Request) -> AsyncIterator[asyncpg.Connection]:
     async with request.app.state.pool.acquire() as conn:
         yield conn
+
+
+async def record_starter(
+    conn: asyncpg.Connection, table: str, session_id: uuid.UUID, request: Request
+) -> None:
+    """Spec 019 FR-0: the signed-in account that started the session, or null signed out.
+
+    `table` is always one of the code's own literals, never input.
+    """
+    user = current_user(request)
+    await conn.execute(
+        f"update {table} set started_by_sub = $1 where id = $2",  # noqa: S608
+        user.sub if user else None,
+        session_id,
+    )
+
+
+async def missing_invite(conn: asyncpg.Connection, kind: str, invite: str) -> HTTPException:
+    """Spec 019 FR-8: an invite with no session is 410 session_deleted if it was deleted,
+    else 404 not_found as before."""
+    if await deletion_repo.is_tombstoned(conn, kind, invite):
+        return HTTPException(status_code=status.HTTP_410_GONE, detail={"error": "session_deleted"})
+    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error": "not_found"})
 
 
 class CreateSessionIn(BaseModel):
@@ -32,7 +56,7 @@ class CreatedSessionOut(BaseModel):
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=CreatedSessionOut)
 async def create_session(
-    body: CreateSessionIn, conn: asyncpg.Connection = Depends(get_conn)
+    body: CreateSessionIn, request: Request, conn: asyncpg.Connection = Depends(get_conn)
 ) -> CreatedSessionOut:
     try:
         session = await service.create_session(conn, body.problem_id)
@@ -40,6 +64,7 @@ async def create_session(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail={"error": "not_found"}
         ) from exc
+    await record_starter(conn, "session", session.id, request)
     return CreatedSessionOut(invite_id=session.invite_id)
 
 
@@ -69,9 +94,7 @@ async def get_session(
     try:
         session, can_reactivate = await service.get_status(conn, invite, is_admin=is_admin)
     except service.SessionNotFound as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail={"error": "not_found"}
-        ) from exc
+        raise await missing_invite(conn, "coding", invite) from exc
     if session.stale_at is not None:
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,

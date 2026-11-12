@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from app.auth.deps import User, current_user, require_role
 from app.learn import chat, repo, service, stale
 from app.sessions import hub as hub_module
-from app.sessions.api import get_conn
+from app.sessions.api import get_conn, missing_invite, record_starter
 
 router = APIRouter(prefix="/api/learn")
 
@@ -65,12 +65,13 @@ class StartedOut(BaseModel):
 
 
 @router.post("/sessions", status_code=status.HTTP_201_CREATED, response_model=StartedOut)
-async def start_session(body: StartIn, conn: Conn) -> StartedOut:
-    """FR-6: anyone, the same rule as `POST /api/sessions`."""
+async def start_session(body: StartIn, request: Request, conn: Conn) -> StartedOut:
+    """FR-6: anyone, the same rule as `POST /api/sessions`. Spec 019 FR-0 records the starter."""
     try:
         session = await service.create_session(conn, body.lesson_key)
     except service.LessonNotFound as exc:
         raise _not_found() from exc
+    await record_starter(conn, "learning_session", session.id, request)
     return StartedOut(invite_id=session.invite_id)
 
 
@@ -115,8 +116,11 @@ async def _session(conn: asyncpg.Connection, invite: str) -> repo.LearningSessio
 
 @router.get("/sessions/{invite}")
 async def get_session(invite: str, request: Request, conn: Conn) -> dict[str, str]:
-    """FR-27: a stale session is 423 with whether this caller (an admin) may reactivate it."""
-    session = await _session(conn, invite)
+    """FR-27: a stale session is 423 with whether this caller (an admin) may reactivate it.
+    Spec 019 FR-8: a deleted session's invite is 410 session_deleted."""
+    session = await repo.get_session_by_invite(conn, invite)
+    if session is None:
+        raise await missing_invite(conn, "learning", invite)
     if session.stale_at is not None:
         user = current_user(request)
         raise HTTPException(

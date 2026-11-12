@@ -15,6 +15,7 @@ HTTP routes (app/main.py, app/problems/api.py, app/sessions/api.py, app/sessions
          POST /api/auth/logout
   GET    /api/me
   GET    /api/me/sessions, POST /api/me/sessions/{kind}/{invite}/hide,
+  DELETE /api/me/sessions/{kind}/{invite} (spec 019; not in the list: 404)
   PUT    /api/me/preferences (spec 012; signed in only, swept for coverage)
   GET    /api/problems, /api/problems/{id}, /api/problems/{id}/edit (refused)
   POST   /api/problems (refused), PUT/DELETE /api/problems/{id} (refused)
@@ -565,6 +566,12 @@ async def test_nfr5_fr9_tests_reach_only_editors(
         client.post("/api/me/sessions/coding/no-such/hide"),
     )
     assert hidden.status_code == (404 if observer == "plain1" else 401)
+    # Spec 019: deleting a session not in the caller's list is a 404 (FR-11), never a body.
+    deleted = sweep.http(
+        ("DELETE", "/api/me/sessions/{kind}/{invite}"),
+        client.delete("/api/me/sessions/coding/no-such"),
+    )
+    assert deleted.status_code == (404 if observer == "plain1" else 401)
     prefs = sweep.http(
         ("PUT", "/api/me/preferences"),
         client.put("/api/me/preferences", json={"appearance": "dark"}),

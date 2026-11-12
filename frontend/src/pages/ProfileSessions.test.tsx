@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Me, RecentSession } from "../api/types";
@@ -18,12 +18,14 @@ const P1: RecentSession = {
   last_activity_at: ago(0),
   stale: false,
   hosted_by_me: true,
+  can_delete: true,
 };
 const P2: RecentSession = {
   ...P1,
   invite_id: "p2invite",
   title: "Other talk",
   hosted_by_me: false,
+  can_delete: false,
 };
 const L1: RecentSession = {
   kind: "learning",
@@ -32,6 +34,7 @@ const L1: RecentSession = {
   last_activity_at: ago(HOUR),
   stale: false,
   hosted_by_me: false,
+  can_delete: false,
 };
 const S1: RecentSession = {
   kind: "coding",
@@ -40,6 +43,7 @@ const S1: RecentSession = {
   last_activity_at: ago(26 * HOUR),
   stale: true,
   hosted_by_me: false,
+  can_delete: false,
 };
 
 const C1: RecentSession = {
@@ -49,17 +53,20 @@ const C1: RecentSession = {
   last_activity_at: ago(HOUR),
   stale: false,
   hosted_by_me: true,
+  can_delete: true,
 };
 const C2: RecentSession = {
   ...C1,
   invite_id: "c2invite",
   title: "Chess club",
   hosted_by_me: false,
+  can_delete: false,
 };
 
-function stubServer(sessions: RecentSession[], me?: Me) {
+function stubServer(sessions: RecentSession[], me?: Me, deleteResponse?: () => Response) {
   const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), "http://localhost");
+    if (init?.method === "DELETE") return deleteResponse?.() ?? new Response(null, { status: 204 });
     if (url.pathname === "/api/me" && me) return new Response(JSON.stringify(me), { status: 200 });
     if (url.pathname === "/api/me/sessions" && (init?.method ?? "GET") === "GET")
       return new Response(JSON.stringify(sessions), { status: 200 });
@@ -71,8 +78,8 @@ function stubServer(sessions: RecentSession[], me?: Me) {
   return fn;
 }
 
-function renderSessions(sessions: RecentSession[]) {
-  const fetchMock = stubServer(sessions);
+function renderSessions(sessions: RecentSession[], deleteResponse?: () => Response) {
+  const fetchMock = stubServer(sessions, undefined, deleteResponse);
   render(
     <MemoryRouter>
       <ProfileSessions now={() => NOW} />
@@ -164,6 +171,126 @@ describe("ProfileSessions", () => {
       "/api/me/sessions/coding/s1invite/hide",
     );
     expect(screen.getByRole("link", { name: "Recursion lesson" })).toBeTruthy();
+  });
+
+  it("019 AC-1/AC-3: only rows with can_delete show a Delete button named for the session", async () => {
+    // A hosted session of every kind (AC-1), and one the user only joined (AC-3).
+    const hosted: RecentSession[] = [
+      P1,
+      { ...L1, hosted_by_me: true, can_delete: true },
+      { ...S1, hosted_by_me: true, can_delete: true },
+      C1,
+    ];
+    renderSessions([...hosted, P2]);
+    const rows = await bodyRows();
+    for (const [i, s] of hosted.entries()) {
+      const row = rows[i] as HTMLElement;
+      const buttons = within(row)
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-label"));
+      // Delete comes after Hide.
+      expect(buttons).toEqual([`Hide ${s.title}`, `Delete ${s.title}`]);
+    }
+    const p2Row = rows[4] as HTMLElement;
+    expect(within(p2Row).getByRole("button", { name: "Hide Other talk" })).toBeTruthy();
+    expect(within(p2Row).queryByRole("button", { name: /^Delete/ })).toBeNull();
+  });
+
+  const deleteCalls = (fetchMock: ReturnType<typeof stubServer>) =>
+    fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE");
+
+  async function openDelete(title: string) {
+    await bodyRows();
+    const button = screen.getByRole("button", { name: `Delete ${title}` });
+    button.focus();
+    fireEvent.click(button);
+    return { button, dialog: screen.getByRole("dialog", { name: `Delete ${title}?` }) };
+  }
+
+  it("019 AC-4: Delete asks for confirmation naming the session, for everyone, not undoable", async () => {
+    const fetchMock = renderSessions([P1]);
+    const { dialog } = await openDelete("Graphs talk");
+    expect(dialog.textContent).toContain(
+      "This deletes the session for everyone. It can't be undone.",
+    );
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Delete" })).toBeTruthy();
+    expect(deleteCalls(fetchMock)).toHaveLength(0);
+  });
+
+  it("019 AC-4: Cancel sends nothing, keeps the row and returns focus to Delete", async () => {
+    const fetchMock = renderSessions([P1]);
+    const { button, dialog } = await openDelete("Graphs talk");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(deleteCalls(fetchMock)).toHaveLength(0);
+    expect(screen.getByRole("link", { name: "Graphs talk" })).toBeTruthy();
+    expect(document.activeElement).toBe(button);
+  });
+
+  it("019 AC-4: Escape sends nothing, keeps the row and returns focus to Delete", async () => {
+    const fetchMock = renderSessions([P1]);
+    const { button, dialog } = await openDelete("Graphs talk");
+    // A native <dialog> turns Escape into a cancel event.
+    act(() => {
+      dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(deleteCalls(fetchMock)).toHaveLength(0);
+    expect(screen.getByRole("link", { name: "Graphs talk" })).toBeTruthy();
+    expect(document.activeElement).toBe(button);
+  });
+
+  it("019 AC-5: confirming sends DELETE, removes the row and announces it politely", async () => {
+    const fetchMock = renderSessions([P1, C1]);
+    const { dialog } = await openDelete("Chess with Sam");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(screen.queryByRole("link", { name: "Chess with Sam" })).toBeNull());
+    const [call] = deleteCalls(fetchMock);
+    expect(new URL(String(call?.[0]), "http://localhost").pathname).toBe(
+      "/api/me/sessions/chess/c1invite",
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
+    const status = screen.getByRole("status");
+    expect(status.getAttribute("aria-live")).toBe("polite");
+    expect(status.textContent).toBe("Deleted Chess with Sam");
+    expect(screen.getByRole("link", { name: "Graphs talk" })).toBeTruthy();
+  });
+
+  it("019 AC-9: a 410 removes the row and says it was already deleted", async () => {
+    renderSessions(
+      [P1],
+      () => new Response(JSON.stringify({ error: "session_deleted" }), { status: 410 }),
+    );
+    const { dialog } = await openDelete("Graphs talk");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(screen.queryByRole("link", { name: "Graphs talk" })).toBeNull());
+    expect(screen.getByRole("status").textContent).toBe("Graphs talk was already deleted");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("019 AC-9: a 500 keeps the row and shows the error in the list", async () => {
+    renderSessions([P1], () => new Response("boom", { status: 500 }));
+    const { dialog } = await openDelete("Graphs talk");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Could not delete “Graphs talk”.",
+    );
+    expect(screen.getByRole("link", { name: "Graphs talk" })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("");
+  });
+
+  it("019 FR-11: a 403 not_host keeps the row and says the user may no longer delete it", async () => {
+    renderSessions(
+      [P1],
+      () => new Response(JSON.stringify({ error: "not_host" }), { status: 403 }),
+    );
+    const { dialog } = await openDelete("Graphs talk");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "You can no longer delete “Graphs talk”.",
+    );
+    expect(screen.getByRole("link", { name: "Graphs talk" })).toBeTruthy();
   });
 
   it("shows an empty state when there are no sessions", async () => {

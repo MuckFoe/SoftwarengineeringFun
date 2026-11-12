@@ -14,6 +14,7 @@ from pydantic import BaseModel, StrictBool, model_validator
 
 from app.accounts import repo
 from app.auth.deps import User, current_user
+from app.deletion import service as deletion
 from app.present import hub as present_hub
 from app.sessions import hub as session_hub
 from app.sessions.api import get_conn
@@ -73,10 +74,12 @@ union all select 'chess', invite_id, id from chess_session where invite_id = any
 @router.get("/sessions")
 async def my_sessions(request: Request, user: Account, conn: Conn) -> list[dict[str, Any]]:
     """FR-2, FR-4, FR-12: the account's non-hidden sessions, most recently active first.
-    Spec 016: each row carries `live`, true while its hub has a connected participant."""
+    Spec 016: each row carries `live`, true while its hub has a connected participant.
+    Spec 019 FR-0–FR-3: `hosted_by_me` follows the host rule; `can_delete` is true for the host
+    and for an admin."""
     rows = [
         {**asdict(s), "last_activity_at": s.last_activity_at.isoformat()}
-        for s in await repo.recent_sessions(conn, user.sub)
+        for s in await repo.recent_sessions(conn, user.sub, is_admin="admin" in user.roles)
     ]
     live = live_session_ids(
         session_hub._hubs,  # noqa: SLF001
@@ -96,6 +99,29 @@ async def hide_session(kind: str, invite: str, user: Account, conn: Conn) -> Res
     and a session the caller isn't in are the same `404` (NFR-1). Idempotent."""
     if not await repo.hide(conn, user.sub, kind, invite):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error": "not_found"})
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+_REFUSED_STATUS = {
+    "not_found": status.HTTP_404_NOT_FOUND,
+    "session_deleted": status.HTTP_410_GONE,
+    "not_host": status.HTTP_403_FORBIDDEN,
+}
+
+
+@router.delete("/sessions/{kind}/{invite}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_session(
+    kind: str, invite: str, request: Request, user: Account, conn: Conn
+) -> Response:
+    """Spec 019 FR-2, FR-6, FR-7, FR-11, FR-12: delete a session for everyone. Only its host
+    or an admin may; the server decides on every request. `404` unknown, or (non-admin) not in
+    the caller's list; `410 session_deleted` already deleted; `403 not_host` otherwise."""
+    try:
+        await deletion.delete_session(conn, request.app, user, kind, invite)
+    except deletion.Refused as refused:
+        raise HTTPException(
+            status_code=_REFUSED_STATUS[refused.code], detail={"error": refused.code}
+        ) from None
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

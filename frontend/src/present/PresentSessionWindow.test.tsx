@@ -561,3 +561,45 @@ describe("PresentSessionWindow: accessibility (NFR-6)", () => {
     expect(unnamed).toEqual([]);
   });
 });
+
+describe("PresentSessionWindow: deleted (spec 019 FR-7, FR-8)", () => {
+  it("AC-7: a 410 session_deleted shows that the session was deleted, with a link home", async () => {
+    stubServer({ state: { status: 410, body: { error: "session_deleted" } } });
+    renderPage(fakeSockets().factory);
+
+    expect(await screen.findByRole("heading", { name: "This session was deleted" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Back to home" }).getAttribute("href")).toBe("/");
+    expect(screen.queryByText(/could not load/i)).toBeNull();
+    expect(screen.queryByLabelText("Your name")).toBeNull();
+  });
+
+  it("AC-6: session_deleted by the host, then close 4411, shows the deleted state", async () => {
+    stubServer();
+    const socket = await joined(BEN);
+    await screen.findByRole("button", { name: "Draw" });
+
+    act(() =>
+      socket.onmessage?.({
+        data: JSON.stringify({ type: "session_deleted", by: "host" }),
+      } as MessageEvent),
+    );
+    socket.closeWith(4411);
+
+    expect(await screen.findByRole("heading", { name: "This session was deleted" })).toBeTruthy();
+    expect(screen.getByText("The host deleted it.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Back to home" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Draw" })).toBeNull();
+    expect(screen.queryByText(/disconnected/i)).toBeNull();
+  });
+
+  it("a close 4411 without the message still shows the deleted state", async () => {
+    stubServer();
+    const socket = await joined(BEN);
+    await screen.findByRole("button", { name: "Draw" });
+
+    socket.closeWith(4411);
+
+    await screen.findByRole("heading", { name: "This session was deleted" });
+    expect(screen.queryByText(/deleted it\./)).toBeNull();
+  });
+});

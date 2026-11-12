@@ -2,7 +2,7 @@ import { python } from "@codemirror/lang-python";
 import { EditorState } from "@codemirror/state";
 import { basicSetup, EditorView } from "codemirror";
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { ApiError, getProblem, getSession, reactivateSession } from "../api/client";
 import type { Participant, Problem, ProblemProgress, WsErrorCode } from "../api/types";
 import { useMe } from "../auth/useMe";
@@ -44,7 +44,19 @@ type PageState =
   | { kind: "not_found" }
   | { kind: "stale"; canReactivate: boolean; problemId: string }
   | { kind: "ready" }
-  | { kind: "error" };
+  | { kind: "error" }
+  | { kind: "deleted"; by: DeletedBy };
+
+/** Who deleted the session (spec 019 FR-7); null when only the 410 or the 4411 said so. */
+type DeletedBy = "host" | "admin" | null;
+
+/** The socket close code for a deleted session (spec 019 plan, same as chess). */
+const CLOSE_DELETED = 4411;
+
+const DELETED_BY: Record<"host" | "admin", string> = {
+  host: "The host deleted it.",
+  admin: "An admin deleted it.",
+};
 
 const CLOSE_MESSAGES: Record<ClosedEvent["error"], string> = {
   session_full: "This session is full (5 participants max).",
@@ -131,6 +143,8 @@ export function SessionWindow({ createSocket }: Props) {
         if (!current) return;
         if (err instanceof ApiError && err.error.kind === "not_found") {
           setPage({ kind: "not_found" });
+        } else if (err instanceof ApiError && err.error.kind === "session_deleted") {
+          setPage({ kind: "deleted", by: null });
         } else if (err instanceof ApiError && err.error.kind === "stale") {
           setPage({
             kind: "stale",
@@ -264,7 +278,12 @@ export function SessionWindow({ createSocket }: Props) {
         running: msg.code === "problem_deleted" ? false : prev.running,
       })),
     );
+    onSessionDeleted(provider, (by) => setPage({ kind: "deleted", by }));
     provider.on("closed", (ev) => {
+      // Deleted (spec 019 FR-7): keep who deleted it if the message came first.
+      if (ev.code === CLOSE_DELETED) {
+        setPage((prev) => (prev.kind === "deleted" ? prev : { kind: "deleted", by: null }));
+      }
       // A provider replaced by a re-join (spec 011) closing late is not the session ending.
       if (providerRef.current !== provider) return;
       providerRef.current = null;
@@ -274,6 +293,20 @@ export function SessionWindow({ createSocket }: Props) {
       if (displayName === undefined) setEnded(ev.error);
       else setNameError(CLOSE_MESSAGES[ev.error]);
     });
+  }
+
+  if (page.kind === "deleted") {
+    return (
+      <Window
+        toolbar={
+          <AppHeader label="Session">
+            <span className={styles.spacer} />
+          </AppHeader>
+        }
+      >
+        <DeletedState by={page.by} />
+      </Window>
+    );
   }
 
   if (page.kind === "not_found") return <NotFound message="Session not found" />;
@@ -381,6 +414,35 @@ export function SessionWindow({ createSocket }: Props) {
       </Window>
       {hud && <Hud key={hud.key} message={hud.message} />}
     </>
+  );
+}
+
+/**
+ * Calls `handler` when the server says the session was deleted (spec 019 FR-7). The provider
+ * emits every message type it receives; `session_deleted` is not in the shared message types.
+ */
+function onSessionDeleted(provider: CollabProvider, handler: (by: DeletedBy) => void) {
+  const on = provider.on.bind(provider) as unknown as (
+    type: "session_deleted",
+    h: (msg: { by?: unknown }) => void,
+  ) => () => void;
+  on("session_deleted", (msg) => handler(msg.by === "host" || msg.by === "admin" ? msg.by : null));
+}
+
+/** A deleted session (spec 019 FR-7, FR-8): says so, and who did it when known, with a way home. */
+function DeletedState({ by }: { by: DeletedBy }) {
+  return (
+    <EmptyState
+      icon="trash"
+      title="This session was deleted"
+      action={
+        <Link className={styles.homeLink} to="/">
+          Back to home
+        </Link>
+      }
+    >
+      {by && DELETED_BY[by]}
+    </EmptyState>
   );
 }
 

@@ -8,22 +8,24 @@
 | 2 | 4, 5, 6, 7, 8 — all `[P]` | 4–6 need the migration's columns and tombstone table (1). 7–8 need the frontend types (3). No two touch the same file. |
 | 3 | 9, 10, 11, 12 — all `[P]` | 9 joins authorisation (5), purge (6) and close hooks (2). 10–12 need `is_tombstoned` (6). Disjoint files. |
 | 4 | 13 | E2E and the look matrix run against the whole feature. |
+| 4 | 14 — `[P]` with 13 | Follow-up found while implementing 9 (added 2026-11-12 at the human's request). Disjoint from 13's files. |
 
 ## Checklist
 
-- [ ] **1** — `[P]` Migration: starter column and deleted-session tombstone
-- [ ] **2** — `[P]` Close hooks: tell and disconnect a deleted coding, learning or presentation session
-- [ ] **3** — `[P]` Frontend API: deleteMySession, can_delete, session_deleted error
-- [ ] **4** — `[P]` Record who started a coding, learning or chess session
-- [ ] **5** — `[P]` Host rule and can_delete in the profile sessions list
-- [ ] **6** — `[P]` Deletion repo: host, purge per kind, tombstone
-- [ ] **7** — `[P]` Profile: Delete button, confirmation and announcement
-- [ ] **8** — `[P]` Session windows: the deleted state
-- [ ] **9** — `[P]` Deletion service and DELETE /api/me/sessions/{kind}/{invite}
-- [ ] **10** — `[P]` REST: a deleted invite answers 410 session_deleted
-- [ ] **11** — `[P]` WebSocket: a deleted invite closes 4411
-- [ ] **12** — `[P]` Chess: a tombstoned invite counts as deleted
-- [ ] **13** — End to end: delete from the profile, and the look matrix
+- [x] **1** — `[P]` Migration: starter column and deleted-session tombstone
+- [x] **2** — `[P]` Close hooks: tell and disconnect a deleted coding, learning or presentation session
+- [x] **3** — `[P]` Frontend API: deleteMySession, can_delete, session_deleted error
+- [x] **4** — `[P]` Record who started a coding, learning or chess session
+- [x] **5** — `[P]` Host rule and can_delete in the profile sessions list
+- [x] **6** — `[P]` Deletion repo: host, purge per kind, tombstone
+- [x] **7** — `[P]` Profile: Delete button, confirmation and announcement
+- [x] **8** — `[P]` Session windows: the deleted state
+- [x] **9** — `[P]` Deletion service and DELETE /api/me/sessions/{kind}/{invite}
+- [x] **10** — `[P]` REST: a deleted invite answers 410 session_deleted
+- [x] **11** — `[P]` WebSocket: a deleted invite closes 4411
+- [x] **12** — `[P]` Chess: a tombstoned invite counts as deleted
+- [x] **13** — End to end: delete from the profile, and the look matrix
+- [x] **14** — Cancel in-flight coding and scratch runs when a session is deleted
 
 ## Tasks
 
@@ -163,3 +165,14 @@
   - *AC-6 (E2E): a presentation host deletes from the profile while a second browser context is in the session; within 2 s that context shows "This session was deleted".*
   - *AC-7 (E2E): reopening the invite link shows the deleted page with a link home.*
   - Keyboard only: Tab to Delete, Enter opens the dialog, Escape cancels, and focus returns to Delete.
+
+### 14. `[P]` Cancel in-flight coding and scratch runs when a session is deleted
+
+- **Plan:** Architecture (`deletion/service.py` after-commit close hooks). **Spec:** FR-6, FR-7.
+- **Files:** `backend/app/sessions/ws.py`, `backend/app/scratch/manager.py`, `backend/app/deletion/service.py` (tests in `backend/tests/unit/test_cancel_runs_on_delete.py`)
+- **Depends on:** 2, 9
+- **Do:** Track each session's graded-run task so it can be cancelled. On deletion of a coding session, after commit, cancel its graded run (and drop its `_RUNNING` entry) and its scratch run (`RunManager` drops its `_live` entry without a final save or broadcast). Neither may write to the database or recreate a hub afterwards.
+- **Acceptance:**
+  - *FR-6: Given a coding session with a graded run in flight, When it is deleted, Then the run task is cancelled, the session is no longer in `_RUNNING`, and nothing is written for it afterwards.*
+  - *FR-6: Given a coding session with a scratch run in flight, When it is deleted, Then `RunManager` holds nothing for it, no final save happens, and no hub exists for it afterwards.*
+  - Cancelling for a session with no run in flight is a no-op.

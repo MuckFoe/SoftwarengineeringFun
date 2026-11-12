@@ -83,6 +83,8 @@ async def test_migrations_applied_twice_apply_once(db: asyncpg.Connection) -> No
         "0008_chess.sql",
         "0009_scratch_run.sql",
         "0010_problem_category.sql",
+        "0011_session_host_and_deletion.sql",
+        "0012_participant_host_index.sql",
     ]
 
 

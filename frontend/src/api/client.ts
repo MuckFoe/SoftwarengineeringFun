@@ -25,6 +25,8 @@ import type {
 export type ApiErrorDetail =
   | { kind: "unauthorized" }
   | { kind: "missing_role"; role: string }
+  | { kind: "not_host" }
+  | { kind: "session_deleted" }
   | { kind: "not_found" }
   | { kind: "conflict" }
   | { kind: "validation"; errors: FieldError[] }
@@ -56,11 +58,15 @@ function toDetail(status: number, body: unknown): ApiErrorDetail {
     case 401:
       return { kind: "unauthorized" };
     case 403:
+      if (b.error === "not_host") return { kind: "not_host" };
       return { kind: "missing_role", role: typeof b.role === "string" ? b.role : "" };
     case 404:
       return { kind: "not_found" };
     case 409:
       return { kind: "conflict" };
+    case 410:
+      if (b.error === "session_deleted") return { kind: "session_deleted" };
+      return { kind: "http" };
     case 413:
       return {
         kind: "image_too_large",
@@ -148,6 +154,9 @@ export const getHomePreview = (sessionId: string) =>
 export const getMySessions = () => request<RecentSession[]>("GET", "/me/sessions");
 export const hideMySession = (kind: RecentSession["kind"], invite: string) =>
   request<void>("POST", `/me/sessions/${enc(kind)}/${enc(invite)}/hide`);
+/** Spec 019: host or admin deletes the session for everyone; 410 = already deleted. */
+export const deleteMySession = (kind: RecentSession["kind"], invite: string) =>
+  request<void>("DELETE", `/me/sessions/${enc(kind)}/${enc(invite)}`);
 export const putPreferences = (p: Partial<Preferences>) =>
   request<Preferences>("PUT", "/me/preferences", p);
 

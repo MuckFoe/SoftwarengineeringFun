@@ -3,6 +3,7 @@ import {
   ApiError,
   createProblem,
   createSession,
+  deleteMySession,
   getChat,
   getMySessions,
   getProblemForEdit,
@@ -286,6 +287,7 @@ describe("my sessions and preferences (spec 012)", () => {
       last_activity_at: "2026-11-04T10:00:00Z",
       stale: false,
       hosted_by_me: true,
+      can_delete: true,
     },
     {
       kind: "coding",
@@ -294,6 +296,7 @@ describe("my sessions and preferences (spec 012)", () => {
       last_activity_at: "2026-11-03T10:00:00Z",
       stale: true,
       hosted_by_me: false,
+      can_delete: false,
     },
   ];
 
@@ -311,6 +314,28 @@ describe("my sessions and preferences (spec 012)", () => {
     const [url, init] = fetchMock.mock.calls[0] ?? [];
     expect(url).toBe("/api/me/sessions/coding/abc/hide");
     expect(init?.method).toBe("POST");
+  });
+
+  it("FR-1: deleteMySession sends DELETE to /api/me/sessions/{kind}/{invite}, encoded", async () => {
+    const fetchMock = stubFetch(204);
+    await expect(deleteMySession("coding", "a b")).resolves.toBeUndefined();
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("/api/me/sessions/coding/a%20b");
+    expect(init?.method).toBe("DELETE");
+  });
+
+  it("FR-11: a 410 session_deleted rejects with ApiError kind session_deleted", async () => {
+    stubFetch(410, { error: "session_deleted" });
+    const err = await caught(deleteMySession("chess", "gone"));
+    expect(err.status).toBe(410);
+    expect(err.error).toEqual({ kind: "session_deleted" });
+  });
+
+  it("FR-11: a 403 not_host rejects with ApiError kind not_host", async () => {
+    stubFetch(403, { error: "not_host" });
+    const err = await caught(deleteMySession("learning", "x"));
+    expect(err.status).toBe(403);
+    expect(err.error).toEqual({ kind: "not_host" });
   });
 
   it("putPreferences PUTs the body to /api/me/preferences and returns the stored values", async () => {

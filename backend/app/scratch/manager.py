@@ -67,6 +67,8 @@ class _Live:
         self.wake = asyncio.Event()
         self.lock = asyncio.Lock()
         self.task: asyncio.Task[None] | None = None
+        # Spec 019: its session was deleted; nothing more is saved or broadcast for it.
+        self.discarded = False
 
     def run(self) -> Run:
         return Run(
@@ -111,11 +113,26 @@ class RunManager:
             async with self._pool.acquire() as conn:
                 await repo.finish(conn, session_id, "error", None, [])
             raise
+        if live.discarded:
+            return Refused(by="")
         await self._broadcast(
             session_id, {"type": "scratch_run_started", "run": run_payload(live.run())}
         )
+        if live.discarded:
+            return Refused(by="")
         live.task = asyncio.create_task(self._drive(session_id, live, code, input_text))
         return Started()
+
+    async def discard(self, session_id: uuid.UUID) -> None:
+        """Spec 019 FR-6: the session was deleted. Cancels its run in progress (if any) and
+        forgets it, with no final save and no broadcast. Nothing in progress is a no-op."""
+        live = self._live.pop(session_id, None)
+        if live is None:
+            return
+        live.discarded = True
+        if live.task is not None:
+            live.task.cancel()
+            await asyncio.gather(live.task, return_exceptions=True)
 
     async def join(self, session_id: uuid.UUID) -> None:
         """Wait until the run in progress (if any) has ended."""
@@ -202,17 +219,22 @@ class RunManager:
             await stream.aclose()
             flusher.cancel()
             await asyncio.gather(flusher, return_exceptions=True)
+            # Spec 019: a discarded run (its session deleted) is neither flushed nor saved.
             try:
-                if live.pending:
-                    await asyncio.sleep(
-                        max(0.0, live.last_flush + FLUSH_INTERVAL_S - time.monotonic())
-                    )
-                    await self._flush(session_id, live)
-                segments = [{"s": s, "t": t} for s, t in live.buffer.segments]
-                async with self._pool.acquire() as conn:
-                    await repo.finish(conn, session_id, status, exit_code, segments)
+                if not live.discarded:
+                    if live.pending:
+                        await asyncio.sleep(
+                            max(0.0, live.last_flush + FLUSH_INTERVAL_S - time.monotonic())
+                        )
+                        await self._flush(session_id, live)
+                    segments = [{"s": s, "t": t} for s, t in live.buffer.segments]
+                    async with self._pool.acquire() as conn:
+                        await repo.finish(conn, session_id, status, exit_code, segments)
             finally:
-                self._live.pop(session_id, None)
+                if self._live.get(session_id) is live:
+                    del self._live[session_id]
+        if live.discarded:
+            return
         await self._broadcast(
             session_id, {"type": "scratch_run_end", "status": status, "exit_code": exit_code}
         )

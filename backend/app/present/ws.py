@@ -31,7 +31,7 @@ import uuid
 from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 import anyio
 import asyncpg
@@ -40,8 +40,10 @@ from fastapi import APIRouter, WebSocket
 from app import clock
 from app.accounts.identity import identity_for
 from app.chat.rules import MAX_CHAT_CHARS, ChatError
+from app.deletion import repo as deletion_repo
 from app.gifs import service as gif_service
 from app.present import chat, hosting, repo, service
+from app.present import hub as hub_module
 from app.present.hosting import HostEvent
 from app.present.hub import DrawingFull, PresentHub, drop_if_empty, get_hub
 from app.present.service import PresentError
@@ -56,6 +58,8 @@ CLOSE_FULL = 4403
 CLOSE_STALE = 4410
 CLOSE_INVALID_NAME = 4422
 CLOSE_REPLACED = 4409
+# Spec 019: the session was deleted from a profile. The same code chess uses.
+CLOSE_DELETED = 4411
 
 # `asyncio.sleep` and the wall clock may disagree by a hair; wake just after the grace.
 TIMER_SLACK = 0.01
@@ -86,6 +90,26 @@ async def broadcast(hub: PresentHub, message: dict, *, exclude: uuid.UUID | None
         try:
             await connection.websocket.send_json(message)
         except Exception:  # noqa: S110  (a dead socket is cleaned up by its own handler)
+            pass
+
+
+async def close_deleted(session_id: uuid.UUID, by: Literal["host", "admin"]) -> None:
+    """Spec 019 FR-7, after a deletion commits: tells everyone `session_deleted`, closes
+    every socket 4411 and drops the hub with its host timer and drawings. No hub (nobody
+    connected) is a no-op."""
+    hub = hub_module._hubs.pop(session_id, None)  # noqa: SLF001
+    if hub is None:
+        return
+    hub.cancel_host_timer()
+    await broadcast(hub, {"type": "session_deleted", "by": by})
+    connections = list(hub.connections.values())
+    # Emptied first, so each socket's own handler finds nothing to leave (no DB write).
+    hub.connections.clear()
+    hub.strokes.clear()
+    for connection in connections:
+        try:
+            await connection.websocket.close(code=CLOSE_DELETED)  # type: ignore[attr-defined]
+        except Exception:  # noqa: S110  (already gone)
             pass
 
 
@@ -504,7 +528,8 @@ async def present_ws(websocket: WebSocket, invite: str, name: str = "", rejoin: 
     async with pool.acquire() as conn:
         session = await repo.get_session_by_invite(conn, invite)
         if session is None:
-            await websocket.close(code=CLOSE_NOT_FOUND)
+            deleted = await deletion_repo.is_tombstoned(conn, "presentation", invite)
+            await websocket.close(code=CLOSE_DELETED if deleted else CLOSE_NOT_FOUND)
             return
         if session.stale_at is not None:
             await websocket.close(code=CLOSE_STALE)

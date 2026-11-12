@@ -17,7 +17,7 @@ sender's `client_id` (and `limit` for `chat_too_long`) so the client can settle 
 import json
 import uuid
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Any, Literal
 
 import anyio
 import asyncpg
@@ -25,6 +25,7 @@ from fastapi import APIRouter, WebSocket
 
 from app.accounts.identity import identity_for
 from app.chat.rules import MAX_CHAT_CHARS, ChatError
+from app.deletion import repo as deletion_repo
 from app.learn import chat, repo, service
 from app.learn.service import LearnError
 from app.sessions import hub as hub_module
@@ -38,6 +39,8 @@ CLOSE_FULL = 4403
 CLOSE_STALE = 4410
 CLOSE_INVALID_NAME = 4422
 CLOSE_REPLACED = 4409
+# Spec 019: the session was deleted from a profile. The same code chess uses.
+CLOSE_DELETED = 4411
 
 Action = Callable[[], Awaitable[list[dict]]]
 
@@ -133,6 +136,23 @@ async def _handle_text(
         await hub_module.broadcast(hub, event)
 
 
+async def close_deleted(session_id: uuid.UUID, by: Literal["host", "admin"]) -> None:
+    """Spec 019 FR-7, after a deletion commits: tells everyone `session_deleted`, closes
+    every socket 4411 and drops the hub. No hub (nobody connected) is a no-op."""
+    hub = hub_module._hubs.pop(session_id, None)  # noqa: SLF001
+    if hub is None:
+        return
+    await hub_module.broadcast(hub, {"type": "session_deleted", "by": by})
+    connections = list(hub.connections.values())
+    # Emptied first, so each socket's own handler finds nothing to leave (no DB write).
+    hub.connections.clear()
+    for connection in connections:
+        try:
+            await connection.websocket.close(code=CLOSE_DELETED)  # type: ignore[attr-defined]
+        except Exception:  # noqa: S110  (already gone)
+            pass
+
+
 @router.websocket("/api/learn/sessions/{invite}/ws")
 async def learn_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
     await websocket.accept()
@@ -143,7 +163,8 @@ async def learn_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
     async with pool.acquire() as conn:
         session = await repo.get_session_by_invite(conn, invite)
         if session is None:
-            await websocket.close(code=CLOSE_NOT_FOUND)
+            deleted = await deletion_repo.is_tombstoned(conn, "learning", invite)
+            await websocket.close(code=CLOSE_DELETED if deleted else CLOSE_NOT_FOUND)
             return
         if session.stale_at is not None:
             await websocket.close(code=CLOSE_STALE)

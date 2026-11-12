@@ -17,6 +17,7 @@ const row = (invite_id: string, live?: boolean): RecentSession => ({
   last_activity_at: "2026-11-07T00:00:00Z",
   stale: false,
   hosted_by_me: false,
+  can_delete: false,
   ...(live === undefined ? {} : { live }),
 });
 

@@ -49,6 +49,7 @@ describe("useJumpIndex (FR-15)", () => {
         last_activity_at: "x",
         stale: false,
         hosted_by_me: true,
+        can_delete: true,
       },
     ]);
     const problems = vi

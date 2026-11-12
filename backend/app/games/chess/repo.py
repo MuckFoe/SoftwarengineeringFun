@@ -15,6 +15,7 @@ from datetime import datetime
 import asyncpg
 
 from app import clock
+from app.deletion import repo as deletion_repo
 
 _SESSION_COLUMNS = """id, invite_id, starter_participant_id, white_participant_id,
     black_participant_id, current_game_id, created_at, last_activity_at, stale_at,
@@ -102,13 +103,13 @@ async def get_session_by_invite(conn: asyncpg.Connection, invite_id: str) -> Che
 
 
 async def is_deleted_invite(conn: asyncpg.Connection, invite_id: str) -> bool:
-    """FR-34: whether the invite belonged to a session that was deleted (REST 410)."""
-    return bool(
-        await conn.fetchval(
-            "select true from chess_session where invite_id = $1 and deleted_at is not null",
-            invite_id,
-        )
+    """FR-34: whether the invite belonged to a session that was deleted (REST 410, WS 4411):
+    soft-deleted in chess, or purged by a profile deletion (spec 019 FR-8, FR-14)."""
+    soft_deleted = await conn.fetchval(
+        "select true from chess_session where invite_id = $1 and deleted_at is not null",
+        invite_id,
     )
+    return bool(soft_deleted) or await deletion_repo.is_tombstoned(conn, "chess", invite_id)
 
 
 async def get_session(conn: asyncpg.Connection, session_id: uuid.UUID) -> ChessSession | None:

@@ -1180,3 +1180,44 @@ describe("SessionWindow, run with your own input (spec 011)", () => {
     expect(screen.queryByRole("region", { name: "Run with your own input" })).toBeNull();
   });
 });
+
+describe("SessionWindow, deleted (spec 019 FR-7, FR-8)", () => {
+  it("AC-7: a 410 session_deleted shows that the session was deleted, with a link home", async () => {
+    stubServer([json(410, { error: "session_deleted" })]);
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "This session was deleted" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Back to home" }).getAttribute("href")).toBe("/");
+    expect(screen.queryByText("Session not found")).toBeNull();
+    expect(screen.queryByLabelText("Your name")).toBeNull();
+  });
+
+  it("AC-6: session_deleted by the host, then close 4411, shows the deleted state", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    await screen.findByRole("heading", { name: "Sum two" });
+
+    act(() =>
+      socket.onmessage?.({
+        data: JSON.stringify({ type: "session_deleted", by: "host" }),
+      } as MessageEvent),
+    );
+    act(() => socket.onclose?.({ code: 4411 } as CloseEvent));
+
+    expect(await screen.findByRole("heading", { name: "This session was deleted" })).toBeTruthy();
+    expect(screen.getByText("The host deleted it.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Back to home" })).toBeTruthy();
+    expect(screen.queryByText(/disconnected/i)).toBeNull();
+  });
+
+  it("a close 4411 without the message still shows the deleted state", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    await screen.findByRole("heading", { name: "Sum two" });
+
+    act(() => socket.onclose?.({ code: 4411 } as CloseEvent));
+
+    await screen.findByRole("heading", { name: "This session was deleted" });
+    expect(screen.queryByText(/deleted it\./)).toBeNull();
+  });
+});

@@ -17,7 +17,7 @@ A signed-in user's profile lists their recent sessions, and today the only thing
 - **FR-0** THE SYSTEM SHALL treat as a session's host: for a presentation, its presenter (as today); for a coding, learning or chess session, the signed-in account that started it. WHEN a session was started before this feature and no starter account is known, THE SYSTEM SHALL treat the first signed-in account that joined it as its host. A session started by a guest, with no signed-in participant, has no host (only admins can delete it). WHEN the profile lists a session whose host is the user, THE SYSTEM SHALL mark it "Hosted by you", for every kind.
 
 - **FR-1** WHEN a signed-in user's profile lists a session they host, of any kind (coding, learning, presentation, chess), THE SYSTEM SHALL show a Delete action on that session, beside Hide.
-- **FR-2** WHEN a signed-in admin's profile lists any session, THE SYSTEM SHALL show the Delete action on it, whether or not they host it.
+- **FR-2** WHEN a signed-in admin's profile lists any session, THE SYSTEM SHALL show the Delete action on it, whether or not they host it. An admin's delete request is accepted for any session, even one not in their list; the profile still offers Delete only on listed sessions.
 - **FR-3** WHEN the profile lists a session the user neither hosts nor may delete as an admin, THE SYSTEM SHALL show no Delete action on it.
 - **FR-4** WHEN the user activates Delete, THE SYSTEM SHALL ask for confirmation, naming the session and saying that it is deleted for everyone and cannot be undone, before anything is deleted.
 - **FR-5** WHEN the user cancels the confirmation, THE SYSTEM SHALL delete nothing and leave the list unchanged.

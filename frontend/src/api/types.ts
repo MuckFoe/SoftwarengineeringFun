@@ -26,6 +26,8 @@ export interface RecentSession {
   hosted_by_me: boolean;
   /** Spec 016: at least one participant is connected now. Always sent by the API. */
   live?: boolean;
+  /** Spec 019: the viewer may delete this session (its host, or an admin). */
+  can_delete: boolean;
 }
 
 export interface ProblemSummary {

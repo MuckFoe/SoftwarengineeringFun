@@ -202,6 +202,7 @@ async def test_fr2_lists_own_sessions_most_recent_first(
             "last_activity_at": NOW.isoformat(),
             "stale": False,
             "hosted_by_me": False,
+            "can_delete": False,
             "live": False,
         },
         {
@@ -210,7 +211,8 @@ async def test_fr2_lists_own_sessions_most_recent_first(
             "title": "Lists",
             "last_activity_at": (NOW - timedelta(hours=1)).isoformat(),
             "stale": False,
-            "hosted_by_me": False,
+            "hosted_by_me": True,
+            "can_delete": True,
             "live": False,
         },
         {
@@ -219,7 +221,8 @@ async def test_fr2_lists_own_sessions_most_recent_first(
             "title": "Two Sum",
             "last_activity_at": (NOW - timedelta(days=1)).isoformat(),
             "stale": False,
-            "hosted_by_me": False,
+            "hosted_by_me": True,
+            "can_delete": True,
             "live": False,
         },
     ]
@@ -369,7 +372,8 @@ async def test_014_ac28_chess_sessions_are_listed_with_kind_chess(
             "title": "Chess",
             "last_activity_at": NOW.isoformat(),
             "stale": False,
-            "hosted_by_me": False,
+            "hosted_by_me": True,
+            "can_delete": True,
             "live": False,
         },
         {
@@ -378,7 +382,8 @@ async def test_014_ac28_chess_sessions_are_listed_with_kind_chess(
             "title": "Chess",
             "last_activity_at": (NOW - timedelta(hours=1)).isoformat(),
             "stale": True,
-            "hosted_by_me": False,
+            "hosted_by_me": True,
+            "can_delete": True,
             "live": False,
         },
     ]

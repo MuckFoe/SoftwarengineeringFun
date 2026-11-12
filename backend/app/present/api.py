@@ -24,7 +24,7 @@ from app.present.frame import FRAME_HEADERS, build_frame
 from app.present.hub import peek_hub
 from app.present.repo import LibraryEntry, PresentSession, list_presentations
 from app.present.ws import broadcast
-from app.sessions.api import get_conn
+from app.sessions.api import get_conn, missing_invite
 
 router = APIRouter(prefix="/api/present")
 
@@ -177,11 +177,12 @@ async def start_session(body: StartIn, conn: Conn) -> StartedOut:
 async def get_session(invite: str, request: Request, conn: Conn) -> dict[str, Any]:
     """FR-4, FR-5, FR-12, FR-30, FR-31: shape from the session's own version, availability,
     stale (and whether this caller, an admin, may reactivate it), host (and whether the host is
-    signed in, spec 012 FR-8) and stored place."""
+    signed in, spec 012 FR-8) and stored place. Spec 019 FR-8: a deleted session's invite is
+    410 session_deleted."""
     try:
         state = await service.session_state(conn, invite)
     except service.SessionNotFound:
-        raise _not_found() from None
+        raise await missing_invite(conn, "presentation", invite) from None
     user = current_user(request)
     return {
         "title": state.title,

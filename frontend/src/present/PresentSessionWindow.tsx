@@ -11,7 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import type { ChatMessage } from "../api/types";
 import { useMe } from "../auth/useMe";
 import { type SendResult, useChat } from "../chat/useChat";
@@ -69,7 +69,19 @@ type PageState =
   | { kind: "not_found" }
   | { kind: "error" }
   | { kind: "ready"; info: PresentSessionState }
-  | { kind: "stale"; info: PresentSessionState };
+  | { kind: "stale"; info: PresentSessionState }
+  | { kind: "deleted"; by: DeletedBy };
+
+/** Who deleted the session (spec 019 FR-7); null when only the 410 or the 4411 said so. */
+type DeletedBy = "host" | "admin" | null;
+
+/** The socket close code for a deleted session (spec 019 plan, same as chess). */
+const CLOSE_DELETED = 4411;
+
+const DELETED_BY: Record<"host" | "admin", string> = {
+  host: "The host deleted it.",
+  admin: "An admin deleted it.",
+};
 
 const CLOSE_MESSAGES: Record<PresentCloseError, string> = {
   full: "This session is full (5 participants max).",
@@ -167,7 +179,15 @@ export function PresentSessionWindow({ createSocket, createLink }: Props) {
     const res = await getSession(invite).catch(() => null);
     if (res === null) setPage({ kind: "error" });
     else if (isPresentError(res)) {
-      setPage(res.error === "not_found" ? { kind: "not_found" } : { kind: "error" });
+      // `session_deleted` (410, spec 019 FR-8) is not among the present error codes.
+      const code: string = res.error;
+      setPage(
+        code === "session_deleted"
+          ? { kind: "deleted", by: null }
+          : code === "not_found"
+            ? { kind: "not_found" }
+            : { kind: "error" },
+      );
     } else setPage(res.stale ? { kind: "stale", info: res } : { kind: "ready", info: res });
   }, [invite]);
 
@@ -206,8 +226,13 @@ export function PresentSessionWindow({ createSocket, createLink }: Props) {
       for (const type of PRESENT_MESSAGES) {
         next.on(type, (msg: PresentEvents[typeof type]) => dispatch(msg as PresentAction));
       }
+      onSessionDeleted(next, (by) => setPage({ kind: "deleted", by }));
       next.on("closed", (ev) => {
         if (socketRef.current !== next) return;
+        // Deleted (spec 019 FR-7): keep who deleted it if the message came first.
+        if (ev.code === CLOSE_DELETED) {
+          setPage((prev) => (prev.kind === "deleted" ? prev : { kind: "deleted", by: null }));
+        }
         socketRef.current = null;
         setSocket(null);
         dispatch({ type: "reset" });
@@ -281,6 +306,14 @@ export function PresentSessionWindow({ createSocket, createLink }: Props) {
       <span className={styles.spacer} />
     </>
   );
+
+  if (page.kind === "deleted") {
+    return (
+      <Window toolbar={<AppHeader label="Presentation session">{toolbarEnd}</AppHeader>}>
+        <DeletedState by={page.by} />
+      </Window>
+    );
+  }
 
   if (socket && state.you && page.kind !== "loading" && page.kind !== "error") {
     return (
@@ -405,6 +438,35 @@ export function PresentSessionWindow({ createSocket, createLink }: Props) {
       </Window>
       {hud && <Hud key={hud.key} message={hud.message} />}
     </>
+  );
+}
+
+/**
+ * Calls `handler` when the server says the session was deleted (spec 019 FR-7). The socket
+ * emits every message type it receives; `session_deleted` is not in the present message types.
+ */
+function onSessionDeleted(socket: PresentSocket, handler: (by: DeletedBy) => void) {
+  const on = socket.on.bind(socket) as unknown as (
+    type: "session_deleted",
+    h: (msg: { by?: unknown }) => void,
+  ) => () => void;
+  on("session_deleted", (msg) => handler(msg.by === "host" || msg.by === "admin" ? msg.by : null));
+}
+
+/** A deleted session (spec 019 FR-7, FR-8): says so, and who did it when known, with a way home. */
+function DeletedState({ by }: { by: DeletedBy }) {
+  return (
+    <EmptyState
+      icon="trash"
+      title="This session was deleted"
+      action={
+        <Link className={styles.homeLink} to="/">
+          Back to home
+        </Link>
+      }
+    >
+      {by && DELETED_BY[by]}
+    </EmptyState>
   );
 }
 

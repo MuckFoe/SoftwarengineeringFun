@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from app.auth.deps import User, require_role
 from app.games.chess import chat, repo, service, stale, ws
 from app.games.chess.hub import ChessHub
-from app.sessions.api import get_conn
+from app.sessions.api import get_conn, record_starter
 from app.sessions.hub import MAX_PARTICIPANTS
 
 router = APIRouter(prefix="/api/games/chess")
@@ -43,9 +43,10 @@ def _full(request: Request, session: repo.ChessSession) -> bool:
 
 
 @router.post("/sessions", status_code=status.HTTP_201_CREATED, response_model=StartedOut)
-async def start_session(conn: Conn) -> StartedOut:
-    """FR-3: anyone, signed in or not."""
+async def start_session(request: Request, conn: Conn) -> StartedOut:
+    """FR-3: anyone, signed in or not. Spec 019 FR-0 records the starter."""
     session = await service.create_session(conn)
+    await record_starter(conn, "chess_session", session.id, request)
     return StartedOut(invite_id=session.invite_id)
 
 

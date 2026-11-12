@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { getMySessions, hideMySession } from "../api/client";
+import { ApiError, deleteMySession, getMySessions, hideMySession } from "../api/client";
 import type { RecentSession } from "../api/types";
 import { Button } from "../ui/Button";
+import { Dialog } from "../ui/Dialog";
 import { Icon, type IconName } from "../ui/Icon";
 import { InlineMessage } from "../ui/InlineMessage";
 import styles from "./ProfileSessions.module.css";
@@ -53,11 +54,28 @@ interface Props {
  * kind, title linking to the kind's normal route (a stale session's window handles the stale
  * path), relative last activity, Stale and Hosted by you badges, and Hide. Mounted by
  * ProfileWindow for a signed-in user only (FR-10).
+ *
+ * Spec 019: a row the server marks `can_delete` (host or admin) also has Delete, which asks for
+ * confirmation in a Dialog and then deletes the session for everyone, announced politely.
  */
 export function ProfileSessions({ now = Date.now }: Props) {
   const [sessions, setSessions] = useState<RecentSession[] | null>(null);
   const [hiding, setHiding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Spec 019: the session awaiting confirmation, the one being deleted, and the polite status.
+  const [confirming, setConfirming] = useState<RecentSession | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
+  const deleteButtons = useRef(new Map<string, HTMLButtonElement>());
+  const [refocus, setRefocus] = useState<string | null>(null);
+
+  // After a cancelled confirmation the Dialog has unmounted; put focus back on that row's Delete
+  // (AC-4), even when the opener was clicked with a pointer and never held focus.
+  useEffect(() => {
+    if (refocus === null) return;
+    deleteButtons.current.get(refocus)?.focus();
+    setRefocus(null);
+  }, [refocus]);
 
   useEffect(() => {
     let current = true;
@@ -88,6 +106,39 @@ export function ProfileSessions({ now = Date.now }: Props) {
     }
   }
 
+  function cancelDelete() {
+    if (confirming) setRefocus(keyOf(confirming));
+    setConfirming(null);
+  }
+
+  async function confirmDelete() {
+    const session = confirming;
+    if (!session) return;
+    const key = keyOf(session);
+    setConfirming(null);
+    setDeleting(key);
+    setError(null);
+    setStatus("");
+    try {
+      await deleteMySession(session.kind, session.invite_id);
+      setSessions((prev) => prev?.filter((s) => keyOf(s) !== key) ?? null);
+      setStatus(`Deleted ${session.title}`);
+    } catch (e) {
+      const kind = e instanceof ApiError ? e.error.kind : null;
+      if (kind === "session_deleted") {
+        // FR-11: already gone elsewhere, so it leaves the list too.
+        setSessions((prev) => prev?.filter((s) => keyOf(s) !== key) ?? null);
+        setStatus(`${session.title} was already deleted`);
+      } else if (kind === "not_host") {
+        setError(`You can no longer delete “${session.title}”.`);
+      } else {
+        setError(`Could not delete “${session.title}”.`);
+      }
+    } finally {
+      setDeleting(null);
+    }
+  }
+
   const at = now();
 
   return (
@@ -103,6 +154,9 @@ export function ProfileSessions({ now = Date.now }: Props) {
         )}
       </div>
       {error && <InlineMessage id="profile-sessions-error">{error}</InlineMessage>}
+      <p className={styles.status} role="status" aria-live="polite">
+        {status}
+      </p>
       {sessions?.length === 0 && <p className={styles.empty}>No recent sessions</p>}
       {sessions && sessions.length > 0 && (
         <table className={styles.table} aria-labelledby="profile-sessions">
@@ -155,12 +209,44 @@ export function ProfileSessions({ now = Date.now }: Props) {
                   >
                     Hide
                   </Button>
+                  {s.can_delete && (
+                    <Button
+                      ref={(el) => {
+                        if (el) deleteButtons.current.set(keyOf(s), el);
+                        else deleteButtons.current.delete(keyOf(s));
+                      }}
+                      variant="danger"
+                      size="xs"
+                      className={styles.rowDanger}
+                      label={`Delete ${s.title}`}
+                      busy={deleting === keyOf(s)}
+                      onClick={() => setConfirming(s)}
+                    >
+                      Delete
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
+      <Dialog
+        open={confirming !== null}
+        onClose={cancelDelete}
+        title={confirming ? `Delete ${confirming.title}?` : ""}
+        defaultAction={() => void confirmDelete()}
+        footer={
+          <>
+            <Button onClick={cancelDelete}>Cancel</Button>
+            <Button variant="danger" onClick={() => void confirmDelete()}>
+              Delete
+            </Button>
+          </>
+        }
+      >
+        <p className={styles.confirm}>This deletes the session for everyone. It can't be undone.</p>
+      </Dialog>
     </section>
   );
 }

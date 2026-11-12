@@ -101,3 +101,20 @@
 .inviteInput:focus-visible {
   outline: 2px solid var(--focus);
 }
+
+/* The way home from a deleted session (spec 019 FR-8). */
+.homeLink {
+  color: var(--action-primary-fill);
+  transition: color var(--motion-fast) ease;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.homeLink:hover {
+  text-decoration: underline;
+}
+
+.homeLink:focus-visible {
+  outline: var(--bw-focus) solid var(--focus);
+  outline-offset: 2px;
+}

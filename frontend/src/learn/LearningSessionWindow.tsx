@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import type { ChatMessage } from "../api/types";
 import { useMe } from "../auth/useMe";
 import { apiPath } from "../base";
@@ -43,7 +43,19 @@ type PageState =
   | { kind: "not_found" }
   | { kind: "stale"; canReactivate: boolean }
   | { kind: "ready" }
-  | { kind: "error" };
+  | { kind: "error" }
+  | { kind: "deleted"; by: DeletedBy };
+
+/** Who deleted the session (spec 019 FR-7); null when only the 410 or the 4411 said so. */
+type DeletedBy = "host" | "admin" | null;
+
+/** The socket close code for a deleted session (spec 019 plan, same as chess). */
+const CLOSE_DELETED = 4411;
+
+const DELETED_BY: Record<"host" | "admin", string> = {
+  host: "The host deleted it.",
+  admin: "An admin deleted it.",
+};
 
 const CLOSE_MESSAGES: Record<LearnCloseError, string> = {
   full: "This session is full (5 participants max).",
@@ -137,7 +149,12 @@ export function LearningSessionWindow({ createSocket }: Props) {
       for (const type of LESSON_MESSAGES) {
         next.on(type, (msg: LearnEvents[typeof type]) => dispatch(msg as LearnAction));
       }
+      onSessionDeleted(next, (by) => setPage({ kind: "deleted", by }));
       next.on("closed", (ev) => {
+        // Deleted (spec 019 FR-7): keep who deleted it if the message came first.
+        if (ev.code === CLOSE_DELETED) {
+          setPage((prev) => (prev.kind === "deleted" ? prev : { kind: "deleted", by: null }));
+        }
         socketRef.current = null;
         setSocket(null);
         dispatch({ type: "reset" });
@@ -169,6 +186,7 @@ export function LearningSessionWindow({ createSocket }: Props) {
         if (!current) return;
         if (res.ok) setPage({ kind: "ready" });
         else if (res.status === 404) setPage({ kind: "not_found" });
+        else if (res.status === 410) setPage({ kind: "deleted", by: null });
         else if (res.status === 423) {
           const body = (await res.json().catch(() => ({}))) as { can_reactivate?: boolean };
           if (current) setPage({ kind: "stale", canReactivate: body.can_reactivate === true });
@@ -261,6 +279,14 @@ export function LearningSessionWindow({ createSocket }: Props) {
       <span className={styles.spacer} />
     </>
   );
+
+  if (page.kind === "deleted") {
+    return (
+      <Window toolbar={<AppHeader label="Learning session">{toolbarEnd}</AppHeader>}>
+        <DeletedState by={page.by} />
+      </Window>
+    );
+  }
 
   if (socket && state.lesson) {
     return (
@@ -376,6 +402,35 @@ export function LearningSessionWindow({ createSocket }: Props) {
       <Window toolbar={<AppHeader label="Learning session">{toolbarEnd}</AppHeader>}>{body}</Window>
       {hud && <Hud key={hud.key} message={hud.message} />}
     </>
+  );
+}
+
+/**
+ * Calls `handler` when the server says the session was deleted (spec 019 FR-7). The socket
+ * emits every message type it receives; `session_deleted` is not in the learn message types.
+ */
+function onSessionDeleted(socket: LearnSocket, handler: (by: DeletedBy) => void) {
+  const on = socket.on.bind(socket) as unknown as (
+    type: "session_deleted",
+    h: (msg: { by?: unknown }) => void,
+  ) => () => void;
+  on("session_deleted", (msg) => handler(msg.by === "host" || msg.by === "admin" ? msg.by : null));
+}
+
+/** A deleted session (spec 019 FR-7, FR-8): says so, and who did it when known, with a way home. */
+function DeletedState({ by }: { by: DeletedBy }) {
+  return (
+    <EmptyState
+      icon="trash"
+      title="This session was deleted"
+      action={
+        <Link className={styles.homeLink} to="/">
+          Back to home
+        </Link>
+      }
+    >
+      {by && DELETED_BY[by]}
+    </EmptyState>
   );
 }
 
