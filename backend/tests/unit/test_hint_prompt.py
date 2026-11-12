@@ -128,8 +128,11 @@ def test_fr9_system_message_bounds_the_hint_shape() -> None:
     system = SYSTEM_MESSAGE.lower()
     assert "one next step" in system
     assert "3 sentences" in system
-    assert "one line of code" in system
-    assert "backticks" in system
+    assert "at most one" in system and "backticks" in system
+    # FR-10: the model is told no code line may solve the problem, not even a one-liner.
+    assert "never give code that solves the problem" in system
+    assert "one-liner" in system
+    assert "never a `return` statement" in system
     assert "whole function" in system
     assert "numbered" in system
 

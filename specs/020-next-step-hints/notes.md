@@ -16,3 +16,12 @@
 - **Narrow layout:** after the 390 px fix the editor is only about 70 px wide, because the inspector and chat take the rest of the screen. The look checks pass, but it is barely usable on a phone. That is a follow-up beyond 020. At 1280 px the session toolbar is cramped (Run's label spills out), which predates 020.
 - **Existing tests that hints touched:** the batched gate needed `test_schema.py` (migration list), `test_secrecy.py` (sweep of the new hints route), `test_ws_presence.py` (`hint_llm` on its stand-in app) and `descriptions.spec.ts` (the hints panel's live region sits inside the Description region).
 - **Gate durations:** pytest 308 s, vitest 20 s, Playwright 93 s, about 7 min in total.
+
+## Production, 2026-11-12: hints withheld
+
+- **Symptom:** in production every hint on an easy problem said "No hint could be given this time".
+- **Cause:** with "at most one line of code" in the system message, qwen3.6:35b answered with the one-line solution (e.g. `return sorted(set(a) & set(b))`). The guard ran it, it passed every test, and the hint was withheld: 0 of 6 shown. The guard behaved as specified.
+- **Fix:**
+  - The system message now forbids solving code, even a one-liner, and asks for at most one fragment and no `return` statement.
+  - The guard no longer counts backticked bare names toward the one code line, but still test-runs every fragment.
+- **Result:** 17 of 20 hints shown across five starter problems. The 3 withheld answers listed four fragments that spell out the whole recipe, which FR-9 forbids.

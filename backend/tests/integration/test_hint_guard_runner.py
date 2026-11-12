@@ -87,6 +87,12 @@ async def test_ac8_solutions_for_add_are_withheld_and_a_partial_line_is_shown(
         ),
         "Think about what adding means.": "Think about what adding means.",
         "Try `return a - b` here.": "Try `return a - b` here.",
+        # Names don't count as the one code line, but each fragment is still run: a solving
+        # fragment after a name is caught, and names alone are shown.
+        "Look at `a`, then try `a + b`.": None,
+        "Add `a` and `b` with the addition operator.": (
+            "Add `a` and `b` with the addition operator."
+        ),
     }
     shown = await asyncio.gather(*(check(RUNNER_URL, ADD, raw) for raw in answers))
     assert dict(zip(answers, shown, strict=True)) == answers

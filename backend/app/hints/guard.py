@@ -31,6 +31,8 @@ _LIST_MARKER = re.compile(r"^(?:\d+[.)](?!\d)|[-*•](?=\s)|step\s*\d+\b[:.)]?)\
 _ABBREVIATIONS = re.compile(r"\b(?:e\.g|i\.e|etc|vs)\.", re.IGNORECASE)
 _SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+")
 _PARSE_ERRORS = (SyntaxError, ValueError, RecursionError, MemoryError)
+# A name in backticks (`a`, `str.split`) mentions code; it is not a line of code (FR-9).
+_BARE_NAME = re.compile(r"\A[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\(\))?\Z")
 
 
 def _split(text: str) -> list[tuple[bool, str]]:
@@ -124,8 +126,11 @@ def _sentence_count(text: str) -> int:
 
 
 def shape_ok(text: str) -> bool:
-    """FR-9: at most one code line, about 3 sentences, and no enumerated plan (step 3)."""
-    if len(code_lines(text)) > MAX_CODE_LINES:
+    """FR-9: at most one code line, about 3 sentences, and no enumerated plan (step 3).
+
+    Names in backticks (`a`, `str.split`) don't count towards the one code line.
+    """
+    if len([line for line in code_lines(text) if not _BARE_NAME.match(line)]) > MAX_CODE_LINES:
         return False
     if _sentence_count(text) > MAX_SENTENCES:
         return False
@@ -228,9 +233,8 @@ async def check(runner_url: str, problem: ProblemWithTests, raw: str) -> str | N
     function_name = parse_signature(problem.signature).name
     if structurally_complete(text, function_name):
         return None
-    lines = code_lines(text)
-    if lines:
-        codes = candidates(problem.signature, lines[0])
-        if await passes_all_tests(runner_url, problem, codes):
-            return None
+    # Every code fragment is tried, names included: shape_ok lets several names through.
+    codes = [code for line in code_lines(text) for code in candidates(problem.signature, line)]
+    if codes and await passes_all_tests(runner_url, problem, codes):
+        return None
     return text

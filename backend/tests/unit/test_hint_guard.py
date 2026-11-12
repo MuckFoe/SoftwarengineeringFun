@@ -91,6 +91,13 @@ def test_ac7_rejects_more_than_one_code_line():
     assert not shape_ok("Use `seen = set()` and then `seen.add(x)`.")
 
 
+def test_ac7_names_in_backticks_are_not_code_lines():
+    # A backticked name mentions code; only real code fragments count towards the one line.
+    assert shape_ok("Add `a` and `b` with the addition operator.")
+    assert shape_ok("Use `str.split` on `s`, then `sorted()` with one line: `words[::-1]`.")
+    assert not shape_ok("Use `a` with `seen = set()` and then `seen.add(x)`.")
+
+
 def test_ac7_rejects_more_than_four_sentences():
     text = "One idea. Two ideas. Three ideas. Four ideas. Five ideas."
     assert not shape_ok(text)
