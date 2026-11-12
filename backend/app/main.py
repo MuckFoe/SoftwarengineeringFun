@@ -217,6 +217,9 @@ def create_app(settings: Settings) -> FastAPI:
 
     if (FRONTEND_DIST / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+    # The app icon, favicon and web manifest (frontend/public/icons, copied into the build).
+    if (FRONTEND_DIST / "icons").is_dir():
+        app.mount("/icons", StaticFiles(directory=FRONTEND_DIST / "icons"), name="icons")
 
     # Spec 015 FR-3/FR-11: brand assets, unauthenticated so guests get them. No mount (or no
     # generated brand.css) answers an empty stylesheet so the unconditional <link> never errors.
