@@ -58,3 +58,36 @@
   max-width: 100%;
   height: auto;
 }
+
+/* Dense: the session inspector's side column. Smaller copy, headings one step above it. */
+.dense {
+  font-size: var(--fs-copy-dense);
+  line-height: var(--lh-copy-dense);
+}
+
+.dense h1,
+.dense h2,
+.dense h3 {
+  margin: var(--space-12) 0 var(--space-4);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+}
+
+.dense h4,
+.dense h5,
+.dense h6 {
+  margin: var(--space-12) 0 var(--space-4);
+  font-size: var(--fs-copy-dense);
+  line-height: var(--lh-copy-dense);
+}
+
+.dense p,
+.dense ul,
+.dense ol,
+.dense pre {
+  margin-bottom: var(--space-8);
+}
+
+.dense pre {
+  padding: var(--space-8);
+}

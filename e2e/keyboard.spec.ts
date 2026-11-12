@@ -222,11 +222,13 @@ test.describe("keyboard only, Windows/Linux keys", () => {
         await page.keyboard.press("Tab");
       },
       "Show or hide sidebar": async () => {
+        // Whichever state it starts in, the shortcut flips it and flips it back.
         const sidebar = page.getByRole("navigation", { name: "Sidebar" });
+        const wasOpen = await sidebar.isVisible();
         await press("Show or hide sidebar");
-        await expect(sidebar).toBeHidden();
+        await (wasOpen ? expect(sidebar).toBeHidden() : expect(sidebar).toBeVisible());
         await press("Show or hide sidebar");
-        await expect(sidebar).toBeVisible();
+        await (wasOpen ? expect(sidebar).toBeVisible() : expect(sidebar).toBeHidden());
       },
       "New problem": async () => {
         // The shortcut is registered once /api/me says the viewer is an editor; the button shows
@@ -389,6 +391,10 @@ test.describe("keyboard only, Windows/Linux keys", () => {
     await page.keyboard.press("Enter");
     const editor = page.locator(".cm-content");
     await expect(editor).toContainText("pass");
+    // The sidebar starts closed; open it (by keyboard) so the planned order includes it.
+    // Its shortcut (Ctrl+Alt+S here) leaves focus where it is, so the Tab walk below starts clean.
+    await page.keyboard.press("Control+Alt+s");
+    await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
 
     // Tab order: sidebar → toolbar → main → panels; Esc then Tab leaves the editor.
     const regionOfFocus = () =>

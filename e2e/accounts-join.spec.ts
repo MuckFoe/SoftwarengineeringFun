@@ -22,8 +22,14 @@ const REPLACED = "This session was opened in another tab or window.";
 
 // --- Locators ---------------------------------------------------------------------------------
 
-const participants = (page: Page) => page.getByRole("list", { name: "Participants" });
-const people = (page: Page) => participants(page).getByRole("listitem");
+const participantList = (page: Page) => page.getByRole("list", { name: "Participants" });
+/** The participant list, opening the sidebar first: a coding session starts with it closed. */
+async function participants(page: Page) {
+  const show = page.getByRole("button", { name: "Show sidebar" });
+  if (await show.isVisible()) await show.click();
+  return participantList(page);
+}
+const people = async (page: Page) => (await participants(page)).getByRole("listitem");
 const chat = (page: Page) => page.getByRole("region", { name: "Chat" });
 const messageInput = (page: Page) => chat(page).getByLabel("Message", { exact: true });
 const messages = (page: Page) => chat(page).getByRole("list", { name: "Messages" });
@@ -135,8 +141,8 @@ test("FR-1: signed in, starting a coding session shows no name prompt and lists 
     await page.waitForURL((url) => /^\/s\/[\w-]+$/.test(appPathname(url)));
     await expect(page.locator(".cm-content")).toContainText("pass");
     await expect(page.getByLabel("Your name")).toHaveCount(0);
-    await expect(people(page)).toHaveCount(1);
-    await expect(people(page).first()).toContainText("newuser");
+    await expect((await people(page))).toHaveCount(1);
+    await expect((await people(page)).first()).toContainText("newuser");
 
     // In the chat too, as another participant sees it.
     const invite = appPathname(page.url()).slice("/s/".length);
@@ -162,9 +168,9 @@ test("FR-1: signed in, a learning invite link joins as newuser without a prompt"
     await page.goto(appUrl(`/learn/s/${invite}`));
     await expect(page.getByRole("list", { name: "Steps" })).toBeVisible();
     await expect(page.getByLabel("Your name")).toHaveCount(0);
-    await expect(people(page)).toHaveCount(1);
-    await expect(people(page).first()).toContainText("newuser");
-    await expect(mark(people(page).first())).toHaveCount(1);
+    await expect((await people(page))).toHaveCount(1);
+    await expect((await people(page)).first()).toContainText("newuser");
+    await expect(mark((await people(page)).first())).toHaveCount(1);
   } finally {
     await laptop.close();
   }
@@ -180,11 +186,11 @@ test("FR-1: signed in, a presentation invite link joins as newuser without a pro
     const page = await laptop.newPage();
     await page.goto(appUrl(`/present/s/${invite}`));
     // The first to join hosts; the host carries the mark (task 21).
-    await expect(participants(page)).toContainText("newuser");
-    await expect(participants(page)).toContainText("(you)");
+    await expect((await participants(page))).toContainText("newuser");
+    await expect((await participants(page))).toContainText("(you)");
     await expect(page.getByLabel("Your name")).toHaveCount(0);
-    await expect(people(page)).toHaveCount(1);
-    await expect(mark(people(page).first())).toHaveCount(1);
+    await expect((await people(page))).toHaveCount(1);
+    await expect(mark((await people(page)).first())).toHaveCount(1);
   } finally {
     await laptop.close();
   }
@@ -228,14 +234,14 @@ test("FR-5: opening S1 on a second device keeps one newuser; the first device is
     await openCodingSignedIn(onLaptop, invite);
     const visitor = await visitorContext.newPage();
     await joinCodingAnonymously(visitor, invite, "Vi");
-    await expect(people(visitor)).toHaveCount(2);
+    await expect((await people(visitor))).toHaveCount(2);
 
     const onPhone = await phone.newPage();
     await openCodingSignedIn(onPhone, invite);
 
     for (const page of [onPhone, visitor]) {
-      await expect(people(page)).toHaveCount(2);
-      await expect(people(page).filter({ hasText: "newuser" })).toHaveCount(1);
+      await expect((await people(page))).toHaveCount(2);
+      await expect((await people(page)).filter({ hasText: "newuser" })).toHaveCount(1);
     }
     await expect(onLaptop.getByText(REPLACED)).toBeVisible();
     await expect(onLaptop.getByRole("button", { name: "Use here" })).toBeVisible();
@@ -245,7 +251,7 @@ test("FR-5: opening S1 on a second device keeps one newuser; the first device is
     await onLaptop.getByRole("button", { name: "Use here" }).click();
     await expect(onLaptop.locator(".cm-content")).toContainText("pass");
     await expect(onPhone.getByText(REPLACED)).toBeVisible();
-    await expect(people(visitor).filter({ hasText: "newuser" })).toHaveCount(1);
+    await expect((await people(visitor)).filter({ hasText: "newuser" })).toHaveCount(1);
   } finally {
     await closeAll([laptop, phone, visitorContext]);
   }
@@ -268,9 +274,9 @@ test("FR-6: a visitor not signed in is asked for a name and joins with it, never
     await page.getByLabel("Your name").fill("Visitor Vi");
     await page.getByRole("button", { name: "Join" }).click();
     await expect(page.locator(".cm-content")).toContainText("pass");
-    await expect(people(page)).toHaveCount(1);
-    await expect(people(page).first()).toContainText("Visitor Vi");
-    await expect(mark(people(page).first())).toHaveCount(0);
+    await expect((await people(page))).toHaveCount(1);
+    await expect((await people(page)).first()).toContainText("Visitor Vi");
+    await expect(mark((await people(page)).first())).toHaveCount(0);
     expect(appPathname(page.url())).toBe(`/s/${invite}`);
   } finally {
     await visitorContext.close();
@@ -296,21 +302,21 @@ test("FR-7: newuser rejoining L1 from a second device takes no seat; a fifth can
       await joinLearningAnonymously(page, invite, name);
       visitors.push(page);
     }
-    await expect(people(onLaptop)).toHaveCount(4);
+    await expect((await people(onLaptop))).toHaveCount(4);
 
     const onPhone = await phone.newPage();
     await onPhone.goto(appUrl(`/learn/s/${invite}`));
     await expect(onPhone.getByRole("list", { name: "Steps" })).toBeVisible();
     await expect(onLaptop.getByText(REPLACED)).toBeVisible();
     for (const page of [onPhone, ...visitors]) {
-      await expect(people(page)).toHaveCount(4);
-      await expect(people(page).filter({ hasText: "newuser" })).toHaveCount(1);
+      await expect((await people(page))).toHaveCount(4);
+      await expect((await people(page)).filter({ hasText: "newuser" })).toHaveCount(1);
     }
 
     const fifth = await (anonymous[3] as BrowserContext).newPage();
     await joinLearningAnonymously(fifth, invite, "Dee");
     await expect(fifth.getByText(/session is full/i)).toHaveCount(0);
-    for (const page of [onPhone, fifth]) await expect(people(page)).toHaveCount(5);
+    for (const page of [onPhone, fifth]) await expect((await people(page))).toHaveCount(5);
   } finally {
     await closeAll([laptop, phone, ...anonymous]);
   }
@@ -334,9 +340,9 @@ test("FR-8: a visitor named newuser beside signed-in newuser: only the account h
     await joinCodingAnonymously(observer, invite, "Obs");
 
     for (const page of [real, impostor, observer]) {
-      const named = people(page).filter({ hasText: "newuser" });
+      const named = (await people(page)).filter({ hasText: "newuser" });
       await expect(named).toHaveCount(2);
-      await expect(mark(participants(page))).toHaveCount(1);
+      await expect(mark((await participants(page)))).toHaveCount(1);
       await expect(named.filter({ has: page.getByText("signed in", { exact: true }) })).toHaveCount(
         1,
       );

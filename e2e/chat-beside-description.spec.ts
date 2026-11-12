@@ -284,6 +284,7 @@ test.describe("at 1024×768", () => {
     request,
   }) => {
     await join(page, await createSession(request));
+    await page.getByRole("button", { name: "Show sidebar" }).click();
     await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
     await expect(description(page)).toBeVisible();
     await expect(chat(page)).toBeVisible();

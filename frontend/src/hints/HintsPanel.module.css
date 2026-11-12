@@ -4,9 +4,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-12);
+  /* Contains the absolutely placed live region, so a closed inspector clips it too. */
+  position: relative;
   margin-top: var(--space-16);
   min-width: 0;
-  font: var(--fs-copy-2) / var(--lh-copy-2) var(--font-copy);
+  font: var(--fs-copy-dense) / var(--lh-copy-dense) var(--font-copy);
   color: var(--text);
 }
 

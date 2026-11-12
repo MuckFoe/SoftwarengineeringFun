@@ -177,7 +177,7 @@ No conflicts.
 ## Decisions for the human to confirm
 
 1. **Chat button while the side area is hidden opens both** (side area + chat), instead of being disabled. Reason: the existing `toggleChat` shortcut already opens the inspector to the chat, and it gives one predictable "Show chat" action.
-2. **Default split 50/50, minimums 120 px (description) / 160 px (chat).** Reason: 160 px keeps the chat header, one message and the pinned input usable; the spec leaves the numbers to the plan.
+2. **Default split: the description sized to its content, leaving the chat 160 px while it has no messages and at least 280 px once it has (was 50/50 until 2026-11-12, changed so a usual description reads without scrolling); moving the divider takes over. Minimums 120 px (description) / 160 px (chat).** Reason: 160 px keeps the chat header, one message and the pinned input usable; the spec leaves the numbers to the plan.
 3. **The hidden chat stays mounted (collapsed, inert)** rather than unmounting. Reason: an unsent draft survives hide/show and new messages keep arriving, so scroll-to-newest on show is a single scroll.
 4. **Stale 423 body gains `problem_id`, and the stale window fetches the description from the existing public problem endpoint.** Reason: AC FR-9 needs the description in a stale session, which today's stale view can't know. This is the only backend change; the alternative (embedding `description_html` in the 423) would duplicate the problem endpoint's rendering.
 5. **The chat toggle is also added to the stale window's toolbar** (it has no inspector toggle and gets none). Reason: FR-2 and FR-4 apply to any session, so a remembered "hidden" must be reversible there too.

@@ -3,7 +3,7 @@
 /* The description scrolls itself, independently of the chat. */
 .description {
   box-sizing: border-box;
-  padding: var(--space-16);
+  padding: var(--space-12);
   background: var(--surface-1);
   height: 100%;
   min-height: 0;

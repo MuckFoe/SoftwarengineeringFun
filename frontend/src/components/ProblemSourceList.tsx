@@ -11,13 +11,23 @@ interface Props {
   currentProblemId: string;
 }
 
+export interface ProblemSwitcher {
+  problems: ProblemSummary[];
+  selectedId: string;
+  activate(problem: ProblemSummary): void;
+}
+
 /**
- * The session sidebar's problem list (FR-9): activating a row sends `switch_problem`
- * (FR-17), the same message the old switcher sent. The picked row shows as selected at
- * once; the session's next report of its current problem takes over from there. The
- * next/previous problem shortcuts move through this list, stopping at either end.
+ * The session's problem switching (FR-9, FR-17): activating a problem sends `switch_problem`,
+ * the same message the old switcher sent. The picked problem shows as selected at once; the
+ * session's next report of its current problem takes over from there. The next/previous
+ * problem shortcuts move through the list, stopping at either end. It lives apart from the
+ * list itself, so the shortcuts work while the sidebar is closed.
  */
-export function ProblemSourceList({ provider, currentProblemId }: Props) {
+export function useProblemSwitcher(
+  provider: Pick<CollabProvider, "send">,
+  currentProblemId: string,
+): ProblemSwitcher {
   const [problems, setProblems] = useState<ProblemSummary[]>([]);
   const [picked, setPicked] = useState<string | null>(null);
 
@@ -58,13 +68,23 @@ export function ProblemSourceList({ provider, currentProblemId }: Props) {
   useShortcut("nextProblem", () => step(1));
   useShortcut("previousProblem", () => step(-1));
 
+  return { problems, selectedId, activate };
+}
+
+/** The sidebar's problem list, for a switcher kept by the session window. */
+export function ProblemList({ switcher }: { switcher: ProblemSwitcher }) {
   return (
     <SourceList
       label="Problems"
-      items={problems}
-      selectedId={selectedId}
-      onActivate={activate}
+      items={switcher.problems}
+      selectedId={switcher.selectedId}
+      onActivate={switcher.activate}
       renderItem={(p) => p.title}
     />
   );
+}
+
+/** The session sidebar's problem list with its own switcher (FR-9). */
+export function ProblemSourceList({ provider, currentProblemId }: Props) {
+  return <ProblemList switcher={useProblemSwitcher(provider, currentProblemId)} />;
 }

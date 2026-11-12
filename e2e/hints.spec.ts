@@ -122,6 +122,8 @@ test("AC-16: by keyboard alone at 390 px, with a focus ring and no horizontal ov
   try {
     const page = await context.newPage();
     await joinAsGuest(page, await createSession(request), "Kim");
+    // On a phone the inspector, where Hint lives, starts closed.
+    await page.getByRole("button", { name: "Show inspector" }).click();
     const hint = hintButton(page);
     await expect(hint).toBeEnabled();
 

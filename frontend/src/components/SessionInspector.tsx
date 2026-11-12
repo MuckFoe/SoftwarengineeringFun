@@ -48,6 +48,10 @@ export function SessionInspector({
       bottomOpen={chatVisible}
       minTop={120}
       minBottom={160}
+      // The description takes the height it needs, so a usual problem reads without scrolling.
+      // The chat keeps its input, and room for a few messages once there are any. Moving the
+      // divider takes over.
+      fitTop={chat.messages.length > 0 ? 280 : 160}
       dividerLabel="Resize description and chat"
     />
   );

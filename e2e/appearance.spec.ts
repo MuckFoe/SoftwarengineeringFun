@@ -112,6 +112,7 @@ test.describe("with a dark OS", () => {
     keycloak,
   }) => {
     await join(page, await createSession(request), "Ada");
+    await page.getByRole("button", { name: "Show sidebar" }).click();
     await expect.poll(() => appearance(page)).toBe("dark");
     expect(await backgroundLuminance(page.locator(".cm-editor"))).toBeLessThan(DARK);
     expect(await backgroundLuminance(page.locator(".cm-gutters"))).toBeLessThan(DARK);
@@ -176,6 +177,7 @@ test.describe("with reduced motion", () => {
   }) => {
     const invite = await createSession(request);
     await join(page, invite, "Ada");
+    await page.getByRole("button", { name: "Show sidebar" }).click();
 
     await page.keyboard.press("ControlOrMeta+Shift+Slash");
     const sheet = page.locator("dialog[open]");

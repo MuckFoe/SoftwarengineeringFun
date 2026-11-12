@@ -276,7 +276,7 @@ export function ChatPane({
           label="Message"
           value={text}
           onChange={setText}
-          rows={3}
+          rows={2}
           disabled={readOnly}
           invalid={count > MAX_CHAT_CHARS}
           describedBy={[counterId, shown ? messageId : ""].filter(Boolean).join(" ")}
@@ -292,13 +292,14 @@ export function ChatPane({
               <Button
                 id={gifButtonId}
                 variant="bordered"
+                size="xs"
                 aria-expanded={picking}
                 onClick={() => (picking ? closePicker() : setPicking(true))}
               >
                 GIF
               </Button>
             )}
-            <Button variant="primary" type="submit" disabled={readOnly} busy={sending}>
+            <Button variant="primary" size="xs" type="submit" disabled={readOnly} busy={sending}>
               Send
             </Button>
           </div>

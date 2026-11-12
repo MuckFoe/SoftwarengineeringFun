@@ -27,8 +27,8 @@
 .header {
   margin: 0;
   font-family: var(--font-copy);
-  font-size: var(--fs-label-1);
-  line-height: var(--lh-label-1);
+  font-size: var(--fs-label-2);
+  line-height: var(--lh-label-2);
   font-weight: 500;
 }
 
@@ -51,8 +51,8 @@
   min-width: 0;
   margin: 0;
   font-family: var(--font-copy);
-  font-size: var(--fs-copy-1);
-  line-height: var(--lh-copy-1);
+  font-size: var(--fs-copy-dense);
+  line-height: var(--lh-copy-dense);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -129,8 +129,8 @@
 .counter,
 .over {
   font-family: var(--font-copy);
-  font-size: var(--fs-label-1);
-  line-height: var(--lh-label-1);
+  font-size: var(--fs-label-2);
+  line-height: var(--lh-label-2);
   font-variant-numeric: tabular-nums;
   color: var(--form-caption);
 }

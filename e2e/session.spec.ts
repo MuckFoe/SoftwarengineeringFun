@@ -21,6 +21,9 @@ test("AC-11: sidebar with problems and participants, editor in main, toolbar act
   request,
 }) => {
   await joinNewSession(page, request);
+  // The sidebar starts closed, so the editor gets the room; its toggle opens it.
+  await expect(page.getByRole("navigation", { name: "Sidebar" })).toHaveCount(0);
+  await toolbar(page).getByRole("button", { name: "Show sidebar" }).click();
 
   const sidebar = page.getByRole("navigation", { name: "Sidebar" });
   await expect(sidebar.getByRole("region", { name: "Problems" })).toBeVisible();
@@ -43,6 +46,7 @@ test("AC-10: picking another problem in the sidebar switches the session; no oth
   request,
 }) => {
   await joinNewSession(page, request);
+  await toolbar(page).getByRole("button", { name: "Show sidebar" }).click();
   const problems = page.getByRole("listbox", { name: "Problems" });
   const other = problems.getByRole("option").filter({ hasNotText: FIRST }).first();
   const otherTitle = (await other.textContent()) ?? "";

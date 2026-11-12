@@ -451,6 +451,7 @@ describe("SessionWindow, layout (spec 003)", () => {
       }),
     );
 
+    fireEvent.click(screen.getByRole("button", { name: "Show sidebar" }));
     const sidebar = screen.getByRole("navigation", { name: "Sidebar" });
     expect(within(sidebar).getByRole("region", { name: "Problems" })).toBeTruthy();
     const participants = within(sidebar).getByRole("region", { name: "Participants" });
@@ -468,6 +469,7 @@ describe("SessionWindow, layout (spec 003)", () => {
   it("shows the Live badge in Participants only while someone else is in the session", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
+    fireEvent.click(screen.getByRole("button", { name: "Show sidebar" }));
     const alone = screen.getByRole("region", { name: "Participants" });
     expect(within(alone).queryByText("Live")).toBeNull();
     serverSends(socket, {
@@ -524,6 +526,7 @@ describe("SessionWindow, layout (spec 003)", () => {
   it("switches problems from the sidebar and has no other problem switcher", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
+    fireEvent.click(screen.getByRole("button", { name: "Show sidebar" }));
     const reverse = await screen.findByRole("option", { name: "Reverse list" });
     fireEvent.click(reverse);
     expect(socket.sent).toContain(JSON.stringify({ type: "switch_problem", problem_id: "p2" }));
@@ -534,6 +537,8 @@ describe("SessionWindow, layout (spec 003)", () => {
   it("toggles the sidebar from the toolbar", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
+    fireEvent.click(screen.getByRole("button", { name: "Show sidebar" }));
+    expect(screen.getByRole("navigation", { name: "Sidebar" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Hide sidebar" }));
     expect(screen.queryByRole("navigation", { name: "Sidebar" })).toBeNull();
   });
@@ -567,11 +572,25 @@ describe("SessionWindow, narrow width (about 390 px)", () => {
     expect(screen.getByRole("button", { name: "Show sidebar" })).toBeTruthy();
   });
 
-  it("starts with the sidebar open when wider", async () => {
+  it("starts with the inspector closed, since there it would cover the editor", async () => {
+    narrow(true);
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    expect(screen.getByRole("button", { name: "Show inspector" })).toBeTruthy();
+  });
+
+  it("starts with the inspector open when wider", async () => {
     narrow(false);
     const socket = await joinAsAda();
     serverSends(socket, welcome());
-    expect(screen.getByRole("navigation", { name: "Sidebar" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Hide inspector" })).toBeTruthy();
+  });
+
+  it("starts with the sidebar closed when wider too, so the editor gets the room", async () => {
+    narrow(false);
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    expect(screen.queryByRole("navigation", { name: "Sidebar" })).toBeNull();
   });
 
   it("the editor's scroll area holds a tab stop, so it scrolls by keyboard (axe scrollable-region-focusable)", async () => {
@@ -661,7 +680,7 @@ describe("SessionWindow, description inspector (spec 003 FR-14)", () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
     const toolbar = screen.getByRole("toolbar", { name: "Session" });
-    const icons = ["Hide sidebar", "Hide run results", "Hide inspector"].map((name) =>
+    const icons = ["Show sidebar", "Hide run results", "Hide inspector"].map((name) =>
       within(toolbar)
         .getByRole("button", { name })
         .querySelector(".icon")
@@ -689,7 +708,7 @@ describe("SessionWindow, chat toggle (spec 008 FR-2, FR-3, FR-4, FR-6, FR-7)", (
     expect(chatButton.getAttribute("aria-pressed")).toBe("true");
     const chatIcon = iconOf("Hide chat");
     expect(chatIcon).toBeTruthy();
-    for (const other of ["Hide sidebar", "Hide run results", "Hide inspector"]) {
+    for (const other of ["Show sidebar", "Hide run results", "Hide inspector"]) {
       expect(iconOf(other)).not.toBe(chatIcon);
     }
 
@@ -1001,10 +1020,13 @@ describe("SessionWindow, shortcuts (spec 003 FR-17)", () => {
     expect(screen.getByRole("region", { name: "Run results" })).toBeTruthy();
   });
 
-  it("Ctrl+Alt+PageDown / PageUp switch to the next and previous problem in the sidebar", async () => {
+  it("Ctrl+Alt+PageDown / PageUp switch to the next and previous problem, sidebar closed or open", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
+    // Open the sidebar only to wait for the problem list, then close it: the shortcuts still work.
+    fireEvent.click(screen.getByRole("button", { name: "Show sidebar" }));
     await screen.findByRole("option", { name: "Reverse list" });
+    fireEvent.click(screen.getByRole("button", { name: "Hide sidebar" }));
     const switches = () => socket.sent.filter((m) => String(m).includes("switch_problem"));
 
     press({ key: "PageUp", ctrlKey: true, altKey: true });

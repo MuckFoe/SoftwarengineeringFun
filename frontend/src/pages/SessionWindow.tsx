@@ -21,7 +21,7 @@ import { CodeEditor, editorAccess } from "../components/CodeEditor";
 import { useChatVisible } from "../components/chatVisibility";
 import { editorTheme } from "../components/editorTheme";
 import { PresenceList } from "../components/PresenceList";
-import { ProblemSourceList } from "../components/ProblemSourceList";
+import { ProblemList, useProblemSwitcher } from "../components/ProblemSourceList";
 import { RunPanel } from "../components/RunPanel";
 import { type ChatPaneProps, SessionInspector } from "../components/SessionInspector";
 import { type HintNotice, HintsPanel } from "../hints/HintsPanel";
@@ -37,6 +37,7 @@ import { AppHeader } from "../ui/AppHeader";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
+import { HeaderButton } from "../ui/HeaderButton";
 import { Hud } from "../ui/Hud";
 import { InlineMessage } from "../ui/InlineMessage";
 import { LiveBadge } from "../ui/LiveBadge";
@@ -585,7 +586,7 @@ function StaleWindow({ invite, canReactivate, problemId, error, chat, onReactiva
         <AppHeader label="Session" stackNarrow>
           <h1 className={styles.title}>Stale session</h1>
           <span className={styles.spacer} />
-          <Button variant="primary" icon="play" disabled>
+          <Button variant="primary" size="xs" icon="play" disabled>
             <span className="app-header-pill-text">Run</span>
           </Button>
           {/* No inspector toggle here, so the chat toggle alone (spec 008 FR-2, FR-4). */}
@@ -667,14 +668,17 @@ interface JoinedProps {
 
 function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: JoinedProps) {
   const { problem } = joined;
-  // At narrow width the sidebar would cover most of the editor, so it starts closed there.
-  const [sidebarOpen, setSidebarOpen] = useState(
+  // The sidebar (problems, participants) starts closed: the editor gets the room, and the
+  // sidebar toggle or its shortcut opens it.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const switcher = useProblemSwitcher(provider, problem.id);
+  const [runPanelOpen, setRunPanelOpen] = useState(true);
+  const [scratchOpen, setScratchOpen] = useState(false);
+  // On a phone the inspector would cover the editor, so it starts closed there.
+  const [inspectorOpen, setInspectorOpen] = useState(
     () =>
       typeof window.matchMedia !== "function" || !window.matchMedia("(max-width: 40rem)").matches,
   );
-  const [runPanelOpen, setRunPanelOpen] = useState(true);
-  const [scratchOpen, setScratchOpen] = useState(false);
-  const [inspectorOpen, setInspectorOpen] = useState(true);
   const [chatVisible, setChatVisible] = useChatVisible();
   const chatOnScreen = inspectorOpen && chatVisible;
   const [hud, setHud] = useState<{ key: number; message: string } | null>(null);
@@ -715,7 +719,7 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
         sidebar={
           <Sidebar label="Sidebar">
             <SidebarSection title="Problems">
-              <ProblemSourceList provider={provider} currentProblemId={problem.id} />
+              <ProblemList switcher={switcher} />
             </SidebarSection>
             <SidebarSection title="Participants">
               {joined.participants.length > 1 && <LiveBadge />}
@@ -724,18 +728,49 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
           </Sidebar>
         }
         toolbar={
-          <AppHeader label="Session" stackNarrow>
-            <Button
-              variant="plain"
-              icon="sidebar"
-              label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-              aria-pressed={sidebarOpen}
-              onClick={() => setSidebarOpen((open) => !open)}
-            />
+          <AppHeader
+            label="Session"
+            stackNarrow
+            actions={
+              // The view toggles, one quiet group at the right, so the left keeps the title.
+              <div className="app-header-group" role="group" aria-label="View">
+                <HeaderButton
+                  icon="sidebar"
+                  label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+                  aria-pressed={sidebarOpen}
+                  onClick={() => setSidebarOpen((open) => !open)}
+                />
+                <HeaderButton
+                  icon="bottomPanel"
+                  label={runPanelOpen ? "Hide run results" : "Show run results"}
+                  aria-pressed={runPanelOpen}
+                  onClick={() => setRunPanelOpen((open) => !open)}
+                />
+                <HeaderButton
+                  icon="pencil"
+                  label={scratchOpen ? "Hide own-input run" : "Show own-input run"}
+                  aria-pressed={scratchOpen}
+                  onClick={() => setScratchOpen((open) => !open)}
+                />
+                <HeaderButton
+                  icon="inspector"
+                  label={inspectorOpen ? "Hide inspector" : "Show inspector"}
+                  aria-pressed={inspectorOpen}
+                  onClick={() => setInspectorOpen((open) => !open)}
+                />
+                <HeaderButton
+                  icon="chat"
+                  label={chatOnScreen ? "Hide chat" : "Show chat"}
+                  aria-pressed={chatOnScreen}
+                  onClick={toggleChat}
+                />
+              </div>
+            }
+          >
             <h1 className={styles.title}>{problem.title}</h1>
-            <span className={styles.spacer} />
             <Button
               variant="primary"
+              size="xs"
               icon="play"
               busy={joined.running}
               busyLabel="Running"
@@ -744,37 +779,9 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
             >
               <span className="app-header-pill-text">Run</span>
             </Button>
-            <Button variant="plain" icon="link" onClick={() => void copyInvite()}>
-              <span className="app-header-pill-text">Invite</span>
-            </Button>
-            <Button
-              variant="plain"
-              icon="bottomPanel"
-              label={runPanelOpen ? "Hide run results" : "Show run results"}
-              aria-pressed={runPanelOpen}
-              onClick={() => setRunPanelOpen((open) => !open)}
-            />
-            <Button
-              variant="plain"
-              icon="play"
-              label={scratchOpen ? "Hide own-input run" : "Show own-input run"}
-              aria-pressed={scratchOpen}
-              onClick={() => setScratchOpen((open) => !open)}
-            />
-            <Button
-              variant="plain"
-              icon="inspector"
-              label={inspectorOpen ? "Hide inspector" : "Show inspector"}
-              aria-pressed={inspectorOpen}
-              onClick={() => setInspectorOpen((open) => !open)}
-            />
-            <Button
-              variant="plain"
-              icon="chat"
-              label={chatOnScreen ? "Hide chat" : "Show chat"}
-              aria-pressed={chatOnScreen}
-              onClick={toggleChat}
-            />
+            <HeaderButton icon="link" onClick={() => void copyInvite()}>
+              Invite
+            </HeaderButton>
           </AppHeader>
         }
         inspector={

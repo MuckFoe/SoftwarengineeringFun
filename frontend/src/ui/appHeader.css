@@ -281,3 +281,60 @@
     padding: 0;
   }
 }
+
+/* A screen's view toggles as one quiet group: one outline around borderless icon buttons. */
+.app-header .app-header-group {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 0 var(--space-4);
+  border: var(--bw-1) solid var(--divider);
+  border-radius: var(--radius-pill);
+}
+
+.app-header .app-header-group > .app-header-pill {
+  border-color: transparent;
+}
+
+/* Stacked (narrow): the group leaves the first row and joins the screen's controls on the
+   second, after them. */
+@media (max-width: 40rem) {
+  .app-header.is-stacked .app-header-end {
+    display: contents;
+  }
+
+  .app-header.is-stacked .app-header-group {
+    order: 3;
+  }
+
+  /* A zero-height line break: everything ordered after it starts the second row. */
+  .app-header.is-stacked .app-header-controls::before {
+    content: "";
+    order: 1;
+    flex-basis: 100%;
+    height: 0;
+    margin-top: calc(-1 * var(--space-8));
+  }
+
+  .app-header.is-stacked .app-header-controls > .app-header-start {
+    order: 2;
+    flex: 1 1 0;
+  }
+}
+
+/* Screens with many controls (stackNarrow) below the wide layout: the jump bar is an icon, so
+   the title and the controls keep their room. Its name stays for screen readers. */
+@media (max-width: 1279px) {
+  .app-header.is-stacked .app-header-search {
+    width: 36px;
+    padding: 0;
+  }
+
+  .app-header.is-stacked .app-header-search > :not(svg) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}

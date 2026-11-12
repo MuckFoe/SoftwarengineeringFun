@@ -3,6 +3,7 @@ import {
   type PointerEvent,
   type ReactNode,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -20,6 +21,11 @@ export interface SplitPaneProps {
   minBottom: number;
   /** Initial share of the top part, 0..1; default 0.5. */
   defaultTopFraction?: number;
+  /**
+   * Until the divider is first moved, size the top part to its content instead of a share,
+   * keeping at least this many px for the bottom part. Overrides `defaultTopFraction`.
+   */
+  fitTop?: number;
   /** Accessible name of the divider, e.g. "Resize description and chat". */
   dividerLabel: string;
 }
@@ -50,13 +56,48 @@ export function SplitPane({
   minTop,
   minBottom,
   defaultTopFraction,
+  fitTop,
   dividerLabel,
 }: SplitPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dividerRef = useRef<HTMLDivElement>(null);
   /** While dragging: where the pointer went down and the top part's height then. */
   const dragRef = useRef<{ y: number; top: number } | null>(null);
-  const [topFraction, setTopFraction] = useState(defaultTopFraction ?? 0.5);
+  const topRef = useRef<HTMLDivElement>(null);
+  // null: not moved yet, and the top part fits its content (fitTop).
+  const [topFraction, setTopFraction] = useState<number | null>(
+    fitTop === undefined ? (defaultTopFraction ?? 0.5) : null,
+  );
+  // The top content's own height, whatever height it is shown at (fitTop only).
+  const [content, setContent] = useState(0);
+
+  function measureContent() {
+    const el = topRef.current?.firstElementChild;
+    if (!(el instanceof HTMLElement)) return;
+    const box = el.getBoundingClientRect();
+    let bottom = box.top;
+    for (const child of el.children)
+      bottom = Math.max(bottom, child.getBoundingClientRect().bottom);
+    const next =
+      bottom - box.top + el.scrollTop + Number.parseFloat(getComputedStyle(el).paddingBottom);
+    setContent((now) => (Math.abs(now - next) > 1 ? next : now));
+  }
+
+  // No dependency list: re-measured after every render, since the top part's content (a problem
+  // switch, a hint) comes in through props.
+  useLayoutEffect(() => {
+    if (fitTop !== undefined && topFraction === null) measureContent();
+  });
+
+  // Images change the content's height without a render.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: measureContent only reads refs.
+  useEffect(() => {
+    const el = topRef.current;
+    if (!el || fitTop === undefined) return;
+    const onLoad = () => measureContent();
+    el.addEventListener("load", onLoad, true);
+    return () => el.removeEventListener("load", onLoad, true);
+  }, [fitTop]);
   // The height shared by the two parts: the container's, less the divider's own.
   const [height, setHeight] = useState(0);
 
@@ -77,8 +118,12 @@ export function SplitPane({
   }, [bottomOpen]);
 
   // With a known height, the shown share respects both minimums even after a resize.
+  const wantedTop =
+    topFraction === null
+      ? Math.min(content || height / 2, height - (fitTop ?? 0))
+      : topFraction * height;
   const shownFraction =
-    height > 0 ? clampTop(topFraction * height, height, minTop, minBottom) / height : topFraction;
+    height > 0 ? clampTop(wantedTop, height, minTop, minBottom) / height : (topFraction ?? 0.5);
 
   function moveTo(next: number, container: number) {
     setHeight(container);
@@ -145,7 +190,7 @@ export function SplitPane({
 
   return (
     <div ref={containerRef} className={styles.split} data-bottom-open={bottomOpen}>
-      <div className={styles.top} style={topStyle}>
+      <div ref={topRef} className={styles.top} style={topStyle}>
         {top}
       </div>
       {bottomOpen && (
