@@ -152,6 +152,7 @@
   --motion-sweep: 600ms;
   --motion-dock-delay: 250ms;
   --motion-dock: 260ms;
+  --motion-dock-close: 520ms;
   --motion-dock-stagger: 20ms;
   --ease-dock: cubic-bezier(0.32, 0.72, 0, 1);
   --dock-nub-width: 56px;

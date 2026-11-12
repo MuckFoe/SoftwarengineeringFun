@@ -1,12 +1,13 @@
 /*
- * The dock (spec 016 FR-16), one movement in and one out.
+ * The dock (spec 016 FR-16), one movement in and a slower one out.
  *
  * At rest only a small glowing nub shows. Pointing anywhere in the dock's zone (or keyboard
  * focus inside) grows the nub into the full pill: the pill's clip-path opens from the nub while
  * the items ripple in from the middle outwards. The pill's look (fill, shadow, clip) is a backdrop
  * layer behind the items, so the items themselves are never clipped: each stays its own hit
  * target (pointing at one opens the dock like the reach does), and the zone never sits over them. Leaving waits a beat, then the pill closes back
- * into the nub and the items fade over the very same duration and curve, so nothing runs ahead.
+ * into the nub (slower than it opened) and the items fade over the very same duration and curve,
+ * so nothing runs ahead.
  * A pill slides under the current area when the route changes.
  */
 
@@ -65,7 +66,7 @@
     calc(100% - var(--dock-nub-height)) calc(50% - var(--dock-nub-width) / 2) 0 round
       var(--radius-pill)
   );
-  transition: clip-path var(--motion-dock) var(--ease-dock) var(--motion-dock-delay);
+  transition: clip-path var(--motion-dock-close) var(--ease-dock) var(--motion-dock-delay);
 }
 
 /* The nub: the accent, glowing softly, fading as the pill opens around it. */
@@ -81,7 +82,7 @@
   background: var(--accent);
   box-shadow: var(--glow);
   pointer-events: none;
-  transition: opacity var(--motion-dock) var(--ease-dock) var(--motion-dock-delay);
+  transition: opacity var(--motion-dock-close) var(--ease-dock) var(--motion-dock-delay);
 }
 
 /* Open: pointer anywhere in the zone, or keyboard focus inside. The whole pill takes hits, and
@@ -99,6 +100,7 @@
     calc(-1 * var(--space-24)) calc(-1 * var(--space-24)) calc(-1 * var(--space-24)) round
       var(--radius-pill)
   );
+  transition-duration: var(--motion-dock);
   transition-delay: calc(var(--motion-dock-delay) * 0);
 }
 
@@ -106,6 +108,7 @@
 .dock:hover::after,
 .dock:has(:focus-visible)::after {
   opacity: 0;
+  transition-duration: var(--motion-dock);
   transition-delay: calc(var(--motion-dock-delay) * 0);
 }
 
@@ -122,20 +125,21 @@
   opacity: 0;
   transform: translate(var(--spot-x, 0), -50%);
   pointer-events: none;
-  transition: opacity var(--motion-dock) var(--ease-dock) var(--motion-dock-delay);
+  transition: opacity var(--motion-dock-close) var(--ease-dock) var(--motion-dock-delay);
 }
 
 .indicator[data-placed] {
   transition:
     transform var(--motion-dock) var(--ease-dock),
     width var(--motion-dock) var(--ease-dock),
-    opacity var(--motion-dock) var(--ease-dock) var(--motion-dock-delay);
+    opacity var(--motion-dock-close) var(--ease-dock) var(--motion-dock-delay);
 }
 
 .zone:hover .indicator[data-shown],
 .dock:hover .indicator[data-shown],
 .dock:has(:focus-visible) .indicator[data-shown] {
   opacity: 1;
+  transition-duration: var(--motion-dock);
   transition-delay: calc(var(--motion-dock-delay) * 0);
 }
 
@@ -157,8 +161,8 @@
   opacity: 0;
   transform: translateY(var(--space-8));
   transition:
-    opacity var(--motion-dock) var(--ease-dock) var(--motion-dock-delay),
-    transform var(--motion-dock) var(--ease-dock) var(--motion-dock-delay),
+    opacity var(--motion-dock-close) var(--ease-dock) var(--motion-dock-delay),
+    transform var(--motion-dock-close) var(--ease-dock) var(--motion-dock-delay),
     background-color var(--motion-fast) ease,
     color var(--motion-fast) ease;
 }
@@ -169,6 +173,8 @@
 .dock:has(:focus-visible) .item {
   opacity: 1;
   transform: none;
+  transition-duration:
+    var(--motion-dock), var(--motion-dock), var(--motion-fast), var(--motion-fast);
   transition-delay:
     calc(var(--ripple, 0) * var(--motion-dock-stagger)),
     calc(var(--ripple, 0) * var(--motion-dock-stagger)), calc(var(--motion-dock-delay) * 0),
