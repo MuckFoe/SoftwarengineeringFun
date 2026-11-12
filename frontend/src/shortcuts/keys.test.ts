@@ -81,6 +81,18 @@ describe("label", () => {
     expect(label(run.other, false)).toBe("Ctrl+Enter");
   });
 
+  it("renders Check as ⇧⌘↩ and Ctrl+Shift+Enter, apart from Run", () => {
+    const check = shortcut("check");
+    expect(check.label).toBe("Check solution");
+    expect(check.scope).toBe("session");
+    expect(label(check.mac, true)).toBe("⇧⌘↩");
+    expect(label(check.other, false)).toBe("Ctrl+Shift+Enter");
+    const cmdShiftEnter = key({ key: "Enter", code: "Enter", metaKey: true, shiftKey: true });
+    expect(matches(cmdShiftEnter, check.mac, true)).toBe(true);
+    expect(matches(cmdShiftEnter, shortcut("run").mac, true)).toBe(false);
+    expect(shortcut("run").label).toBe("Run code");
+  });
+
   it("orders macOS modifiers ⌃⌥⇧⌘ and spells them out elsewhere", () => {
     expect(label(shortcut("nextProblem").mac, true)).toBe("⌃⌘↓");
     expect(label(shortcut("newProblem").mac, true)).toBe("⌥⌘N");

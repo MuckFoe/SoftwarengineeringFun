@@ -2,6 +2,8 @@
 
 import dataclasses
 
+import pytest
+
 from app.hints.prompt import (
     CODE_CAP,
     DESCRIPTION_CAP,
@@ -126,9 +128,9 @@ def test_ac9_no_test_data_and_instruction_to_ignore_embedded_instructions() -> N
 
 def test_fr9_system_message_bounds_the_hint_shape() -> None:
     system = SYSTEM_MESSAGE.lower()
-    assert "one next step" in system
-    assert "3 sentences" in system
-    assert "at most one" in system and "backticks" in system
+    assert "one very small next step" in system
+    assert "2 sentences" in system
+    assert "one small code fragment in backticks" in system
     # FR-10: the model is told no code line may solve the problem, not even a one-liner.
     assert "never give code that solves the problem" in system
     assert "one-liner" in system
@@ -143,8 +145,23 @@ def test_ac11_earlier_hints_are_numbered_with_more_specific_instruction() -> Non
     assert "Hint 2: Store each value's index HINTTWO." in user
     assert user.index("HINTONE") < user.index("HINTTWO")
     system = SYSTEM_MESSAGE.lower()
-    assert "more specific" in system
+    assert "one small step beyond the last one" in system
     assert "do not repeat" in system
+
+
+@pytest.mark.parametrize(("earlier", "level"), [(0, 1), (1, 2), (2, 3), (3, 4), (9, 4)])
+def test_fr13_the_hint_level_rises_with_each_hint_on_the_problem(earlier: int, level: int) -> None:
+    # The first hint is the vaguest; each further hint on the problem is a little more concrete.
+    user = _user(_ctx(earlier_hints=[f"hint {i}" for i in range(earlier)]))
+    assert user.rstrip().endswith(f"## Hint level\n{level}")
+
+
+def test_fr13_the_levels_go_from_a_vague_nudge_to_one_small_fragment() -> None:
+    system = SYSTEM_MESSAGE.lower()
+    level_1 = system[system.index("level 1:") : system.index("level 2:")]
+    assert "vague nudge" in level_1 and "give no code" in level_1
+    assert "no function or method names and no code" in system[system.index("level 2:") :]
+    assert "one small code" in system[system.index("level 4 and up:") :]
 
 
 def test_no_earlier_hints_says_so() -> None:

@@ -1,5 +1,5 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { ScratchPanel } from "./ScratchPanel";
 import type { Run, RunStatus, ScratchState } from "./scratchReducer";
 
@@ -18,10 +18,8 @@ function run(over: Partial<Run> = {}): Run {
   };
 }
 const st = (r: Run | null): ScratchState => ({ run: r, needsSnapshot: false, notice: null });
-function setup(r: Run | null, stale = false) {
-  const onRun = vi.fn();
-  render(<ScratchPanel state={st(r)} stale={stale} onRun={onRun} />);
-  return onRun;
+function setup(r: Run | null) {
+  render(<ScratchPanel state={st(r)} />);
 }
 
 describe("ScratchPanel", () => {
@@ -38,10 +36,34 @@ describe("ScratchPanel", () => {
     expect(screen.getByRole("status").textContent).toContain("started by A");
   });
 
-  it("shows the last run's input and output", () => {
-    setup(run());
-    expect((screen.getByLabelText("Input") as HTMLTextAreaElement).value).toBe("3");
+  it("shows the last run's output and no input box, also for an old run that had input", () => {
+    setup(run({ input: "3" }));
     expect(screen.getByTestId("scratch-output").textContent).toBe("9\n");
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.queryByLabelText("Input")).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("before any run, says how to get output", () => {
+    setup(null);
+    expect(screen.getByText(/Run your code to see its output here/)).toBeTruthy();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("an error names the exit code and shows the traceback", () => {
+    setup(
+      run({
+        status: "error",
+        exit_code: 1,
+        output: [
+          { s: "out", t: "hello\n" },
+          { s: "err", t: "Traceback (most recent call last):\nValueError: bad\n" },
+        ],
+      }),
+    );
+    expect(screen.getByRole("status").textContent).toContain("error (exit code 1)");
+    expect(screen.getByTestId("scratch-output").textContent).toContain("hello");
+    expect(screen.getByTestId("scratch-output").textContent).toContain("ValueError: bad");
   });
 
   it("FR-3 err segment is distinct, with a marker", () => {
@@ -60,22 +82,9 @@ describe("ScratchPanel", () => {
     expect(screen.getByText("hi").getAttribute("data-stream")).toBe("out");
   });
 
-  it("FR-9 running run disables Run and names the starter", () => {
+  it("FR-9 a running run names the starter", () => {
     setup(run({ status: "running", started_by: "A" }));
-    expect((screen.getByRole("button", { name: "Run" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByRole("status").textContent).toContain("A");
-  });
-
-  it("calls onRun with the typed input", () => {
-    const onRun = setup(null);
-    fireEvent.change(screen.getByLabelText("Input"), { target: { value: "5\n6" } });
-    fireEvent.click(screen.getByRole("button", { name: "Run" }));
-    expect(onRun).toHaveBeenCalledWith("5\n6");
-  });
-
-  it("FR-12 stale renders no Run control", () => {
-    setup(run(), true);
-    expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
   });
 
   it("NFR-4 shows markup and escapes literally", () => {

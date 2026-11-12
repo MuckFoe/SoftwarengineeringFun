@@ -56,7 +56,7 @@ test("FR6 / Isolation: a solution's sockets to collab-api and auth fail to conne
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.insertText(solution(targets));
   await expect(editor).toContainText("socket.create_connection");
-  await page.getByRole("toolbar", { name: "Session" }).getByRole("button", { name: "Run", exact: true }).click();
+  await page.getByRole("toolbar", { name: "Session" }).getByRole("button", { name: "Check", exact: true }).click();
 
   const result = page.getByRole("region", { name: "Run results" }).getByText(/^Test 1: /);
   await expect(result).toBeVisible({ timeout: 30_000 });

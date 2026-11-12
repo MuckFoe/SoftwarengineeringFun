@@ -3,10 +3,10 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--space-8);
   /* Contains the absolutely placed live region, so a closed inspector clips it too. */
   position: relative;
-  margin-top: var(--space-16);
+  margin-top: var(--space-12);
   min-width: 0;
   font: var(--fs-copy-dense) / var(--lh-copy-dense) var(--font-copy);
   color: var(--text);
@@ -47,6 +47,7 @@
 .meta {
   margin: 0;
   color: var(--text-muted);
+  font: var(--fs-label-2) / var(--lh-label-2) var(--font-copy);
   overflow-wrap: anywhere;
 }
 
@@ -62,17 +63,20 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.hint {
+/* Compact cards: the inspector shows several hints and the chat at once. Two classes, so
+   the padding wins over card.css whatever the load order. */
+.list .hint {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-2);
   min-width: 0;
+  padding: var(--space-8) var(--space-16);
 }
 
 .label {
@@ -83,7 +87,7 @@
 
 .heading {
   margin: 0;
-  font: 600 var(--fs-h4) / var(--lh-h4) var(--font-display);
+  font: 700 var(--fs-copy-dense) / var(--lh-copy-dense) var(--font-copy);
 }
 
 .body {

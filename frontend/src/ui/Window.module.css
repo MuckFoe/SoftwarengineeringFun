@@ -29,6 +29,13 @@
   border-right-width: 0;
 }
 
+/* A self-sizing left panel (PinnablePanel): no clipping, so its peek can float over the main area. */
+.leftPanel {
+  grid-area: sidebar;
+  display: flex;
+  min-height: 0;
+}
+
 .center {
   grid-area: center;
   display: flex;
@@ -48,12 +55,16 @@
   min-height: 0;
   overflow: auto;
   background: var(--surface-1);
+  /* Its own stacking context: layers inside (the editor's gutters, z-index 200) stay below a
+     floating sidebar or a pinnable panel's peek overlay. It clips already, so nothing else changes. */
+  isolation: isolate;
 }
 
-/* NFR-2: narrower than 1200 px, the sidebar floats over the main area. */
+/* NFR-2: narrower than 1200 px, the sidebar floats over the main area. A left panel keeps
+   its own column: unpinned it is only a strip, and pinned is the user's choice. */
 @media (max-width: 1199px) {
   .sidebar,
-  .center {
+  .window:not([data-left-panel]) .center {
     grid-column: sidebar / center;
   }
 

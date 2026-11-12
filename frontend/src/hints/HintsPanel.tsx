@@ -115,6 +115,7 @@ export function HintsPanel({ hints, canAsk, pending, notice, onAsk }: HintsPanel
           <Button
             ref={hintButton}
             variant="secondary"
+            size="xs"
             disabled={pending !== null}
             aria-expanded={asking}
             onClick={() => setAsking(true)}
@@ -131,10 +132,10 @@ export function HintsPanel({ hints, canAsk, pending, notice, onAsk }: HintsPanel
                 maxLength={NOTE_MAX}
               />
               <div className={styles.actions}>
-                <Button variant="secondary" onClick={send}>
+                <Button variant="secondary" size="xs" onClick={send}>
                   Ask
                 </Button>
-                <Button variant="tertiary" onClick={close}>
+                <Button variant="tertiary" size="xs" onClick={close}>
                   Cancel
                 </Button>
               </div>

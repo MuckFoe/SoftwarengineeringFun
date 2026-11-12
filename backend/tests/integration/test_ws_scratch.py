@@ -134,6 +134,32 @@ async def test_fr5_every_participant_sees_started_output_end(
             assert seen[-1]["exit_code"] == 0
 
 
+RAISES = "print('hello')\nraise ValueError('boom')\n"
+
+
+async def test_run_with_empty_input_shows_stdout_and_the_traceback(
+    client: TestClient, migrated: asyncpg.Connection
+) -> None:
+    """2026-11-12 change: the toolbar's Run sends `scratch_run` with input "". Everything the
+    script writes reaches every participant: its stdout, then the traceback on stderr."""
+    problem_id, session = await _session(migrated)
+    with (
+        _join(client, session.invite_id, "Ada", problem_id, RAISES) as a,
+        _join(client, session.invite_id, "Linus", problem_id, None) as b,
+    ):
+        a.ws.send_text(json.dumps({"type": "scratch_run", "input": ""}))
+        for joined in (a, b):
+            seen = _scratch_until(joined.ws, "scratch_run_end")
+            assert seen[0]["run"]["input"] == ""
+            outputs = [m for m in seen if m["type"] == "scratch_run_output"]
+            assert "".join(m["t"] for m in outputs if m["s"] == "out") == "hello\n"
+            err = "".join(m["t"] for m in outputs if m["s"] == "err")
+            assert "Traceback (most recent call last)" in err
+            assert "ValueError: boom" in err
+            assert seen[-1]["status"] == "error"
+            assert seen[-1]["exit_code"] == 1
+
+
 async def test_fr9_second_claim_refused_to_sender_only(
     client: TestClient, migrated: asyncpg.Connection
 ) -> None:

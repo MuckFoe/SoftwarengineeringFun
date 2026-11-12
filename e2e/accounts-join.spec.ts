@@ -23,10 +23,13 @@ const REPLACED = "This session was opened in another tab or window.";
 // --- Locators ---------------------------------------------------------------------------------
 
 const participantList = (page: Page) => page.getByRole("list", { name: "Participants" });
-/** The participant list, opening the sidebar first: a coding session starts with it closed. */
+/** The participant list, pinning the sidebar first: a coding session starts with it unpinned. */
 async function participants(page: Page) {
-  const show = page.getByRole("button", { name: "Show sidebar" });
-  if (await show.isVisible()) await show.click();
+  const strip = page.getByRole("button", { name: "Sidebar", exact: true });
+  if (await strip.isVisible()) {
+    await strip.click();
+    await page.getByRole("button", { name: "Pin sidebar" }).click();
+  }
   return participantList(page);
 }
 const people = async (page: Page) => (await participants(page)).getByRole("listitem");

@@ -35,7 +35,7 @@ The product works, but its interface was built to prove the features of spec 001
   - **Signing in:** started from a "Sign in" button in the toolbar on screens a visitor can reach. It leads to the identity provider's sign-in page (styled per FR-18) and returns the user to the screen they started from.
   - **Admin reactivation:** admins see a "Stale sessions" section in the sidebar listing stale sessions, each with a reactivate action inline. The reactivate action beside the stale notice inside a session (FR-12) stays as well.
   - Every other flow keeps its current steps and only changes appearance.
-- **FR-10:** WHEN a session is open THE SYSTEM SHALL arrange it as one window. A sidebar holds the problems and participants, the code editor is the main content, and a toolbar holds the primary actions (run, invite, appearance). Run results show in a panel or inspector that can be shown or hidden.
+- **FR-10:** WHEN a session is open THE SYSTEM SHALL arrange it as one window. A sidebar holds the problems and participants, the code editor is the main content, and a toolbar holds the primary actions (run, check, invite, appearance). Run results show in a panel or inspector that can be shown or hidden. (Since 2026-11-12, spec 011: *Run* runs the code as a script with empty input and shows all its output in the panel's *Output* tab; *Check* runs the tests, results in the *Tests* tab.) (Since 2026-11-12, pinnable panels: the toolbar has no panel toggles any more. The sidebar, the description with hints, the chat and the run results are each *pinned* (laid out, with a small pin toggle "Unpin …" in their own header) or *unpinned* (a thin labelled strip at their edge whose panel peeks over the editor on hover, focus, click or Enter, and closes on leaving, Escape or a press outside). Pin state is remembered per browser; by default the sidebar is unpinned and the rest pinned, and on a phone-sized screen the description and chat start unpinned.)
 - **FR-11:** WHEN an editor browses problems THE SYSTEM SHALL show them in a source-list or table layout with search, and open create and edit in a sheet.
 - **FR-12:** WHEN a session is stale THE SYSTEM SHALL show that state clearly and calmly (for example a banner, with editing controls visibly disabled), and admins shall see the reactivate action in the same place.
 - **FR-13:** WHEN a page doesn't exist or the user isn't allowed to see it THE SYSTEM SHALL show an empty-state screen in the same visual language, with a clear way back.
@@ -48,7 +48,7 @@ The product works, but its interface was built to prove the features of spec 001
 
 ### Keyboard
 
-- **FR-17:** WHEN the user presses a shortcut THE SYSTEM SHALL perform the matching action using the platform modifier (⌘ on macOS, Ctrl elsewhere). Shortcuts exist for: run code, close sheet or popover (Esc), confirm the default button (Return), focus search, new problem, save in the problem editor, show or hide the sidebar, show or hide the run panel, show or hide the chat, next problem, previous problem, copy the invite link, open the appearance setting, and show the shortcut list. Key choices follow common macOS conventions where they exist.
+- **FR-17:** WHEN the user presses a shortcut THE SYSTEM SHALL perform the matching action using the platform modifier (⌘ on macOS, Ctrl elsewhere). Shortcuts exist for: run code, check the solution (run the tests; added 2026-11-12, spec 011), close sheet or popover (Esc), confirm the default button (Return), focus search, new problem, save in the problem editor, show or hide the sidebar, show or hide the run panel, show or hide the chat (since 2026-11-12 these three pin or unpin the panel; unpinning leaves it peeking), next problem, previous problem, copy the invite link, open the appearance setting, and show the shortcut list. Key choices follow common macOS conventions where they exist.
 - **FR-18:** WHEN an editor or admin reaches the identity provider's sign-in page THE SYSTEM SHALL show it in the same visual language and appearance (light, dark or system) as the app.
 - **FR-19:** WHEN the user asks for the shortcut list THE SYSTEM SHALL show every shortcut with its keys for the current platform in a sheet or popover.
 - **FR-20:** WHEN a shortcut is assigned THE SYSTEM SHALL NOT use a key combination the supported browsers reserve for themselves (for example new window or tab, close tab, address bar, switching tabs, developer tools), so that every shortcut works in every supported browser.
@@ -141,7 +141,7 @@ Then joining takes the same steps and enforces the same rules as in spec 001.
 **AC-11 (FR-10)**
 Given a participant in a session
 When the session opens
-Then problems and participants are in a sidebar, the editor fills the main area, run, invite and appearance are in the toolbar, and the run-results panel can be hidden and shown again.
+Then problems and participants are in a sidebar, the editor fills the main area, run, check, invite and appearance are in the toolbar, and the run-results panel can be hidden and shown again.
 
 **AC-12 (FR-11)**
 Given an editor on the problem list with more than 10 problems
@@ -176,7 +176,7 @@ Then they do it inside the problem editor sheet without leaving it.
 **AC-18 (FR-17)**
 Given a participant on macOS in a session
 When they press ⌘+Return
-Then the code runs. The same works with Ctrl+Return on Windows or Linux, and Esc closes any open sheet or popover.
+Then the code runs (as a script, output in the *Output* tab; since 2026-11-12 the tests run with ⇧⌘+Return / Ctrl+Shift+Return, *Check*). The same works with Ctrl+Return on Windows or Linux, and Esc closes any open sheet or popover.
 
 **AC-18a (FR-17, FR-19)**
 Given a user on any screen

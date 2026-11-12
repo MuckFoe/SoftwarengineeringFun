@@ -52,3 +52,22 @@
   outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
+
+/* Stacked (pinnable panels): no divider; the named part takes its own size, the other fills.
+   Neither part clips or positions, so a peek overlay anchors to the column around the split
+   and can rise over the other part. Each panel scrolls its own body. */
+.split[data-stack] .top,
+.split[data-stack] .bottom {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  overflow: visible;
+  position: static;
+  z-index: auto;
+  height: auto;
+}
+
+.split[data-stack="top"] .top,
+.split[data-stack="bottom"] .bottom {
+  flex: none;
+}

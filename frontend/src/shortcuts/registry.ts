@@ -16,6 +16,7 @@ export type Scope = "global" | "session" | "problems" | "sheet";
 
 export type ShortcutId =
   | "run"
+  | "check"
   | "close"
   | "defaultButton"
   | "focusSearch"
@@ -47,6 +48,14 @@ export const SHORTCUTS: readonly Shortcut[] = [
     label: "Run code",
     mac: { key: "Enter", mod: true },
     other: { key: "Enter", mod: true },
+    scope: "session",
+  },
+  {
+    // The hidden tests; Run (above) runs the code as a script (spec 011, 2026-11-12 change).
+    id: "check",
+    label: "Check solution",
+    mac: { key: "Enter", mod: true, shift: true },
+    other: { key: "Enter", mod: true, shift: true },
     scope: "session",
   },
   {
@@ -93,14 +102,14 @@ export const SHORTCUTS: readonly Shortcut[] = [
   },
   {
     id: "toggleRunPanel",
-    label: "Show or hide run panel",
+    label: "Pin or unpin run results",
     mac: { key: "r", mod: true, ctrl: true },
     other: { key: "r", mod: true, alt: true },
     scope: "session",
   },
   {
     id: "toggleChat",
-    label: "Show or hide chat",
+    label: "Pin or unpin chat",
     mac: { key: "c", mod: true, ctrl: true },
     other: { key: "c", mod: true, alt: true },
     scope: "session",

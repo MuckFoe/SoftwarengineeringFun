@@ -1,10 +1,23 @@
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
+import { PinnableColumn } from "../ui/PinnableColumn";
+import { PinnablePanel, type PinnablePanelHandle } from "../ui/PinnablePanel";
 import { SplitPane } from "../ui/SplitPane";
 import { ChatPane, type ChatPaneProps } from "./ChatPane";
 import { DescriptionPane } from "./DescriptionPane";
 import styles from "./SessionInspector.module.css";
 
 export type { ChatPaneProps };
+
+/** A pinned panel's header row (PinnablePanel.module.css: min-height var(--space-32)). */
+const PANEL_HEADER_PX = 32;
+
+/** One pinnable panel's state, from `usePinned` (or `useChatVisible` for the chat). */
+export interface PanelPin {
+  pinned: boolean;
+  onPinnedChange(pinned: boolean): void;
+  /** To open its peek from outside, such as a shortcut while it is unpinned. */
+  handle?: Ref<PinnablePanelHandle>;
+}
 
 export interface SessionInspectorProps {
   /** Sanitised description HTML; undefined while unknown → the Chat region fills the area alone. */
@@ -14,6 +27,13 @@ export interface SessionInspectorProps {
   chat: ChatPaneProps;
   /** Model hints for the current problem (spec 020), below the description in its section. */
   hints?: ReactNode;
+  /**
+   * Pinnable panels instead of the collapsible chat: the description (with hints) and the chat
+   * are each pinned or a strip that peeks on hover or focus (`PinnableColumn`). Given, it
+   * renders its own Inspector landmark (do not wrap it in `Inspector`), and `chatVisible`
+   * only tells the chat whether it is on screen.
+   */
+  pins?: { description: PanelPin; chat: PanelPin };
 }
 
 /**
@@ -27,32 +47,74 @@ export function SessionInspector({
   chatVisible,
   chat,
   hints,
+  pins,
 }: SessionInspectorProps) {
   const chatRegion = (
     <section aria-label="Chat" className={styles.chat}>
       <ChatPane {...chat} visible={chatVisible} />
     </section>
   );
+  const descriptionRegion = (
+    <section
+      aria-label="Description"
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be reachable by keyboard.
+      tabIndex={0}
+      className={styles.description}
+      data-fit-content=""
+    >
+      {descriptionHtml !== undefined && <DescriptionPane html={descriptionHtml} />}
+      {hints}
+    </section>
+  );
   // Hints already given stay visible even when the description can't be loaded (spec 020 FR-15).
-  if (descriptionHtml === undefined && !hints) return chatRegion;
+  const chatOnly = descriptionHtml === undefined && !hints;
+  // The description takes the height it needs, so a usual problem reads without scrolling.
+  // The chat keeps its input, and room for a few messages once there are any. Moving the
+  // divider takes over.
+  // Pinned, each panel has a header row above its region; the minimums stay the regions' own.
+  const header = pins ? PANEL_HEADER_PX : 0;
+  const split = {
+    minTop: 120 + header,
+    minBottom: 160 + header,
+    fitTop: (chat.messages.length > 0 ? 280 : 160) + header,
+    dividerLabel: "Resize description and chat",
+  };
+
+  if (pins) {
+    const chatPanel = {
+      title: "Chat",
+      icon: "chat" as const,
+      pinned: pins.chat.pinned,
+      onPinnedChange: pins.chat.onPinnedChange,
+      handle: pins.chat.handle,
+      children: chatRegion,
+    };
+    if (chatOnly) {
+      return (
+        <aside aria-label="Inspector" className={styles.single}>
+          <PinnablePanel ref={chatPanel.handle} edge="right" {...chatPanel} />
+        </aside>
+      );
+    }
+    return (
+      <PinnableColumn
+        label="Inspector"
+        top={{
+          title: "Description",
+          icon: "doc",
+          pinned: pins.description.pinned,
+          onPinnedChange: pins.description.onPinnedChange,
+          handle: pins.description.handle,
+          children: descriptionRegion,
+        }}
+        bottom={chatPanel}
+        split={split}
+      />
+    );
+  }
+
+  if (chatOnly) return chatRegion;
   return (
-    <SplitPane
-      top={
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be reachable by keyboard.
-        <section aria-label="Description" tabIndex={0} className={styles.description}>
-          {descriptionHtml !== undefined && <DescriptionPane html={descriptionHtml} />}
-          {hints}
-        </section>
-      }
-      bottom={chatRegion}
-      bottomOpen={chatVisible}
-      minTop={120}
-      minBottom={160}
-      // The description takes the height it needs, so a usual problem reads without scrolling.
-      // The chat keeps its input, and room for a few messages once there are any. Moving the
-      // divider takes over.
-      fitTop={chat.messages.length > 0 ? 280 : 160}
-      dividerLabel="Resize description and chat"
-    />
+    <SplitPane {...split} top={descriptionRegion} bottom={chatRegion} bottomOpen={chatVisible} />
   );
 }

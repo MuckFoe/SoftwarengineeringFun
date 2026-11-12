@@ -1,0 +1,245 @@
+/* A pinnable panel: pinned in the layout, or a labelled strip whose peek floats over the
+   content beside it. Tokens only; the peek fades (reduced motion: motion.css shortens it). */
+
+.root {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* The peek is placed against the nearest positioned ancestor (PinnableColumn's column). */
+.root[data-anchor="parent"] {
+  position: static;
+}
+
+.root[data-edge="left"],
+.root[data-edge="right"] {
+  flex-direction: row;
+  height: 100%;
+}
+
+.root[data-edge="top"],
+.root[data-edge="bottom"] {
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Pinned and self-anchored: the panel takes its size along its edge. */
+.root[data-pinned="true"][data-anchor="self"][data-edge="left"],
+.root[data-pinned="true"][data-anchor="self"][data-edge="right"] {
+  flex: none;
+  width: var(--pin-size);
+}
+
+.root[data-pinned="true"][data-anchor="self"][data-edge="top"],
+.root[data-pinned="true"][data-anchor="self"][data-edge="bottom"] {
+  flex: none;
+  height: var(--pin-size);
+}
+
+/* Pinned inside a column: fill the part the column gives it. */
+.root[data-pinned="true"][data-anchor="parent"] {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+}
+
+.root[data-edge="left"][data-pinned="true"] {
+  border-right: 1px solid var(--divider);
+}
+
+.root[data-edge="bottom"][data-pinned="true"][data-anchor="self"] {
+  border-top: 1px solid var(--divider);
+}
+
+/* Unpinned: a thin band in the panel's tone holding the strip. */
+.root[data-pinned="false"] {
+  flex: none;
+  box-sizing: border-box;
+  padding: var(--space-4);
+  background: var(--surface-2);
+}
+
+.root[data-edge="left"][data-pinned="false"],
+.root[data-edge="right"][data-pinned="false"] {
+  width: var(--space-32);
+}
+
+.root[data-edge="top"][data-pinned="false"],
+.root[data-edge="bottom"][data-pinned="false"] {
+  height: var(--space-32);
+}
+
+/* The strip: a quiet pill along the edge, its title along it (v2 shapes, tone not outline). */
+.strip {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: var(--space-8) 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--text-muted);
+  font: 600 var(--fs-label-2) / var(--lh-label-2) var(--font-copy);
+  cursor: pointer;
+}
+
+.root[data-edge="left"] .strip,
+.root[data-edge="right"] .strip {
+  flex-direction: column;
+}
+
+.root[data-edge="top"] .strip,
+.root[data-edge="bottom"] .strip {
+  padding: 0 var(--space-12);
+  justify-content: flex-start;
+}
+
+.strip:hover,
+.strip[aria-expanded="true"] {
+  background: var(--surface-4);
+  color: var(--text);
+}
+
+.strip:active {
+  background: var(--surface-4);
+}
+
+.strip:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* Read along a side strip, top to bottom. */
+.root[data-edge="left"] .stripLabel,
+.root[data-edge="right"] .stripLabel {
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+}
+
+/* The panel itself: a column, header over a body that fills. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  background: var(--surface-2);
+}
+
+/* The sidebar and the run results keep the main area's tone, as before pins. */
+.root[data-edge="left"] .panel,
+.root[data-edge="bottom"] .panel {
+  background: var(--surface-1);
+}
+
+/* Unpinned, the panel is the peek: over the content beside the strip. */
+.panel[data-peek] {
+  position: absolute;
+  z-index: 2;
+  background: var(--surface-1);
+  box-shadow: var(--elev-3);
+  transition:
+    opacity var(--dur-fast) var(--ease-audi),
+    visibility var(--dur-fast) var(--ease-audi);
+}
+
+.panel[data-peek="closed"] {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The peek opens beside its strip, never over it, so the strip stays in view and the pointer
+   moves straight from one to the other. */
+.root[data-edge="left"] .panel[data-peek] {
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  width: var(--pin-size);
+}
+
+.root[data-edge="right"] .panel[data-peek] {
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: var(--pin-size);
+}
+
+.root[data-edge="top"] .panel[data-peek] {
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: var(--pin-size);
+}
+
+.root[data-edge="bottom"] .panel[data-peek] {
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: var(--pin-size);
+}
+
+/* In a column (anchored to it): a top or bottom strip's peek starts past the strip and
+   covers the rest of the column up to its size. */
+.root[data-anchor="parent"][data-edge="top"] .panel[data-peek] {
+  top: var(--space-32);
+}
+
+.root[data-anchor="parent"][data-edge="bottom"] .panel[data-peek] {
+  bottom: var(--space-32);
+}
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: var(--space-32);
+  box-sizing: border-box;
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-12);
+}
+
+.title {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 var(--fs-label-2) / var(--lh-label-2) var(--font-copy);
+  color: var(--form-caption);
+}
+
+/* A small pin: smaller than the usual icon button, so the header stays one slim row. */
+.header .pin {
+  flex: none;
+  margin-left: auto;
+  width: var(--space-28);
+  height: var(--space-28);
+}
+
+/* The content scrolls itself (a sidebar, a description region, the chat, the run results),
+   each with its own keyboard stop where needed. The body neither scrolls nor clips, so a
+   popover in the content (the chat's GIF picker) can rise over the header and the panel above. */
+.body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.body > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}

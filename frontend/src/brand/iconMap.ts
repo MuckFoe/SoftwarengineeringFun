@@ -30,6 +30,7 @@ export const iconMap = {
   doc: { audi: "documents", lucide: "file-text" },
   trash: { audi: "erase", lucide: "trash-2" },
   pencil: { audi: "edit", lucide: "pencil" },
+  pin: { audi: "pin", lucide: "pin" },
 } as const satisfies Record<string, { audi: string; lucide: string }>;
 
 export type BrandIconName = keyof typeof iconMap;

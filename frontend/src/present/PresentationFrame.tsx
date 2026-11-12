@@ -275,7 +275,6 @@ export function PresentationFrame(props: PresentationFrameProps) {
       className={styles.frame}
       role="button"
       aria-label={`${title}, press Enter to interact`}
-      // biome-ignore lint/a11y/noNoninteractiveTabindex: see above
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" && e.target === e.currentTarget) iframeRef.current?.focus();

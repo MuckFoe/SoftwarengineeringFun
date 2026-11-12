@@ -64,9 +64,11 @@ test("FR-1: the description and the chat are both visible, the description above
   const top = await box(description(page));
   const bottom = await box(chat(page));
   expect(top.y + top.height).toBeLessThanOrEqual(bottom.y + 1);
-  // The header's Areas tabs are navigation; the description and chat have no tabs of their own.
-  await expect(page.locator('[role=tablist]:not([aria-label="Areas"])')).toHaveCount(0);
-  await expect(page.locator('[role=tablist]:not([aria-label="Areas"]) [role=tab]')).toHaveCount(0);
+  // The header's Areas tabs are navigation and the bottom panel's Results tabs (Output / Tests,
+  // spec 011 2026-11-12) hold run results; the description and chat have no tabs of their own.
+  const other = '[role=tablist]:not([aria-label="Areas"]):not([aria-label="Results"])';
+  await expect(page.locator(other)).toHaveCount(0);
+  await expect(page.locator(`${other} [role=tab]`)).toHaveCount(0);
 });
 
 test("FR-8: the description and the chat scroll independently, and the chat input stays pinned", async ({
@@ -102,32 +104,41 @@ test("FR-8: the description and the chat scroll independently, and the chat inpu
   expect(Math.abs(input.y + input.height - (region.y + region.height))).toBeLessThanOrEqual(1);
 });
 
-const toolbar = (page: Page) => page.getByRole("toolbar", { name: "Session" });
+// 2026-11-12: the chat's show/hide is its pin. Unpinned, it is a strip at the bottom of the
+// side area whose peek opens on hover or focus; the chat stays mounted throughout.
+const chatStrip = (page: Page) => page.getByRole("button", { name: "Chat", exact: true });
 
-/** The side area's content height: the inspector's content box, inside its padding. */
-const sideAreaHeight = (page: Page) =>
-  inspector(page).evaluate((el) => {
-    const content = el.firstElementChild as HTMLElement;
-    const style = getComputedStyle(content);
-    return content.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
-  });
+/** Pins the chat again from its strip's peek. */
+async function pinChat(page: Page): Promise<void> {
+  await chatStrip(page).click();
+  await page.getByRole("button", { name: "Pin chat" }).click();
+}
 
-test("FR-2: Hide chat hides the chat and the description fills the side area", async ({
+test("FR-2: Unpin chat leaves a Chat strip and the description fills the rest of the side area", async ({
   page,
   request,
 }) => {
   await join(page, await createSession(request));
   await expect(chat(page)).toBeVisible();
 
-  await toolbar(page).getByRole("button", { name: "Hide chat" }).click();
+  await page.getByRole("button", { name: "Unpin chat" }).click();
   await expect(chat(page)).toBeHidden();
   await expect(description(page)).toBeVisible();
+  await expect(chatStrip(page)).toBeVisible();
+  // The description reaches down to the strip, which sits at the bottom of the side area
+  // (the strip's pill sits inside a 4 px band).
   await expect
-    .poll(async () => Math.abs((await box(description(page))).height - (await sideAreaHeight(page))))
-    .toBeLessThanOrEqual(1);
+    .poll(async () => {
+      const d = await box(description(page));
+      return Math.abs(d.y + d.height - (await box(chatStrip(page))).y);
+    })
+    .toBeLessThanOrEqual(5);
+  const side = await box(inspector(page));
+  const strip = await box(chatStrip(page));
+  expect(Math.abs(strip.y + strip.height - (side.y + side.height))).toBeLessThanOrEqual(5);
 });
 
-test("FR-3: Show chat brings the chat back below the description, at its newest message, with the draft kept", async ({
+test("FR-3: Pin chat brings the chat back below the description, at its newest message, with the draft kept", async ({
   browser,
   page,
   request,
@@ -141,7 +152,7 @@ test("FR-3: Show chat brings the chat back below the description, at its newest 
   });
   await expect(messageList(page).getByText("message 50", { exact: true })).not.toBeInViewport();
   await messageInput(page).fill("draft before hiding");
-  await toolbar(page).getByRole("button", { name: "Hide chat" }).click();
+  await page.getByRole("button", { name: "Unpin chat" }).click();
   await expect(chat(page)).toBeHidden();
 
   const [benContext] = await openContexts(browser, 1);
@@ -156,7 +167,7 @@ test("FR-3: Show chat brings the chat back below the description, at its newest 
   // The hidden chat is out of the accessibility tree, so look for the text, not the role.
   await expect(inspector(page).getByText("ben 30", { exact: true })).toBeAttached();
 
-  await toolbar(page).getByRole("button", { name: "Show chat" }).click();
+  await pinChat(page);
   await expect(chat(page)).toBeVisible();
   const top = await box(description(page));
   const bottom = await box(chat(page));
@@ -177,15 +188,15 @@ test("FR-4: the chat choice is remembered in this browser, for any session", asy
   request,
 }) => {
   await join(page, await createSession(request));
-  await toolbar(page).getByRole("button", { name: "Hide chat" }).click();
+  await page.getByRole("button", { name: "Unpin chat" }).click();
   await expect(chat(page)).toBeHidden();
 
   await join(page, await createSession(request));
   await expect(description(page)).toBeVisible();
   await expect(chat(page)).toBeHidden();
-  await expect(toolbar(page).getByRole("button", { name: "Show chat" })).toBeVisible();
+  await expect(chatStrip(page)).toBeVisible();
 
-  await toolbar(page).getByRole("button", { name: "Show chat" }).click();
+  await pinChat(page);
   await expect(chat(page)).toBeVisible();
   await page.reload();
   await page.getByLabel("Your name").fill("Ada");
@@ -236,7 +247,7 @@ test("FR-5: dragging the divider up grows the chat and shrinks the description, 
   await expect.poll(async () => Math.abs((await heights()).chat - 160)).toBeLessThanOrEqual(1);
 });
 
-test("FR-6: hiding and showing the side area brings back what was there; Show chat reopens it", async ({
+test("FR-6: unpinning and pinning both panels brings back the divider where it was; Ctrl+Alt+C pins the chat", async ({
   page,
   request,
 }) => {
@@ -246,45 +257,45 @@ test("FR-6: hiding and showing the side area brings back what was there; Show ch
   await expect(chat(page)).toBeVisible();
   const before = await dividerY();
 
-  await toolbar(page).getByRole("button", { name: "Hide inspector" }).click();
-  await expect(inspector(page)).toBeHidden();
-  await toolbar(page).getByRole("button", { name: "Show inspector" }).click();
-  await expect(description(page)).toBeVisible();
-  await expect(chat(page)).toBeVisible();
-  await expect.poll(async () => Math.abs((await dividerY()) - before)).toBeLessThanOrEqual(1);
-
-  await toolbar(page).getByRole("button", { name: "Hide chat" }).click();
+  // Both unpinned: the side area narrows to two labelled strips.
+  await page.getByRole("button", { name: "Unpin description" }).click();
+  await page.getByRole("button", { name: "Unpin chat" }).click();
+  await expect(description(page)).toBeHidden();
   await expect(chat(page)).toBeHidden();
-  await toolbar(page).getByRole("button", { name: "Hide inspector" }).click();
-  await expect(inspector(page)).toBeHidden();
-  await toolbar(page).getByRole("button", { name: "Show inspector" }).click();
+  await expect(divider).toHaveCount(0);
+  const descriptionStrip = page.getByRole("button", { name: "Description", exact: true });
+  await expect(descriptionStrip).toBeVisible();
+  await expect(chatStrip(page)).toBeVisible();
+  expect((await box(inspector(page))).width).toBeLessThanOrEqual(40);
+
+  // Hovering a strip peeks its panel; leaving closes it again.
+  await descriptionStrip.hover();
+  await expect(description(page)).toBeVisible();
+  await page.getByRole("main").hover();
+  await expect(description(page)).toBeHidden();
+
+  await descriptionStrip.click();
+  await page.getByRole("button", { name: "Pin description" }).click();
   await expect(description(page)).toBeVisible();
   await expect(chat(page)).toBeHidden();
 
-  // With the side area hidden, Show chat (button or shortcut) opens it with the chat.
-  await toolbar(page).getByRole("button", { name: "Hide inspector" }).click();
-  await expect(inspector(page)).toBeHidden();
-  await toolbar(page).getByRole("button", { name: "Show chat" }).click();
-  await expect(description(page)).toBeVisible();
-  await expect(chat(page)).toBeVisible();
-
-  await toolbar(page).getByRole("button", { name: "Hide inspector" }).click();
-  await expect(inspector(page)).toBeHidden();
   const mac = await page.evaluate(() => /mac/i.test(navigator.platform));
   await page.keyboard.press(mac ? "Control+Meta+c" : "Control+Alt+c");
-  await expect(description(page)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Unpin chat" })).toBeVisible();
   await expect(chat(page)).toBeVisible();
+  await expect.poll(async () => Math.abs((await dividerY()) - before)).toBeLessThanOrEqual(1);
 });
 
 test.describe("at 1024×768", () => {
   test.use({ viewport: { width: 1024, height: 768 } });
 
-  test("NFR-1: with the sidebar overlay, inspector and chat shown, nothing scrolls horizontally and the editor is usable", async ({
+  test("NFR-1: with the sidebar, description and chat pinned, nothing scrolls horizontally and the editor is usable", async ({
     page,
     request,
   }) => {
     await join(page, await createSession(request));
-    await page.getByRole("button", { name: "Show sidebar" }).click();
+    await page.getByRole("button", { name: "Sidebar", exact: true }).click();
+    await page.getByRole("button", { name: "Pin sidebar" }).click();
     await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
     await expect(description(page)).toBeVisible();
     await expect(chat(page)).toBeVisible();
@@ -323,14 +334,17 @@ test("NFR-2: by keyboard alone the chat control and the divider work, and the re
   await join(page, await createSession(request));
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 
-  // Tab to the toolbar, arrow to "Hide chat", Space hides the chat and Space shows it again.
-  const toolbar = page.getByRole("toolbar", { name: "Session" });
-  await pressUntil(page, toolbar);
-  await pressUntil(page, toolbar.getByRole("button", { name: "Hide chat" }), "ArrowRight", 20);
+  // Tab to "Unpin chat", Space unpins the chat and focus lands on its strip; Space peeks it,
+  // Tab reaches "Pin chat" in the peek and Space pins it again (2026-11-12 pins).
+  await pressUntil(page, page.getByRole("button", { name: "Unpin chat" }));
   await page.keyboard.press("Space");
   await expect(chat(page)).toBeHidden();
-  await expect(toolbar.getByRole("button", { name: "Show chat" })).toBeFocused();
+  await expect(chatStrip(page)).toBeFocused();
   await page.keyboard.press("Space");
+  await expect(chat(page)).toBeVisible();
+  await pressUntil(page, page.getByRole("button", { name: "Pin chat" }));
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("button", { name: "Unpin chat" })).toBeFocused();
   await expect(chat(page)).toBeVisible();
 
   // Tab to the divider; ↑ three times makes the chat taller.

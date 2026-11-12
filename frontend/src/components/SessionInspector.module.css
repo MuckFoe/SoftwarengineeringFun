@@ -18,3 +18,10 @@
   display: flex;
   flex-direction: column;
 }
+
+/* Pinnable, chat only: the chat panel alone at the right edge. */
+.single {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+}

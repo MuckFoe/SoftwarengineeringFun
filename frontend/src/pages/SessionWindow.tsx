@@ -18,12 +18,16 @@ import { useChat } from "../chat/useChat";
 import { type ClosedEvent, CollabProvider, type SocketFactory } from "../collab/provider";
 import type { ChatGifs } from "../components/ChatPane";
 import { CodeEditor, editorAccess } from "../components/CodeEditor";
-import { useChatVisible } from "../components/chatVisibility";
+import { useChatPinned } from "../components/chatVisibility";
 import { editorTheme } from "../components/editorTheme";
 import { PresenceList } from "../components/PresenceList";
 import { ProblemList, useProblemSwitcher } from "../components/ProblemSourceList";
 import { RunPanel } from "../components/RunPanel";
-import { type ChatPaneProps, SessionInspector } from "../components/SessionInspector";
+import {
+  type ChatPaneProps,
+  type PanelPin,
+  SessionInspector,
+} from "../components/SessionInspector";
 import { type HintNotice, HintsPanel } from "../hints/HintsPanel";
 import { ScratchPanel } from "../scratch/ScratchPanel";
 import {
@@ -41,9 +45,11 @@ import { HeaderButton } from "../ui/HeaderButton";
 import { Hud } from "../ui/Hud";
 import { InlineMessage } from "../ui/InlineMessage";
 import { LiveBadge } from "../ui/LiveBadge";
-import { BottomPanel, Inspector } from "../ui/Panels";
+import { PinnablePanel, type PinnablePanelHandle } from "../ui/PinnablePanel";
 import { Sidebar, SidebarSection } from "../ui/Sidebar";
+import { Tabs } from "../ui/Tabs";
 import { TextField } from "../ui/TextField";
+import { usePinned } from "../ui/usePinned";
 import { Window } from "../ui/Window";
 import { NotFound } from "./NotFound";
 import styles from "./SessionWindow.module.css";
@@ -85,6 +91,14 @@ const ERROR_NOTICES: Partial<Record<WsErrorCode, string>> = {
 
 const NO_PROGRESS: ProblemProgress = { accepted: false };
 
+/** The bottom panel's two results: the script run's output, and the tests' results. */
+type ResultsTab = "output" | "tests";
+
+const RESULTS_TABS = [
+  { id: "output", label: "Output" },
+  { id: "tests", label: "Tests" },
+] as const;
+
 type Chat = ReturnType<typeof useChat>;
 
 /** Everything shown once joined, kept current from the session's messages. */
@@ -95,8 +109,12 @@ interface Joined {
   progress: Record<string, ProblemProgress>;
   running: boolean;
   notice: string | null;
-  /** The run with the session's own input (spec 011). */
+  /** The session's script run, started by Run (spec 011, 2026-11-12 change). */
   scratch: ScratchState;
+  /** This participant asked for a script run and the server hasn't answered yet. */
+  scratchStarting: boolean;
+  /** Which result the bottom panel shows; a run or check starting selects its own. */
+  resultsTab: ResultsTab;
   /** Every hint of the session, all problems (spec 020 FR-15); shown filtered to the current one. */
   hints: Hint[];
   /** A model is configured (spec 020 FR-1, FR-2). */
@@ -104,6 +122,21 @@ interface Joined {
   /** A hint being prepared for the session (FR-5, FR-8, FR-14a). */
   hintPending: HintPending | null;
   hintNotice: HintNotice | null;
+}
+
+/**
+ * The tab a fresh join opens on: Tests while a check is going, or when the problem has test
+ * results and the session has no script run; otherwise Output.
+ */
+function firstTab(msg: {
+  run_in_progress: boolean;
+  scratch_run?: unknown;
+  current_problem: Problem;
+  problems: Record<string, ProblemProgress>;
+}): ResultsTab {
+  if (msg.run_in_progress) return "tests";
+  if (msg.scratch_run) return "output";
+  return msg.problems[msg.current_problem.id]?.last_run ? "tests" : "output";
 }
 
 /** One problem's hints, by number (spec 020 FR-13). */
@@ -127,8 +160,9 @@ interface Props {
 /**
  * Join states for a session (FR-12, FR-12a, FR-13, FR-14, FR-30, FR-31, FR-32), then the
  * session window (spec 003 FR-10): problems and participants in the sidebar, the editor in
- * the main area, run results in the bottom panel, the description and chat in the
- * inspector, and Run, Invite and the panel toggles in the toolbar (FR-10, FR-14, FR-15,
+ * the main area, the script run's output and the tests' results in the bottom panel, the
+ * description and chat in the inspector, and Run, Check, Invite and the panel toggles in
+ * the toolbar (FR-10, FR-14, FR-15,
  * FR-17, FR-26, FR-28).
  */
 export function SessionWindow({ createSocket }: Props) {
@@ -241,19 +275,22 @@ export function SessionWindow({ createSocket }: Props) {
     const update = (change: (prev: Joined) => Partial<Joined>) =>
       setJoined((prev) => (prev ? { ...prev, ...change(prev) } : prev));
     provider.on("welcome", (msg) => {
-      setJoined({
+      setJoined((prev) => ({
         participants: msg.presence,
         problem: msg.current_problem,
         progress: msg.problems,
         running: msg.run_in_progress,
         notice: null,
         scratch: { ...initialScratchState, run: msg.scratch_run ?? null },
+        scratchStarting: false,
+        // A re-join for a fresh snapshot keeps the tab the participant was looking at.
+        resultsTab: prev?.resultsTab ?? firstTab(msg),
         // Absent from older servers: no model, no hints (spec 020 contract).
         hints: msg.hints ?? [],
         hintsEnabled: msg.hints_enabled ?? false,
         hintPending: msg.hint_pending ?? null,
         hintNotice: null,
-      });
+      }));
     });
     // A new request clears the last notice, so a second failure in a row is announced again.
     provider.on("hint_started", (msg) =>
@@ -288,7 +325,13 @@ export function SessionWindow({ createSocket }: Props) {
     );
     const scratch = (action: ScratchAction) =>
       update((prev) => ({ scratch: scratchReducer(prev.scratch, action) }));
-    provider.on("scratch_run_started", (msg) => scratch({ type: "started", run: msg.run }));
+    provider.on("scratch_run_started", (msg) =>
+      update((prev) => ({
+        scratch: scratchReducer(prev.scratch, { type: "started", run: msg.run }),
+        scratchStarting: false,
+        resultsTab: "output",
+      })),
+    );
     provider.on("scratch_run_output", (msg) =>
       scratch({ type: "output", seq: msg.seq, s: msg.s, t: msg.t }),
     );
@@ -296,11 +339,15 @@ export function SessionWindow({ createSocket }: Props) {
       scratch({ type: "end", status: msg.status, exit_code: msg.exit_code }),
     );
     provider.on("scratch_run_refused", (msg) =>
-      scratch(
-        msg.reason === "in_progress"
-          ? { type: "refused", reason: "in_progress", by: msg.by }
-          : { type: "refused", reason: "stale" },
-      ),
+      update((prev) => ({
+        scratchStarting: false,
+        scratch: scratchReducer(
+          prev.scratch,
+          msg.reason === "in_progress"
+            ? { type: "refused", reason: "in_progress", by: msg.by }
+            : { type: "refused", reason: "stale" },
+        ),
+      })),
     );
     provider.on("presence", (msg) => update(() => ({ participants: msg.participants })));
     provider.on("problem_switched", (msg) =>
@@ -316,7 +363,9 @@ export function SessionWindow({ createSocket }: Props) {
         prev.problem.id === msg.problem_id ? { problem: { ...prev.problem, deleted: true } } : {},
       ),
     );
-    provider.on("run_started", () => update(() => ({ running: true, notice: null })));
+    provider.on("run_started", () =>
+      update(() => ({ running: true, notice: null, resultsTab: "tests" })),
+    );
     provider.on("run_finished", (msg) =>
       update((prev) => {
         const before = prev.progress[msg.run.problem_id] ?? NO_PROGRESS;
@@ -371,11 +420,21 @@ export function SessionWindow({ createSocket }: Props) {
 
   if (joined && providerRef.current) {
     const provider = providerRef.current;
-    // Shown as running at once (spec 003 FR-3); run_started/run_finished confirm it.
-    const run = () => {
-      setJoined((prev) => (prev ? { ...prev, running: true, notice: null } : prev));
+    // Check runs the hidden tests. Shown as running at once (spec 003 FR-3);
+    // run_started/run_finished confirm it.
+    const check = () => {
+      setJoined((prev) =>
+        prev ? { ...prev, running: true, notice: null, resultsTab: "tests" } : prev,
+      );
       provider.send({ type: "run" });
     };
+    // Run runs the code as a script with empty input (spec 011, 2026-11-12 change).
+    const runCode = () => {
+      setJoined((prev) => (prev ? { ...prev, scratchStarting: true, resultsTab: "output" } : prev));
+      provider.send({ type: "scratch_run", input: "" });
+    };
+    const setResultsTab = (tab: ResultsTab) =>
+      setJoined((prev) => (prev ? { ...prev, resultsTab: tab } : prev));
     return (
       <>
         <JoinedWindow
@@ -385,7 +444,9 @@ export function SessionWindow({ createSocket }: Props) {
           // GIF search only for a live session (spec 007 FR-1, FR-8); the stale page gets none.
           gifs={{ invite: invite ?? "", provider, sendGif: chat.sendGif }}
           inviteLink={inviteLink}
-          onRun={run}
+          onRun={runCode}
+          onCheck={check}
+          onResultsTab={setResultsTab}
         />
         {/* Signed in, reactivating joins at once (spec 012 FR-1): its Hud outlives the join. */}
         {hud && <Hud key={hud.key} message={hud.message} />}
@@ -517,14 +578,14 @@ interface StaleProps {
 
 /**
  * A stale session (spec 003 FR-12, AC-13): a calm banner under the toolbar, with
- * Reactivate beside the notice for admins, and the editor and Run visibly disabled.
+ * Reactivate beside the notice for admins, and the editor, Run and Check visibly disabled.
  * The problem's description sits above the read-only chat once it has loaded; until
  * then, or if it can't be loaded, the chat fills the side area alone (spec 008 FR-9).
  */
 function StaleWindow({ invite, canReactivate, problemId, error, chat, onReactivate }: StaleProps) {
   const [descriptionHtml, setDescriptionHtml] = useState<string | undefined>(undefined);
   const [hints, setHints] = useState<Hint[]>([]);
-  const [chatVisible, setChatVisible] = useChatVisible();
+  const pins = useInspectorPins();
 
   // Hints already given stay visible, read-only (spec 020 FR-3, FR-15).
   useEffect(() => {
@@ -563,24 +624,23 @@ function StaleWindow({ invite, canReactivate, problemId, error, chat, onReactiva
     <Window
       inspector={
         // The history stays readable; only sending is unavailable (spec 002 FR16).
-        <Inspector open label="Inspector">
-          <SessionInspector
-            descriptionHtml={descriptionHtml}
-            chatVisible={chatVisible}
-            chat={chatProps(chat)}
-            hints={
-              hints.length > 0 && (
-                <HintsPanel
-                  hints={hints}
-                  canAsk={false}
-                  pending={null}
-                  notice={null}
-                  onAsk={() => {}}
-                />
-              )
-            }
-          />
-        </Inspector>
+        <SessionInspector
+          descriptionHtml={descriptionHtml}
+          chatVisible={pins.chat.pinned}
+          chat={chatProps(chat)}
+          pins={pins}
+          hints={
+            hints.length > 0 && (
+              <HintsPanel
+                hints={hints}
+                canAsk={false}
+                pending={null}
+                notice={null}
+                onAsk={() => {}}
+              />
+            )
+          }
+        />
       }
       toolbar={
         <AppHeader label="Session" stackNarrow>
@@ -589,14 +649,9 @@ function StaleWindow({ invite, canReactivate, problemId, error, chat, onReactiva
           <Button variant="primary" size="xs" icon="play" disabled>
             <span className="app-header-pill-text">Run</span>
           </Button>
-          {/* No inspector toggle here, so the chat toggle alone (spec 008 FR-2, FR-4). */}
-          <Button
-            variant="plain"
-            icon="chat"
-            label={chatVisible ? "Hide chat" : "Show chat"}
-            aria-pressed={chatVisible}
-            onClick={() => setChatVisible(!chatVisible)}
-          />
+          <Button variant="bordered" size="xs" icon="checkmark" disabled>
+            <span className="app-header-pill-text">Check</span>
+          </Button>
         </AppHeader>
       }
       banner={
@@ -663,44 +718,55 @@ interface JoinedProps {
   chat: Chat;
   gifs: ChatGifs;
   inviteLink: string;
+  /** Runs the code as a script (spec 011, 2026-11-12 change). */
   onRun(): void;
+  /** Runs the hidden tests. */
+  onCheck(): void;
+  onResultsTab(tab: ResultsTab): void;
 }
 
-function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: JoinedProps) {
+function JoinedWindow({
+  provider,
+  joined,
+  chat,
+  gifs,
+  inviteLink,
+  onRun,
+  onCheck,
+  onResultsTab,
+}: JoinedProps) {
   const { problem } = joined;
-  // The sidebar (problems, participants) starts closed: the editor gets the room, and the
-  // sidebar toggle or its shortcut opens it.
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const scratchBusy = joined.scratchStarting || joined.scratch.run?.status === "running";
   const switcher = useProblemSwitcher(provider, problem.id);
-  const [runPanelOpen, setRunPanelOpen] = useState(true);
-  const [scratchOpen, setScratchOpen] = useState(false);
-  // On a phone the inspector would cover the editor, so it starts closed there.
-  const [inspectorOpen, setInspectorOpen] = useState(
-    () =>
-      typeof window.matchMedia !== "function" || !window.matchMedia("(max-width: 40rem)").matches,
-  );
-  const [chatVisible, setChatVisible] = useChatVisible();
-  const chatOnScreen = inspectorOpen && chatVisible;
+  // Each panel is pinned (laid out) or a strip that peeks on hover or focus, remembered per
+  // browser. The sidebar (problems, participants) starts unpinned so the editor gets the room;
+  // the run results start pinned; the description and chat as `useInspectorPins` says.
+  const [sidebarPinned, setSidebarPinned] = usePinned("sidebar", false);
+  const [outputPinned, setOutputPinned] = usePinned("output", true);
+  const sidebarRef = useRef<PinnablePanelHandle>(null);
+  const outputRef = useRef<PinnablePanelHandle>(null);
+  const chatRef = useRef<PinnablePanelHandle>(null);
+  const pins = useInspectorPins(chatRef);
   const [hud, setHud] = useState<{ key: number; message: string } | null>(null);
 
-  useShortcut("toggleSidebar", () => setSidebarOpen((open) => !open));
+  useShortcut("toggleSidebar", () => togglePin(sidebarPinned, setSidebarPinned, sidebarRef));
   // Registered only once joined, so none of these act while the session is stale.
-  useShortcut("run", run, { enabled: !joined.running && !problem.deleted });
-  useShortcut("toggleRunPanel", () => setRunPanelOpen((open) => !open));
+  useShortcut("run", run, { enabled: !scratchBusy && !problem.deleted });
+  useShortcut("check", check, { enabled: !joined.running && !problem.deleted });
+  useShortcut("toggleRunPanel", () => togglePin(outputPinned, setOutputPinned, outputRef));
   useShortcut("copyInviteLink", () => void copyInvite());
-  useShortcut("toggleChat", toggleChat);
+  // Spec 008's chat toggle, now the chat's pin (2026-11-12).
+  useShortcut("toggleChat", () => togglePin(pins.chat.pinned, pins.chat.onPinnedChange, chatRef));
 
-  /**
-   * Hides the chat when it is on screen (FR-2); otherwise shows it, opening the inspector
-   * if needed (FR-3). Remembered per browser (FR-4); `inspectorOpen` is not (FR-6).
-   */
-  function toggleChat() {
-    if (chatOnScreen) {
-      setChatVisible(false);
-    } else {
-      setChatVisible(true);
-      setInspectorOpen(true);
-    }
+  // Starting either one shows its result: an unpinned results panel peeks, it is not pinned.
+  function run() {
+    if (!outputPinned) outputRef.current?.peek();
+    onRun();
+  }
+
+  function check() {
+    if (!outputPinned) outputRef.current?.peek();
+    onCheck();
   }
 
   async function copyInvite() {
@@ -715,69 +781,50 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
   return (
     <ShortcutScope scope="session">
       <Window
-        sidebarOpen={sidebarOpen}
-        sidebar={
-          <Sidebar label="Sidebar">
-            <SidebarSection title="Problems">
-              <ProblemList switcher={switcher} />
-            </SidebarSection>
-            <SidebarSection title="Participants">
-              {joined.participants.length > 1 && <LiveBadge />}
-              <PresenceList participants={joined.participants} />
-            </SidebarSection>
-          </Sidebar>
+        leftPanel={
+          <PinnablePanel
+            ref={sidebarRef}
+            title="Sidebar"
+            icon="sidebar"
+            edge="left"
+            pinned={sidebarPinned}
+            onPinnedChange={setSidebarPinned}
+          >
+            <Sidebar label="Sidebar">
+              <SidebarSection title="Problems">
+                <ProblemList switcher={switcher} />
+              </SidebarSection>
+              <SidebarSection title="Participants">
+                {joined.participants.length > 1 && <LiveBadge />}
+                <PresenceList participants={joined.participants} />
+              </SidebarSection>
+            </Sidebar>
+          </PinnablePanel>
         }
         toolbar={
-          <AppHeader
-            label="Session"
-            stackNarrow
-            actions={
-              // The view toggles, one quiet group at the right, so the left keeps the title.
-              <div className="app-header-group" role="group" aria-label="View">
-                <HeaderButton
-                  icon="sidebar"
-                  label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-                  aria-pressed={sidebarOpen}
-                  onClick={() => setSidebarOpen((open) => !open)}
-                />
-                <HeaderButton
-                  icon="bottomPanel"
-                  label={runPanelOpen ? "Hide run results" : "Show run results"}
-                  aria-pressed={runPanelOpen}
-                  onClick={() => setRunPanelOpen((open) => !open)}
-                />
-                <HeaderButton
-                  icon="pencil"
-                  label={scratchOpen ? "Hide own-input run" : "Show own-input run"}
-                  aria-pressed={scratchOpen}
-                  onClick={() => setScratchOpen((open) => !open)}
-                />
-                <HeaderButton
-                  icon="inspector"
-                  label={inspectorOpen ? "Hide inspector" : "Show inspector"}
-                  aria-pressed={inspectorOpen}
-                  onClick={() => setInspectorOpen((open) => !open)}
-                />
-                <HeaderButton
-                  icon="chat"
-                  label={chatOnScreen ? "Hide chat" : "Show chat"}
-                  aria-pressed={chatOnScreen}
-                  onClick={toggleChat}
-                />
-              </div>
-            }
-          >
+          <AppHeader label="Session" stackNarrow>
             <h1 className={styles.title}>{problem.title}</h1>
             <Button
               variant="primary"
               size="xs"
               icon="play"
-              busy={joined.running}
+              busy={scratchBusy}
               busyLabel="Running"
-              disabled={joined.running || problem.deleted}
+              disabled={scratchBusy || problem.deleted}
               onClick={run}
             >
               <span className="app-header-pill-text">Run</span>
+            </Button>
+            <Button
+              variant="bordered"
+              size="xs"
+              icon="checkmark"
+              busy={joined.running}
+              busyLabel="Checking"
+              disabled={joined.running || problem.deleted}
+              onClick={check}
+            >
+              <span className="app-header-pill-text">Check</span>
             </Button>
             <HeaderButton icon="link" onClick={() => void copyInvite()}>
               Invite
@@ -785,41 +832,77 @@ function JoinedWindow({ provider, joined, chat, gifs, inviteLink, onRun: run }: 
           </AppHeader>
         }
         inspector={
-          <Inspector open={inspectorOpen} label="Inspector">
-            <SessionInspector
-              descriptionHtml={problem.description_html}
-              chatVisible={chatVisible}
-              chat={chatProps(chat, gifs)}
-              hints={
-                <HintsPanel
-                  hints={hintsFor(joined.hints, problem.id)}
-                  canAsk={joined.hintsEnabled && !problem.deleted}
-                  pending={joined.hintPending}
-                  notice={joined.hintNotice}
-                  onAsk={(note) => provider.send({ type: "hint_request", note })}
-                />
-              }
-            />
-          </Inspector>
+          <SessionInspector
+            descriptionHtml={problem.description_html}
+            chatVisible={pins.chat.pinned}
+            chat={chatProps(chat, gifs)}
+            pins={pins}
+            hints={
+              <HintsPanel
+                hints={hintsFor(joined.hints, problem.id)}
+                canAsk={joined.hintsEnabled && !problem.deleted}
+                pending={joined.hintPending}
+                notice={joined.hintNotice}
+                onAsk={(note) => provider.send({ type: "hint_request", note })}
+              />
+            }
+          />
         }
         bottomPanel={
-          <BottomPanel open={runPanelOpen} label="Run results">
-            <RunPanel
-              running={joined.running}
-              deleted={problem.deleted}
-              progress={joined.progress[problem.id] ?? NO_PROGRESS}
-              notice={joined.notice}
-              onRun={run}
-              showRunButton={false}
-            />
-            {scratchOpen && (
-              <ScratchPanel
-                state={joined.scratch}
-                stale={false}
-                onRun={(input) => provider.send({ type: "scratch_run", input })}
-              />
+          <PinnablePanel
+            ref={outputRef}
+            title="Run results"
+            icon="bottomPanel"
+            edge="bottom"
+            region
+            pinned={outputPinned}
+            onPinnedChange={setOutputPinned}
+            actions={
+              <div className={styles.resultsTabs}>
+                <Tabs
+                  tabs={RESULTS_TABS}
+                  value={joined.resultsTab}
+                  onChange={(id) => onResultsTab(id as ResultsTab)}
+                  label="Results"
+                />
+              </div>
+            }
+          >
+            {/* Each tab panel scrolls itself and is a keyboard stop, as tab panels are. */}
+            {joined.resultsTab === "output" ? (
+              <div
+                role="tabpanel"
+                aria-label="Output"
+                // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling tab panel is a keyboard stop (WAI-ARIA tabs).
+                tabIndex={0}
+                className={styles.results}
+              >
+                {problem.deleted && (
+                  <InlineMessage id="output-deleted" tone="info">
+                    This problem has been deleted.
+                  </InlineMessage>
+                )}
+                <ScratchPanel state={joined.scratch} />
+              </div>
+            ) : (
+              <div
+                role="tabpanel"
+                aria-label="Tests"
+                // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling tab panel is a keyboard stop (WAI-ARIA tabs).
+                tabIndex={0}
+                className={styles.results}
+              >
+                <RunPanel
+                  running={joined.running}
+                  deleted={problem.deleted}
+                  progress={joined.progress[problem.id] ?? NO_PROGRESS}
+                  notice={joined.notice}
+                  onRun={check}
+                  showRunButton={false}
+                />
+              </div>
             )}
-          </BottomPanel>
+          </PinnablePanel>
         }
       >
         <div className={styles.main}>
@@ -842,5 +925,35 @@ function chatProps(chat: Chat, gifs?: ChatGifs): ChatPaneProps {
     canRemove: chat.canRemove,
     remove: chat.remove,
     gifs,
+  };
+}
+
+/** Shortcut on a panel's pin: pins an unpinned panel; unpins a pinned one, leaving it peeking. */
+function togglePin(
+  pinned: boolean,
+  setPinned: (pinned: boolean) => void,
+  ref: { current: PinnablePanelHandle | null },
+): void {
+  setPinned(!pinned);
+  if (pinned) ref.current?.peek();
+}
+
+/** True on a phone-sized screen, read once when the window mounts. */
+function startsNarrow(): boolean {
+  return typeof window.matchMedia === "function" && window.matchMedia("(max-width: 40rem)").matches;
+}
+
+/**
+ * The description's and chat's pins (spec 008, 2026-11-12). The chat's is its remembered
+ * visibility. Both start pinned, except on a phone, where they would cover the editor: there
+ * they start unpinned unless this browser already chose.
+ */
+function useInspectorPins(chatRef?: PanelPin["handle"]): { description: PanelPin; chat: PanelPin } {
+  const [narrow] = useState(startsNarrow);
+  const [descriptionPinned, setDescriptionPinned] = usePinned("description", !narrow);
+  const [chatPinned, setChatPinned] = useChatPinned(!narrow);
+  return {
+    description: { pinned: descriptionPinned, onPinnedChange: setDescriptionPinned },
+    chat: { pinned: chatPinned, onPinnedChange: setChatPinned, handle: chatRef },
   };
 }

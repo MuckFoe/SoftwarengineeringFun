@@ -36,6 +36,13 @@ const appearance = (page: Page) =>
   page.evaluate(() => document.documentElement.getAttribute("data-appearance"));
 
 /** Relative luminance (WCAG) of the first non-transparent background at or above `el`. */
+/** Pins the sidebar (a coding session starts with it unpinned): peek it, then its Pin. */
+async function pinSidebar(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Sidebar", exact: true }).click();
+  await page.getByRole("button", { name: "Pin sidebar" }).click();
+  await expect(page.getByRole("button", { name: "Unpin sidebar" })).toBeVisible();
+}
+
 function backgroundLuminance(el: Locator): Promise<number> {
   return el.evaluate((start) => {
     let node: Element | null = start;
@@ -112,7 +119,7 @@ test.describe("with a dark OS", () => {
     keycloak,
   }) => {
     await join(page, await createSession(request), "Ada");
-    await page.getByRole("button", { name: "Show sidebar" }).click();
+    await pinSidebar(page);
     await expect.poll(() => appearance(page)).toBe("dark");
     expect(await backgroundLuminance(page.locator(".cm-editor"))).toBeLessThan(DARK);
     expect(await backgroundLuminance(page.locator(".cm-gutters"))).toBeLessThan(DARK);
@@ -177,7 +184,7 @@ test.describe("with reduced motion", () => {
   }) => {
     const invite = await createSession(request);
     await join(page, invite, "Ada");
-    await page.getByRole("button", { name: "Show sidebar" }).click();
+    await pinSidebar(page);
 
     await page.keyboard.press("ControlOrMeta+Shift+Slash");
     const sheet = page.locator("dialog[open]");

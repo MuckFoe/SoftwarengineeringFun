@@ -28,6 +28,13 @@ export interface SplitPaneProps {
   fitTop?: number;
   /** Accessible name of the divider, e.g. "Resize description and chat". */
   dividerLabel: string;
+  /**
+   * Stacked instead of split (pinnable panels, `PinnableColumn`): no divider, both parts stay
+   * laid out and reachable. "top" or "bottom" names the part that takes only its own size (a
+   * strip) while the other fills; "both" shares the height evenly. Overrides `bottomOpen`.
+   * While stacked the parts do not clip, so a peek overlay can rise over the other part.
+   */
+  stack?: "top" | "bottom" | "both";
 }
 
 /** Pixels one arrow key press moves the divider. */
@@ -58,6 +65,7 @@ export function SplitPane({
   defaultTopFraction,
   fitTop,
   dividerLabel,
+  stack,
 }: SplitPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dividerRef = useRef<HTMLDivElement>(null);
@@ -72,14 +80,17 @@ export function SplitPane({
   const [content, setContent] = useState(0);
 
   function measureContent() {
-    const el = topRef.current?.firstElementChild;
-    if (!(el instanceof HTMLElement)) return;
-    const box = el.getBoundingClientRect();
-    let bottom = box.top;
+    const part = topRef.current;
+    // The scrolling element whose content decides the fit: one marked `data-fit-content` (inside
+    // a pinnable panel, under its header), else the top part's own child.
+    const el = part?.querySelector("[data-fit-content]") ?? part?.firstElementChild;
+    if (!part || !(el instanceof HTMLElement)) return;
+    const origin = part.getBoundingClientRect().top;
+    let bottom = el.getBoundingClientRect().top;
     for (const child of el.children)
       bottom = Math.max(bottom, child.getBoundingClientRect().bottom);
     const next =
-      bottom - box.top + el.scrollTop + Number.parseFloat(getComputedStyle(el).paddingBottom);
+      bottom - origin + el.scrollTop + Number.parseFloat(getComputedStyle(el).paddingBottom);
     setContent((now) => (Math.abs(now - next) > 1 ? next : now));
   }
 
@@ -106,7 +117,7 @@ export function SplitPane({
     return Math.max(0, container - (dividerRef.current?.offsetHeight ?? 0));
   }
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the divider comes and goes with bottomOpen, changing the shared height.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the divider comes and goes with bottomOpen and stack, changing the shared height.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -115,7 +126,7 @@ export function SplitPane({
     const observer = new ResizeObserver(() => setHeight(measure()));
     observer.observe(el);
     return () => observer.disconnect();
-  }, [bottomOpen]);
+  }, [bottomOpen, stack]);
 
   // With a known height, the shown share respects both minimums even after a resize.
   const wantedTop =
@@ -182,18 +193,24 @@ export function SplitPane({
     }
   }
 
-  const topStyle = bottomOpen
+  const split = bottomOpen && stack === undefined;
+  const topStyle = split
     ? height > 0
       ? { flexBasis: `${shownFraction * height}px` }
       : { flexBasis: `${shownFraction * 100}%` }
     : undefined;
 
   return (
-    <div ref={containerRef} className={styles.split} data-bottom-open={bottomOpen}>
+    <div
+      ref={containerRef}
+      className={styles.split}
+      data-bottom-open={bottomOpen || stack !== undefined}
+      data-stack={stack}
+    >
       <div ref={topRef} className={styles.top} style={topStyle}>
         {top}
       </div>
-      {bottomOpen && (
+      {split && (
         // biome-ignore lint/a11y/useSemanticElements: a focusable, resizable splitter is a separator widget; <hr> cannot take focus or keys.
         <div
           ref={dividerRef}
@@ -213,7 +230,11 @@ export function SplitPane({
           onLostPointerCapture={endDrag}
         />
       )}
-      <div className={styles.bottom} data-open={bottomOpen} {...collapsedProps(bottomOpen)}>
+      <div
+        className={styles.bottom}
+        data-open={bottomOpen || stack !== undefined}
+        {...collapsedProps(bottomOpen || stack !== undefined)}
+      >
         {bottom}
       </div>
     </div>

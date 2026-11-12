@@ -16,29 +16,34 @@ async function joinNewSession(page: Page, request: APIRequestContext): Promise<v
 
 const toolbar = (page: Page) => page.getByRole("toolbar", { name: "Session" });
 
-test("AC-11: sidebar with problems and participants, editor in main, toolbar actions, run panel toggles", async ({
+test("AC-11: sidebar with problems and participants, editor in main, toolbar actions, run panel pins", async ({
   page,
   request,
 }) => {
   await joinNewSession(page, request);
-  // The sidebar starts closed, so the editor gets the room; its toggle opens it.
+  // The sidebar starts unpinned, a strip, so the editor gets the room; hovering it peeks.
   await expect(page.getByRole("navigation", { name: "Sidebar" })).toHaveCount(0);
-  await toolbar(page).getByRole("button", { name: "Show sidebar" }).click();
+  await page.getByRole("button", { name: "Sidebar", exact: true }).hover();
 
   const sidebar = page.getByRole("navigation", { name: "Sidebar" });
   await expect(sidebar.getByRole("region", { name: "Problems" })).toBeVisible();
   await expect(sidebar.getByRole("region", { name: "Participants" })).toContainText("Ada");
   await expect(page.getByRole("main").locator(".cm-content")).toBeVisible();
-  for (const name of ["Run", "Invite", "Appearance"]) {
+  for (const name of ["Run", "Check", "Invite", "Appearance"]) {
     await expect(toolbar(page).getByRole("button", { name, exact: true })).toBeVisible();
   }
 
   const panel = page.getByRole("region", { name: "Run results" });
   await expect(panel).toBeVisible();
-  await toolbar(page).getByRole("button", { name: "Hide run results" }).click();
+  // Leaving the strip and its peek closes the peek.
+  await page.getByRole("main").hover();
+  await expect(sidebar).toHaveCount(0);
+  await panel.getByRole("button", { name: "Unpin run results" }).click();
   await expect(panel).toHaveCount(0);
-  await toolbar(page).getByRole("button", { name: "Show run results" }).click();
+  await page.getByRole("button", { name: "Run results", exact: true }).click();
+  await page.getByRole("button", { name: "Pin run results" }).click();
   await expect(panel).toBeVisible();
+  await expect(page.getByRole("button", { name: "Run results", exact: true })).toHaveCount(0);
 });
 
 test("AC-10: picking another problem in the sidebar switches the session; no other switcher", async ({
@@ -46,7 +51,7 @@ test("AC-10: picking another problem in the sidebar switches the session; no oth
   request,
 }) => {
   await joinNewSession(page, request);
-  await toolbar(page).getByRole("button", { name: "Show sidebar" }).click();
+  await page.getByRole("button", { name: "Sidebar", exact: true }).click();
   const problems = page.getByRole("listbox", { name: "Problems" });
   const other = problems.getByRole("option").filter({ hasNotText: FIRST }).first();
   const otherTitle = (await other.textContent()) ?? "";
@@ -60,12 +65,13 @@ test("AC-10: picking another problem in the sidebar switches the session; no oth
   await expect(page.getByRole("searchbox")).toHaveCount(0);
 });
 
-test("AC-3: Run shows a spinner within 100 ms, no dialog, and the result replaces it", async ({
+// Check runs the tests (Run runs the code as a script since the 2026-11-12 change to spec 011).
+test("AC-3: Check shows a spinner within 100 ms, no dialog, and the result replaces it", async ({
   page,
   request,
 }) => {
   await joinNewSession(page, request);
-  const run = toolbar(page).getByRole("button", { name: "Run", exact: true });
+  const run = toolbar(page).getByRole("button", { name: "Check", exact: true });
 
   // Measured in the page: from the click to the first progressbar in the DOM.
   await page.evaluate(`(() => {
@@ -104,6 +110,7 @@ test("AC-13: a stale session shows the notice in view, with the editor and Run d
   await expect(banner).toBeInViewport();
   await expect(page.locator(".cm-content")).toHaveAttribute("contenteditable", "false");
   await expect(toolbar(page).getByRole("button", { name: "Run", exact: true })).toBeDisabled();
+  await expect(toolbar(page).getByRole("button", { name: "Check", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Reactivate" })).toHaveCount(0);
 });
 
@@ -128,4 +135,5 @@ test("AC-13: an admin sees Reactivate in the banner, and reactivating re-enables
   await expect(page.getByLabel("Your name")).toHaveCount(0);
   await expect(page.locator(".cm-content")).toHaveAttribute("contenteditable", "true");
   await expect(toolbar(page).getByRole("button", { name: "Run", exact: true })).toBeEnabled();
+  await expect(toolbar(page).getByRole("button", { name: "Check", exact: true })).toBeEnabled();
 });

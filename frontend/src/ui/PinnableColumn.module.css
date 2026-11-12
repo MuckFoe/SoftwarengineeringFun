@@ -1,0 +1,15 @@
+/* The right-hand column of two pinnable panels. It positions their peeks. */
+.column {
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  width: var(--column-width);
+  min-height: 0;
+  height: 100%;
+  background: var(--surface-2);
+}
+
+/* Both unpinned: only the two labelled strips remain. */
+.column[data-collapsed="true"] {
+  width: var(--space-32);
+}

@@ -80,6 +80,7 @@ describe("SHORTCUTS", () => {
     expect(new Set(ids)).toEqual(
       new Set<ShortcutId>([
         "run",
+        "check",
         "close",
         "defaultButton",
         "focusSearch",

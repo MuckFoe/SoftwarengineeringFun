@@ -148,6 +148,7 @@ describe("App shell (spec 003)", () => {
 
     const list = await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
     expect(list.textContent).toContain("Run code");
+    expect(list.textContent).toContain("Check solution");
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
     expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).toBeNull();
   });

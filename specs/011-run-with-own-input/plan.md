@@ -56,6 +56,7 @@ The existing join/reload snapshot gains a `run` field (the `Run` object in *Cont
 
 ### Frontend
 
+- *2026-11-12 change: the input field and the panel's own Run button are gone. The panel (`ScratchPanel`) is the bottom panel's "Output" tab and shows status and output only; the session toolbar's Run sends `scratch_run` with `input: ""`, and Check sends the test `run`. Below is the original design.*
 - **`RunPanel`** — a panel in the session screen, with: a multi-line input field (plain text), a *Run* button, an output area, a status line ("finished", "error", "stopped: time limit", "stopped: output limit", "stopped: interrupted", "running…", plus "started by <name>"). *Run* is not rendered when the session is stale (FR-12), and is disabled while any run is in progress, with the starter's name shown (FR-9).
   - The input field reflects the last run's input for everyone (FR-10 shows the input); only the starter's local edits are theirs to make. Editing is available to anyone who can run.
   - Output is rendered as React text nodes inside a `<pre>`, one `<span>` per segment, class `out` or `err` (FR-3: `err` visibly distinct, e.g. a different colour *and* a marker so colour is not the only cue, matching the WCAG AA rule of spec 003). Never `dangerouslySetInnerHTML` (NFR-4).

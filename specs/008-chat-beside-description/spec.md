@@ -38,6 +38,8 @@ In the session window the problem description and the chat share one panel as ta
 
 ## Acceptance criteria
 
+> **Change 2026-11-12 (pinnable panels):** the chat's show/hide is now its pin. "Hide chat" reads "Unpin chat" (a toggle in the chat's own header, `aria-pressed`), and a hidden chat is a "Chat" strip at the bottom of the side area that peeks the chat on hover or focus; "Show chat" reads "Pin chat" (in that peek), or the chat shortcut. The description is pinnable the same way, so "hiding the side area" (FR-6) means unpinning both: the side area narrows to two labelled strips. The remembered choice (FR-4) is unchanged. FR-7's toolbar control moved to the chat's header and strip, which carry the chat icon.
+
 **FR-1** — Given a session with a description and chat, When a participant opens it, Then the description and the chat are both visible, the description above the chat, and there is no Description/Chat tab control.
 
 **FR-2** — Given the chat is visible, When the participant activates "Hide chat", Then the chat is not visible and the description fills the side area.

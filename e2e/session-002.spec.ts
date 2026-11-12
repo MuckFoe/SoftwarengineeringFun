@@ -179,13 +179,19 @@ test("AC-16: chat is grouped by sender, counts characters, is toggled by its sho
   await say(ben, "one");
   await say(ben, "two");
 
-  // The chat starts shown beside the description (spec 008 FR-1); the shortcut hides it
-  // and shows it again.
+  // The chat starts pinned beside the description (spec 008 FR-1); the shortcut unpins it,
+  // leaving it peeking until a press elsewhere, and pins it again (2026-11-12 pins).
   const chat = ana.getByRole("region", { name: "Chat" });
   await expect(chat).toBeVisible();
   await ana.keyboard.press(CHAT_SHORTCUT);
+  await expect(ana.getByRole("button", { name: "Chat", exact: true })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await ana.getByRole("main").click();
   await expect(chat).toBeHidden();
   await ana.keyboard.press(CHAT_SHORTCUT);
+  await expect(ana.getByRole("button", { name: "Unpin chat" })).toBeVisible();
   await expect(chat.getByText("two", { exact: true })).toBeVisible();
   await say(ana, "three");
 

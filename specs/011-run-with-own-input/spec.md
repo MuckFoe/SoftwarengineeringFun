@@ -2,6 +2,8 @@
 
 Source: feedback F11, which also answers F6 (`specs/feedback.md`), from a participant's chat message on 2026-10-30: "include a commandline, where std out will be visable for the user". Amends 001: its exclusion of "showing printed output" stays for test runs. This spec adds a separate kind of run where printed output is shown.
 
+**Change 2026-11-12 (at the user's request):** the own-input box is removed. The session toolbar's *Run* (play icon, ⌘↩ / Ctrl+Enter) now runs the session's code as a script with **empty** standard input and shows all of its output, standard output and errors/tracebacks, in the bottom panel's *Output* tab. The hidden tests moved to a separate toolbar command, *Check* (checkmark icon, ⇧⌘↩ / Ctrl+Shift+Enter), whose results show in the *Tests* tab. Where the requirements below mention input the participant entered, that input is now always empty; a stored run from before the change still shows its output (its input is no longer shown). See `notes.md`.
+
 ## Problem / Why
 
 Participants can only find out what their solution does by running the tests, which report pass or fail and errors, never what the code prints. You can't debug with `print`, try a function on an input of your own, or see the output of code that isn't finished yet. Printed output was kept out of test runs on purpose: a solution could print the hidden tests' inputs. A separate run, on input the participant types and with no tests involved, gives them the output without exposing anything hidden.
@@ -13,7 +15,7 @@ Participants can only find out what their solution does by running the tests, wh
 
 ## Functional requirements
 
-- **FR-1** WHEN a participant starts a *Run* THE SYSTEM SHALL run the session's current solution once, with the input text the participant entered as its standard input, and with no tests.
+- **FR-1** WHEN a participant starts a *Run* THE SYSTEM SHALL run the session's current solution once, with empty standard input (until 2026-11-12: the input text the participant entered), and with no tests.
 - **FR-2** WHILE a run is in progress THE SYSTEM SHALL show its printed output (standard output) in an output panel as it is produced.
 - **FR-3** WHEN a run writes to standard error or ends with an uncaught error THE SYSTEM SHALL show that text in the same panel, visibly distinct from standard output.
 - **FR-4** WHEN a run ends THE SYSTEM SHALL show how it ended: finished, failed with an error, or stopped at a limit.
@@ -22,9 +24,9 @@ Participants can only find out what their solution does by running the tests, wh
 - **FR-7** WHEN a run exceeds the time limit or the output limit THE SYSTEM SHALL stop it (time) or stop showing further output (size), and say which limit was reached.
 - **FR-8** WHEN a new run starts THE SYSTEM SHALL replace the previous run's output in the panel.
 - **FR-9** WHEN a run is started while another run of the same session is in progress THE SYSTEM SHALL refuse it with a message naming who started the run in progress, and leave that run untouched. *Run* stays unavailable to everyone until the run ends.
-- **FR-10** WHEN a participant joins or reloads the session THE SYSTEM SHALL show the session's last run: its input, its output so far (or all of it), its status and who started it. Only the last run is kept; it is stored durably with the session.
+- **FR-10** WHEN a participant joins or reloads the session THE SYSTEM SHALL show the session's last run: its output so far (or all of it), its status and who started it. Only the last run is kept; it is stored durably with the session.
 - **FR-11** WHEN tests are run THE SYSTEM SHALL keep showing no printed output from them (001 unchanged).
-- **FR-12** WHEN a session is read-only (stale) THE SYSTEM SHALL not offer *Run*, as it doesn't offer test runs.
+- **FR-12** WHEN a session is read-only (stale) THE SYSTEM SHALL show *Run* and *Check* disabled, and start no run.
 
 ## Non-functional requirements
 
@@ -44,7 +46,7 @@ Participants can only find out what their solution does by running the tests, wh
 
 ## Acceptance criteria
 
-- **FR-1** — Given a solution that prints `input()` twice and the input `3` and `4` on two lines, When a participant starts *Run*, Then the panel shows `3` and `4`, And no test result changes.
+- **FR-1** — Given a solution that prints `3 + 4`, When a participant presses the toolbar's *Run*, Then the *Output* tab shows `7`, And no test result changes. (Before 2026-11-12: with input `3` and `4` typed in the input box.)
 - **FR-2** — Given a solution that prints `a`, sleeps 2 s, then prints `b`, When it runs, Then `a` appears in the panel before `b` is printed.
 - **FR-3** — Given a solution that raises `ValueError("bad")`, When it runs, Then the panel shows the traceback with `ValueError: bad`, styled differently from standard output.
 - **FR-4** — Given runs that finish, raise and loop forever, When each ends, Then the panel says *finished*, *error* and *stopped: time limit* respectively.
@@ -53,7 +55,7 @@ Participants can only find out what their solution does by running the tests, wh
 - **FR-7** — Given a solution that prints in an endless loop, When it runs, Then output stops at the output limit, And the panel says the output limit was reached, And the run is stopped no later than the time limit.
 - **FR-8** — Given a finished run with output `old`, When a new run printing `new` starts, Then the panel shows only `new`.
 - **FR-9** — Given A's run is in progress, When B tries to start *Run*, Then B's run doesn't start, And B sees that A's run is in progress, And A's output keeps arriving unchanged. When A's run ends, Then *Run* is available to both again.
-- **FR-10** — Given A ran the solution with input `3`, which printed `9`, When C joins the session afterwards (or A reloads), Then C's panel shows input `3`, output `9`, status *finished* and that A started it. Given a run that is still in progress, When C joins, Then C sees the output so far, followed by the rest as it is produced. Given the hub restarts after a run finished, When A reopens the session, Then the last run is still shown.
+- **FR-10** — Given A ran the solution with input `3`, which printed `9`, When C joins the session afterwards (or A reloads), Then C's panel shows output `9`, status *finished* and that A started it. Given a run that is still in progress, When C joins, Then C sees the output so far, followed by the rest as it is produced. Given the hub restarts after a run finished, When A reopens the session, Then the last run is still shown.
 - **FR-11** — Given a solution that prints a hidden test's argument, When the tests are run, Then no printed output appears anywhere for that test run.
 - **FR-12** — Given a stale session, When a participant opens it, Then there is no way to start *Run*.
 - **NFR-3** — Given a solution that prints 100 KB, When it runs, Then the panel shows the first 64 KB, And says the output limit was reached.

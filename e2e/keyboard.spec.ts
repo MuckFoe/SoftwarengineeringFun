@@ -44,7 +44,14 @@ async function joinAndFocusEditor(page: Page, request: APIRequestContext): Promi
   await editor.click();
 }
 
+/** Run ran the code as a script: the Output tab shows its status (spec 011, 2026-11-12). */
 async function expectRunStarts(page: Page): Promise<void> {
+  const output = page.getByRole("tabpanel", { name: "Output" });
+  await expect(output.getByRole("status")).toContainText(/started by/, { timeout: 30_000 });
+}
+
+/** Check ran the tests: the Tests tab shows their results. */
+async function expectCheckStarts(page: Page): Promise<void> {
   const panel = page.getByRole("region", { name: "Run results" });
   await expect(panel.getByText(/^Test 1: /)).toBeVisible({ timeout: 30_000 });
 }
@@ -81,6 +88,17 @@ test.describe("Linux in Chromium", () => {
     await page.keyboard.press("Control+Enter");
 
     await expectRunStarts(page);
+    expect(await page.locator(".cm-content").textContent()).toBe(before);
+  });
+
+  test("Ctrl+Shift+Enter in the editor checks the solution", async ({ page, request }) => {
+    await pinPlatform(page, "Linux x86_64");
+    await joinAndFocusEditor(page, request);
+    const before = await page.locator(".cm-content").textContent();
+
+    await page.keyboard.press("Control+Shift+Enter");
+
+    await expectCheckStarts(page);
     expect(await page.locator(".cm-content").textContent()).toBe(before);
   });
 
@@ -261,12 +279,21 @@ test.describe("keyboard only, Windows/Linux keys", () => {
         await p.keyboard.press(combo("Run code"));
         await expectRunStarts(p);
       },
-      "Show or hide run panel": async (p) => {
-        const panel = p.getByRole("region", { name: "Run results" });
-        await p.keyboard.press(combo("Show or hide run panel"));
-        await expect(panel).toBeHidden();
-        await p.keyboard.press(combo("Show or hide run panel"));
-        await expect(panel).toBeVisible();
+      "Check solution": async (p) => {
+        await p.keyboard.press(combo("Check solution"));
+        await expectCheckStarts(p);
+      },
+      "Pin or unpin run results": async (p) => {
+        // Pinned at first; the shortcut unpins it and leaves it peeking, then pins it again.
+        await p.keyboard.press(combo("Pin or unpin run results"));
+        await expect(p.getByRole("button", { name: "Run results", exact: true })).toHaveAttribute(
+          "aria-expanded",
+          "true",
+        );
+        await expect(p.getByRole("button", { name: "Pin run results" })).toBeVisible();
+        await p.keyboard.press(combo("Pin or unpin run results"));
+        await expect(p.getByRole("button", { name: "Unpin run results" })).toBeVisible();
+        await expect(p.getByRole("region", { name: "Run results" })).toBeVisible();
       },
       "Next problem": async (p) => {
         const title = session(p).getByRole("heading");
@@ -282,13 +309,17 @@ test.describe("keyboard only, Windows/Linux keys", () => {
         await p.keyboard.press(combo("Copy invite link"));
         await expect(hud(p, "Invite link copied")).toBeVisible();
       },
-      "Show or hide chat": async (p) => {
-        const chat = p.getByRole("region", { name: "Chat" });
-        // The chat starts shown beside the description (spec 008 FR-1).
-        await p.keyboard.press(combo("Show or hide chat"));
-        await expect(chat).toBeHidden();
-        await p.keyboard.press(combo("Show or hide chat"));
-        await expect(chat).toBeVisible();
+      "Pin or unpin chat": async (p) => {
+        // The chat starts pinned beside the description (spec 008 FR-1); the shortcut unpins it,
+        // leaving it peeking, and pins it again.
+        await p.keyboard.press(combo("Pin or unpin chat"));
+        await expect(p.getByRole("button", { name: "Chat", exact: true })).toHaveAttribute(
+          "aria-expanded",
+          "true",
+        );
+        await p.keyboard.press(combo("Pin or unpin chat"));
+        await expect(p.getByRole("button", { name: "Unpin chat" })).toBeVisible();
+        await expect(p.getByRole("region", { name: "Chat" })).toBeVisible();
       },
     };
 
@@ -391,10 +422,14 @@ test.describe("keyboard only, Windows/Linux keys", () => {
     await page.keyboard.press("Enter");
     const editor = page.locator(".cm-content");
     await expect(editor).toContainText("pass");
-    // The sidebar starts closed; open it (by keyboard) so the planned order includes it.
+    // The sidebar starts unpinned; pin it (by keyboard) so the planned order includes it.
     // Its shortcut (Ctrl+Alt+S here) leaves focus where it is, so the Tab walk below starts clean.
     await page.keyboard.press("Control+Alt+s");
     await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
+    // The problem list loads after the sidebar opens; until it has, the sidebar has no Tab stop.
+    await expect(
+      page.getByRole("listbox", { name: "Problems" }).getByRole("option").first(),
+    ).toBeVisible();
 
     // Tab order: sidebar → toolbar → main → panels; Esc then Tab leaves the editor.
     const regionOfFocus = () =>
@@ -447,29 +482,46 @@ test.describe("keyboard only, Windows/Linux keys", () => {
     await page.keyboard.press("Enter");
     await expect(toolbar.getByRole("heading")).not.toHaveText(PROBLEM);
 
-    // Run.
+    // Run, then Check.
     await toolbarItem(page, "Session", button("Run"));
     await page.keyboard.press("Enter");
     await expectRunStarts(page);
+    await toolbarItem(page, "Session", button("Check"));
+    await page.keyboard.press("Enter");
+    await expectCheckStarts(page);
 
     // Invite.
     await toolbarItem(page, "Session", button("Invite"));
     await page.keyboard.press("Enter");
     await expect(hud(page, "Invite link copied")).toBeVisible();
 
-    // Toggles.
-    await toolbarItem(page, "Session", button("Hide run results"));
+    // Pins: each panel's own toggle unpins it to a strip that keeps focus; Enter on the strip
+    // peeks it, Escape closes the peek back to the strip, and its Pin pins it again.
+    const results = page.getByRole("region", { name: "Run results" });
+    await pressUntil(page, page.getByRole("button", { name: "Unpin run results" }));
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("region", { name: "Run results" })).toBeHidden();
-    await expect(button("Show run results")).toBeFocused();
+    await expect(results).toBeHidden();
+    const resultsStrip = page.getByRole("button", { name: "Run results", exact: true });
+    await expect(resultsStrip).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("region", { name: "Run results" })).toBeVisible();
-    await toolbarItem(page, "Session", button("Hide sidebar"));
+    await expect(results).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(results).toBeHidden();
+    await expect(resultsStrip).toBeFocused();
     await page.keyboard.press("Enter");
+    await pressUntil(page, page.getByRole("button", { name: "Pin run results" }));
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: "Unpin run results" })).toBeFocused();
+    await expect(results).toBeVisible();
+    await pressUntil(page, page.getByRole("button", { name: "Unpin sidebar" }));
+    await page.keyboard.press("Enter");
+    const sidebarStrip = page.getByRole("button", { name: "Sidebar", exact: true });
+    await expect(sidebarStrip).toBeFocused();
     await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeHidden();
-    await expect(button("Show sidebar")).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeHidden();
 
     // Appearance.
     await toolbarItem(page, "Session", button("Appearance"));

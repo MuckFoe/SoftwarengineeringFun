@@ -8,6 +8,12 @@ interface Props {
   banner?: ReactNode;
   sidebar?: ReactNode;
   sidebarOpen?: boolean;
+  /**
+   * Instead of `sidebar`: a panel that sizes itself, such as a left-edge `PinnablePanel`
+   * (pinned, or a strip whose peek floats over the main area). It keeps its own column at
+   * every width.
+   */
+  leftPanel?: ReactNode;
   /** An Inspector; it controls its own open state. */
   inspector?: ReactNode;
   /** A BottomPanel under the main area. */
@@ -26,13 +32,15 @@ export function Window({
   banner,
   sidebar,
   sidebarOpen = true,
+  leftPanel,
   inspector,
   bottomPanel,
   children,
 }: Props) {
   return (
-    <div className={styles.window}>
-      {sidebar && (
+    <div className={styles.window} data-left-panel={leftPanel ? "" : undefined}>
+      {leftPanel && <div className={styles.leftPanel}>{leftPanel}</div>}
+      {!leftPanel && sidebar && (
         <div
           className={`${styles.sidebar} motion-collapse`}
           data-open={sidebarOpen}

@@ -8,9 +8,9 @@ import styles from "./DescriptionView.module.css";
  */
 export function DescriptionView({ html, dense = false }: { html: string; dense?: boolean }) {
   return (
-    // biome-ignore lint/security/noDangerouslySetInnerHtml: server-rendered Markdown with raw HTML disabled and URLs filtered (spec 002 plan, Descriptions — Rendering).
     <div
       className={dense ? `${styles.view} ${styles.dense}` : styles.view}
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: server-rendered Markdown with raw HTML disabled and URLs filtered (spec 002 plan, Descriptions — Rendering).
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

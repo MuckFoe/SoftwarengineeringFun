@@ -24,6 +24,13 @@
   pointer-events: none;
 }
 
+/* A screen with an unpinned bottom panel (the session's run results strip) along the window's
+   bottom edge: the dock sits just above that strip, so its nub never covers the strip's hover
+   target. */
+:global(body:has([data-edge="bottom"][data-pinned="false"][data-anchor="self"])) .zone {
+  bottom: var(--space-32);
+}
+
 /* The reach: a small target around the nub, from the screen edge up to the pill's middle, so
    the nub needn't be hit exactly. Hovering it hovers the zone, which opens the dock. */
 .zone::before {

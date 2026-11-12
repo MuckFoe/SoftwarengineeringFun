@@ -1,5 +1,7 @@
-// Spec 011: run with your own input, in a real browser against the real stack. Two browser
-// contexts share one session; solutions are typed through the editor (as the session specs do).
+// Spec 011 as changed on 2026-11-12: the toolbar's Run runs the code as a script with empty
+// input and its output (errors included) shows in the bottom panel's Output tab; Check runs
+// the tests. In a real browser against the real stack. Two browser contexts share one session;
+// solutions are typed through the editor (as the session specs do).
 import type { Browser, BrowserContext, Page } from "@playwright/test";
 import { appUrl, createSession, expect, markStale, test } from "./fixtures";
 
@@ -17,7 +19,6 @@ async function join(browser: Browser, invite: string, name: string): Promise<Par
   await page.getByLabel("Your name").fill(name);
   await page.getByRole("button", { name: "Join" }).click();
   await expect(page.locator(".cm-content")).toContainText("pass");
-  await page.getByRole("button", { name: "Show own-input run" }).click();
   return { context, page };
 }
 
@@ -33,8 +34,11 @@ async function setSolution(page: Page, code: string): Promise<void> {
   }
 }
 
-const panel = (page: Page) => page.getByRole("region", { name: "Run with your own input" });
-const runButton = (page: Page) => panel(page).getByRole("button", { name: "Run", exact: true });
+const toolbar = (page: Page) => page.getByRole("toolbar", { name: "Session" });
+const panel = (page: Page) => page.getByRole("tabpanel", { name: "Output" });
+const runButton = (page: Page) => toolbar(page).getByRole("button", { name: "Run", exact: true });
+const checkButton = (page: Page) =>
+  toolbar(page).getByRole("button", { name: "Check", exact: true });
 const status = (page: Page) => panel(page).getByRole("status");
 const output = (page: Page) => panel(page).getByTestId("scratch-output");
 
@@ -53,8 +57,7 @@ test("FR-5, FR-10: B sees A's run and 'started by A'; the last run survives A's 
   request,
 }) => {
   const { a, b } = await twoParticipants(browser, request);
-  await setSolution(a.page, "print(int(input()) + int(input()))");
-  await panel(a.page).getByLabel("Input").fill("3\n4\n");
+  await setSolution(a.page, "print(3 + 4)");
   await runButton(a.page).click();
 
   for (const p of [a, b]) {
@@ -65,7 +68,6 @@ test("FR-5, FR-10: B sees A's run and 'started by A'; the last run survives A's 
   await a.page.reload();
   await a.page.getByLabel("Your name").fill("A");
   await a.page.getByRole("button", { name: "Join" }).click();
-  await a.page.getByRole("button", { name: "Show own-input run" }).click();
   await expect(status(a.page)).toHaveText("finished · started by A");
   await expect(output(a.page)).toHaveText("7\n");
   await a.context.close();
@@ -99,7 +101,9 @@ test("FR-4: finished, error and stopped: time limit are shown", async ({ browser
   const a = await join(browser, invite, "A");
   const cases: Array<[string, string]> = [
     ["print('ok')", "finished · started by A"],
-    ["raise RuntimeError('boom')", "error · started by A"],
+    ["raise RuntimeError('boom')", "error (exit code 1) · started by A"],
+    // Run gives the script no input: reading it ends the run with an EOFError.
+    ["input()", "error (exit code 1) · started by A"],
     ["while True:\n    pass", "stopped: time limit · started by A"],
   ];
   for (const [code, expected] of cases) {
@@ -120,10 +124,11 @@ test("FR-3: an error is shown apart from stdout, visibly marked, with the messag
   await setSolution(a.page, "print('before')\nraise ValueError('bad')");
   await runButton(a.page).click();
 
-  await expect(status(a.page)).toHaveText("error · started by A");
+  await expect(status(a.page)).toHaveText("error (exit code 1) · started by A");
   const out = output(a.page).locator('[data-stream="out"]');
   const err = output(a.page).locator('[data-stream="err"]');
   await expect(out).toContainText("before");
+  await expect(err).toContainText("Traceback (most recent call last)");
   await expect(err).toContainText("ValueError: bad");
   await expect(err).toContainText("stderr ▸");
   await expect(out).not.toContainText("ValueError");
@@ -178,17 +183,50 @@ test("NFR-5: a printed line reaches B within 1 s of reaching A, before the run e
   await b.context.close();
 });
 
-test("FR-12: a stale session has no own-input Run control", async ({ browser, request }) => {
+test("Run selects the Output tab, Check the Tests tab; there is no input box", async ({
+  browser,
+  request,
+}) => {
+  const { a, b } = await twoParticipants(browser, request);
+  await expect(a.page.getByLabel("Input", { exact: true })).toHaveCount(0);
+  await expect(a.page.getByRole("button", { name: /own-input/ })).toHaveCount(0);
+  const results = (p: Page) => p.getByRole("region", { name: "Run results" });
+  await setSolution(a.page, "print('script ran')");
+
+  await checkButton(a.page).click();
+  for (const p of [a, b]) {
+    await expect(results(p.page).getByRole("tab", { name: "Tests" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(results(p.page).getByText(/^Test 1: /)).toBeVisible({ timeout: 30_000 });
+  }
+
+  await runButton(a.page).click();
+  for (const p of [a, b]) {
+    await expect(results(p.page).getByRole("tab", { name: "Output" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(output(p.page)).toContainText("script ran");
+  }
+  await a.context.close();
+  await b.context.close();
+});
+
+test("FR-12: a stale session has Run and Check, both disabled, and no output", async ({
+  browser,
+  request,
+}) => {
   const invite = await createSession(request, PROBLEM_TITLE);
   const a = await join(browser, invite, "A");
   markStale(invite);
   await a.page.reload();
 
   await expect(a.page.getByText(/gone stale/i)).toBeVisible();
-  await expect(a.page.getByRole("region", { name: "Run with your own input" })).toHaveCount(0);
-  await expect(a.page.getByRole("button", { name: /own-input run/ })).toHaveCount(0);
-  // The only Run left is the toolbar's test run, disabled (spec 003); no own-input Run exists.
-  await expect(a.page.getByRole("button", { name: "Run", exact: true })).toBeDisabled();
+  await expect(a.page.getByRole("tabpanel", { name: "Output" })).toHaveCount(0);
+  await expect(runButton(a.page)).toBeDisabled();
+  await expect(checkButton(a.page)).toBeDisabled();
   await expect(a.page.getByLabel("Input", { exact: true })).toHaveCount(0);
   await a.context.close();
 });

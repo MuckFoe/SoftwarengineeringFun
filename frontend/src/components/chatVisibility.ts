@@ -38,3 +38,24 @@ export function useChatVisible(): [visible: boolean, setVisible: (v: boolean) =>
 function setChatVisible(v: boolean): void {
   savePreference("chatVisible", v);
 }
+
+/** Whether this browser holds a chat choice at all (unreadable storage: no). */
+export function hasStoredChatVisibility(): boolean {
+  try {
+    return localStorage.getItem(CHAT_VISIBILITY_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The chat as a pinnable panel: pinned is the remembered "shown" (the same preference, so the
+ * profile and the account keep it). Where nothing was chosen yet, `defaultPinned` applies,
+ * such as unpinned on a phone.
+ */
+export function useChatPinned(
+  defaultPinned: boolean,
+): [pinned: boolean, setPinned: (pinned: boolean) => void] {
+  const [visible, setVisible] = useChatVisible();
+  return [hasStoredChatVisibility() ? visible : defaultPinned, setVisible];
+}

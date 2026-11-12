@@ -95,6 +95,15 @@ async function holdPendingHint(page: Page): Promise<void> {
   });
 }
 
+/** A guest (Ada) in a fresh coding session, the editor loaded. */
+async function joinSession(page: Page, request: APIRequestContext): Promise<void> {
+  await page.goto(appUrl(`/s/${await createSession(request)}`));
+  await page.getByLabel("Your name").fill("Ada");
+  await page.getByRole("button", { name: "Join" }).click();
+  await expect(page.getByLabel("Your name")).toHaveCount(0);
+  await expect(page.getByRole("main").getByRole("textbox")).toContainText("pass");
+}
+
 /** Spec 020: a guest in a fresh session, the problem shown, with the Hint action available. */
 async function openHintSession(page: Page, request: APIRequestContext): Promise<void> {
   // At 390 px the problem list opens over the window; ask at desktop width, the checks then
@@ -198,6 +207,41 @@ export const SCREENS: Screen[] = [
       await page.getByRole("button", { name: "Join" }).click();
       await expect(page.getByLabel("Your name")).toHaveCount(0);
       await expect(page.getByRole("main").getByRole("textbox")).toContainText("pass");
+    },
+  },
+  {
+    // 2026-11-12 pinnable panels: everything pinned, the sidebar too.
+    name: "session panels pinned",
+    lowerBound: 1024,
+    async open(page, request) {
+      await joinSession(page, request);
+      await page.getByRole("button", { name: "Sidebar", exact: true }).click();
+      await page.getByRole("button", { name: "Pin sidebar" }).click();
+      await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
+      await page.getByRole("main").hover();
+    },
+  },
+  {
+    // 2026-11-12 pinnable panels: all unpinned to strips, the description's peek open (by
+    // keyboard focus on its strip, so it stays open while the checks run).
+    name: "session panels unpinned, peek open",
+    lowerBound: 1024,
+    narrow: true,
+    async open(page, request) {
+      // Joined at desktop width, where every panel starts pinned; the checks then resize.
+      const viewport = page.viewportSize();
+      if (viewport && viewport.width < 1024) await page.setViewportSize({ ...viewport, width: 1024 });
+      await joinSession(page, request);
+      for (const name of ["Unpin description", "Unpin chat", "Unpin run results"]) {
+        await page.getByRole("button", { name }).click();
+      }
+      await page.getByRole("main").hover();
+      await page.getByRole("button", { name: "Description", exact: true }).focus();
+      await expect(
+        page.getByRole("complementary", { name: "Inspector" }).getByRole("region", {
+          name: "Description",
+        }),
+      ).toBeVisible();
     },
   },
   {
@@ -374,6 +418,7 @@ export const SCREENS: Screen[] = [
     },
   },
   {
+    // Run runs the code as a script; its output shows in the Output tab (spec 011, 2026-11-12).
     name: "run output",
     lowerBound: 1024,
     async open(page, request) {
@@ -385,7 +430,27 @@ export const SCREENS: Screen[] = [
         .getByRole("toolbar", { name: "Session" })
         .getByRole("button", { name: "Run", exact: true })
         .click();
-      await expect(page.getByRole("region", { name: "Run results" })).toBeVisible();
+      await expect(
+        page.getByRole("tabpanel", { name: "Output" }).getByRole("status"),
+      ).toContainText("started by", { timeout: 30_000 });
+    },
+  },
+  {
+    // Check runs the tests; their results show in the Tests tab.
+    name: "check results",
+    lowerBound: 1024,
+    async open(page, request) {
+      await page.goto(appUrl(`/s/${await createSession(request)}`));
+      await page.getByLabel("Your name").fill("Ada");
+      await page.getByRole("button", { name: "Join" }).click();
+      await expect(page.locator(".cm-content")).toContainText("pass");
+      await page
+        .getByRole("toolbar", { name: "Session" })
+        .getByRole("button", { name: "Check", exact: true })
+        .click();
+      await expect(
+        page.getByRole("region", { name: "Run results" }).getByText(/^Test 1: /),
+      ).toBeVisible({ timeout: 30_000 });
     },
   },
   {

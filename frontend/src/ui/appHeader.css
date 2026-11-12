@@ -182,7 +182,7 @@
     padding: 0;
   }
 
-  .app-header .app-header-search > :not(svg) {
+  .app-header .app-header-search > :not(svg):not(.icon) {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -330,7 +330,7 @@
     padding: 0;
   }
 
-  .app-header.is-stacked .app-header-search > :not(svg) {
+  .app-header.is-stacked .app-header-search > :not(svg):not(.icon) {
     position: absolute;
     width: 1px;
     height: 1px;

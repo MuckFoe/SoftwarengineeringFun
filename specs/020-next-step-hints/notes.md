@@ -25,3 +25,9 @@
   - The system message now forbids solving code, even a one-liner, and asks for at most one fragment and no `return` statement.
   - The guard no longer counts backticked bare names toward the one code line, but still test-runs every fragment.
 - **Result:** 17 of 20 hints shown across five starter problems. The 3 withheld answers listed four fragments that spell out the whole recipe, which FR-9 forbids.
+
+## 2026-11-12: hint levels
+
+- **Change:** at the user's request, hints start vague and get more concrete with each hint on a problem. There are 4 levels, set by the number of earlier hints (see plan.md, Prompt).
+- **Real model (qwen3.6:35b):** 15 of 15 hints shown across three starter problems, asked 5 in a row each. Level 1 was a question ("Have you considered how to handle the case where the input list is empty?"); levels 4 and 5 gave one fragment (`if not xs:`).
+- **Guard concurrency:** the guard now runs at most 3 candidates at a time, because a hint with several fragments could overrun the runner, which drops connections past about 5 simultaneous requests.

@@ -181,6 +181,9 @@ describe("SessionWindow, stale (spec 003 FR-12)", () => {
     expect(within(banner as HTMLElement).queryByRole("button")).toBeNull();
     expect(screen.queryByRole("button", { name: /reactivate/i })).toBeNull();
     expect((screen.getByRole("button", { name: "Run" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Check" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
     const content = container.querySelector(".cm-content");
     expect(content?.getAttribute("contenteditable")).toBe("false");
     expect(screen.queryByLabelText("Your name")).toBeNull();
@@ -298,8 +301,17 @@ function editorText(): string {
   return document.querySelector(".cm-content")?.textContent ?? "";
 }
 
+/** Opens the unpinned sidebar's peek, as a click (or tap) on its strip does. */
+function openSidebar(): void {
+  fireEvent.click(screen.getByRole("button", { name: "Sidebar" }));
+}
+
 function runButton(): HTMLButtonElement {
   return screen.getByRole("button", { name: /^run$/i }) as HTMLButtonElement;
+}
+
+function checkButton(): HTMLButtonElement {
+  return screen.getByRole("button", { name: /^check$/i }) as HTMLButtonElement;
 }
 
 describe("SessionWindow, joined", () => {
@@ -353,6 +365,7 @@ describe("SessionWindow, joined", () => {
     });
 
     expect(editorText()).toContain("return a + b");
+    fireEvent.click(screen.getByRole("tab", { name: "Tests" }));
     expect(screen.getByText("Test 1: passed")).toBeTruthy();
     expect(screen.getByText("Accepted")).toBeTruthy();
   });
@@ -391,7 +404,7 @@ describe("SessionWindow, joined", () => {
     serverSends(socket, welcome({ run_in_progress: true }));
 
     expect(screen.getByText("Running…")).toBeTruthy();
-    expect(runButton().disabled).toBe(true);
+    expect(checkButton().disabled).toBe(true);
   });
 
   it("FR-26: a failed run ends the running state and says so", async () => {
@@ -402,13 +415,14 @@ describe("SessionWindow, joined", () => {
     serverSends(socket, { type: "run_failed", run_id: "r1", reason: "infra_error" });
 
     expect(screen.queryByText("Running…")).toBeNull();
-    expect(runButton().disabled).toBe(false);
+    expect(checkButton().disabled).toBe(false);
     expect(screen.getByRole("alert").textContent).toMatch(/could not be completed/i);
   });
 
   it("FR-26: a run refused as already in progress says so", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
+    fireEvent.click(checkButton());
 
     serverSends(socket, { type: "error", code: "run_in_progress" });
 
@@ -422,6 +436,7 @@ describe("SessionWindow, joined", () => {
 
     expect(screen.getByText(/has been deleted/i)).toBeTruthy();
     expect(runButton().disabled).toBe(true);
+    expect(checkButton().disabled).toBe(true);
   });
 
   it("FR-10: deletion of the current problem disables run; another problem's does not", async () => {
@@ -433,6 +448,7 @@ describe("SessionWindow, joined", () => {
 
     serverSends(socket, { type: "problem_deleted", problem_id: "p1" });
     expect(runButton().disabled).toBe(true);
+    expect(checkButton().disabled).toBe(true);
     expect(screen.getByText(/has been deleted/i)).toBeTruthy();
   });
 });
@@ -451,7 +467,7 @@ describe("SessionWindow, layout (spec 003)", () => {
       }),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Show sidebar" }));
+    openSidebar();
     const sidebar = screen.getByRole("navigation", { name: "Sidebar" });
     expect(within(sidebar).getByRole("region", { name: "Problems" })).toBeTruthy();
     const participants = within(sidebar).getByRole("region", { name: "Participants" });
@@ -459,7 +475,7 @@ describe("SessionWindow, layout (spec 003)", () => {
     expect(screen.getByRole("main").querySelector(".cm-content")).not.toBeNull();
 
     const toolbar = screen.getByRole("toolbar", { name: "Session" });
-    for (const name of [/^run$/i, /^invite$/i, /^appearance$/i, /run results/i, /sidebar/i]) {
+    for (const name of [/^run$/i, /^check$/i, /^invite$/i, /^appearance$/i]) {
       expect(within(toolbar).getByRole("button", { name })).toBeTruthy();
     }
     expect(within(toolbar).getByRole("heading", { name: "Sum two" })).toBeTruthy();
@@ -469,7 +485,7 @@ describe("SessionWindow, layout (spec 003)", () => {
   it("shows the Live badge in Participants only while someone else is in the session", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
-    fireEvent.click(screen.getByRole("button", { name: "Show sidebar" }));
+    openSidebar();
     const alone = screen.getByRole("region", { name: "Participants" });
     expect(within(alone).queryByText("Live")).toBeNull();
     serverSends(socket, {
@@ -484,28 +500,52 @@ describe("SessionWindow, layout (spec 003)", () => {
     ).toBeTruthy();
   });
 
-  it("hides and shows the run panel from the toolbar", async () => {
+  it("unpins the run results to a strip from their header, and pins them again from its peek", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
     expect(screen.getByRole("region", { name: "Run results" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Hide run results" }));
+    const unpin = screen.getByRole("button", { name: "Unpin run results" });
+    expect(unpin.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(unpin);
     expect(screen.queryByRole("region", { name: "Run results" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Show run results" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run results" }));
     expect(screen.getByRole("region", { name: "Run results" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Pin run results" }));
+    expect(screen.queryByRole("button", { name: "Run results" })).toBeNull();
+    expect(localStorage.getItem("pinned.output")).toBe("true");
   });
 
-  it("runs from the toolbar's Run button", async () => {
+  it("the toolbar has no panel toggles: each panel carries its own pin", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    const toolbar = screen.getByRole("toolbar", { name: "Session" });
+    expect(within(toolbar).queryByRole("group", { name: "View" })).toBeNull();
+    for (const name of [/sidebar/i, /run results/i, /inspector/i, /chat/i]) {
+      expect(within(toolbar).queryByRole("button", { name })).toBeNull();
+    }
+  });
+
+  it("checks the solution (the hidden tests) from the toolbar's Check button", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    fireEvent.click(checkButton());
+    expect(socket.sent).toContain(JSON.stringify({ type: "run" }));
+    expect(socket.sent).not.toContain(JSON.stringify({ type: "scratch_run", input: "" }));
+  });
+
+  it("runs the code as a script with empty input from the toolbar's Run button", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
     fireEvent.click(runButton());
-    expect(socket.sent).toContain(JSON.stringify({ type: "run" }));
+    expect(socket.sent).toContain(JSON.stringify({ type: "scratch_run", input: "" }));
+    expect(socket.sent).not.toContain(JSON.stringify({ type: "run" }));
   });
 
   // AC-3: the indicator appears at once, before the server confirms the run.
-  it("shows the running indicator as soon as Run is clicked, with no dialog", async () => {
+  it("shows the running indicator as soon as Check is clicked, with no dialog", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
-    fireEvent.click(runButton());
+    fireEvent.click(checkButton());
     expect(screen.getAllByRole("progressbar").length).toBeGreaterThan(0);
     expect(screen.queryByRole("dialog")).toBeNull();
     serverSends(socket, { type: "run_started", run_id: "r1", by: "Ada" });
@@ -517,7 +557,7 @@ describe("SessionWindow, layout (spec 003)", () => {
   it("ends the indicator when the run is refused because the problem was deleted", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
-    fireEvent.click(runButton());
+    fireEvent.click(checkButton());
     serverSends(socket, { type: "error", code: "problem_deleted" });
     expect(screen.queryByRole("progressbar")).toBeNull();
   });
@@ -526,7 +566,7 @@ describe("SessionWindow, layout (spec 003)", () => {
   it("switches problems from the sidebar and has no other problem switcher", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
-    fireEvent.click(screen.getByRole("button", { name: "Show sidebar" }));
+    openSidebar();
     const reverse = await screen.findByRole("option", { name: "Reverse list" });
     fireEvent.click(reverse);
     expect(socket.sent).toContain(JSON.stringify({ type: "switch_problem", problem_id: "p2" }));
@@ -534,13 +574,17 @@ describe("SessionWindow, layout (spec 003)", () => {
     expect(screen.queryByRole("searchbox")).toBeNull();
   });
 
-  it("toggles the sidebar from the toolbar", async () => {
+  it("pins the sidebar from its peek, and unpins it again", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
-    fireEvent.click(screen.getByRole("button", { name: "Show sidebar" }));
+    openSidebar();
     expect(screen.getByRole("navigation", { name: "Sidebar" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Hide sidebar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pin sidebar" }));
+    expect(screen.queryByRole("button", { name: "Sidebar" })).toBeNull();
+    expect(screen.getByRole("navigation", { name: "Sidebar" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Unpin sidebar" }));
     expect(screen.queryByRole("navigation", { name: "Sidebar" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Sidebar" })).toBeTruthy();
   });
 });
 
@@ -558,7 +602,7 @@ describe("SessionWindow, narrow width (about 390 px)", () => {
     serverSends(socket, welcome());
     const toolbar = screen.getByRole("toolbar", { name: "Session" });
     expect(toolbar.closest(".app-header")?.classList.contains("is-stacked")).toBe(true);
-    for (const name of ["Run", "Invite"]) {
+    for (const name of ["Run", "Check", "Invite"]) {
       const button = within(toolbar).getByRole("button", { name });
       expect(button.querySelector(".app-header-pill-text")?.textContent).toBe(name);
     }
@@ -569,21 +613,35 @@ describe("SessionWindow, narrow width (about 390 px)", () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
     expect(screen.queryByRole("navigation", { name: "Sidebar" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Show sidebar" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sidebar" })).toBeTruthy();
   });
 
-  it("starts with the inspector closed, since there it would cover the editor", async () => {
+  it("starts with the description and chat unpinned, since there they would cover the editor", async () => {
     narrow(true);
     const socket = await joinAsAda();
     serverSends(socket, welcome());
-    expect(screen.getByRole("button", { name: "Show inspector" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Description" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Chat" })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Description" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Chat" })).toBeNull();
   });
 
-  it("starts with the inspector open when wider", async () => {
+  it("a pin chosen earlier still wins on a narrow screen", async () => {
+    narrow(true);
+    localStorage.setItem("pinned.description", "true");
+    localStorage.setItem("chatVisible", "shown");
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    expect(screen.getByRole("region", { name: "Description" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Chat" })).toBeTruthy();
+  });
+
+  it("starts with the description and chat pinned when wider", async () => {
     narrow(false);
     const socket = await joinAsAda();
     serverSends(socket, welcome());
-    expect(screen.getByRole("button", { name: "Hide inspector" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Unpin description" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Unpin chat" })).toBeTruthy();
   });
 
   it("starts with the sidebar closed when wider too, so the editor gets the room", async () => {
@@ -649,16 +707,19 @@ describe("SessionWindow, description inspector (spec 003 FR-14)", () => {
     expect(within(panel).queryByText("Add two integers.")).toBeNull();
   });
 
-  it("the toolbar's inspector toggle hides and shows it", async () => {
+  it("unpinning the description leaves its strip, whose peek shows it again", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
-    const toolbar = screen.getByRole("toolbar", { name: "Session" });
-
-    fireEvent.click(within(toolbar).getByRole("button", { name: "Hide inspector" }));
-    expect(screen.queryByRole("complementary", { name: "Inspector" })).toBeNull();
-
-    fireEvent.click(within(toolbar).getByRole("button", { name: "Show inspector" }));
-    expect(screen.getByRole("complementary", { name: "Inspector" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Unpin description" }));
+    expect(screen.queryByRole("region", { name: "Description" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Chat" })).toBeTruthy();
+    const strip = screen.getByRole("button", { name: "Description" });
+    act(() => strip.focus());
+    expect(strip.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("region", { name: "Description" })).toBeTruthy();
+    fireEvent.keyDown(document.activeElement as HTMLElement, { key: "Escape" });
+    expect(screen.queryByRole("region", { name: "Description" })).toBeNull();
+    expect(localStorage.getItem("pinned.description")).toBe("false");
   });
 
   it("spec 008 FR-1: the description is above the chat, with no Description/Chat tabs", async () => {
@@ -676,66 +737,49 @@ describe("SessionWindow, description inspector (spec 003 FR-14)", () => {
     expect(within(inspector).queryByRole("tabpanel")).toBeNull();
   });
 
-  it("F4: each panel toggle has its own icon, so you can tell which hides which", async () => {
+  it("F4: each panel's strip has its own icon, so you can tell which is which", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
-    const toolbar = screen.getByRole("toolbar", { name: "Session" });
-    const icons = ["Show sidebar", "Hide run results", "Hide inspector"].map((name) =>
-      within(toolbar)
-        .getByRole("button", { name })
-        .querySelector(".icon")
-        ?.getAttribute("data-icon"),
+    fireEvent.click(screen.getByRole("button", { name: "Unpin run results" }));
+    fireEvent.click(screen.getByRole("button", { name: "Unpin description" }));
+    fireEvent.click(screen.getByRole("button", { name: "Unpin chat" }));
+    const icons = ["Sidebar", "Run results", "Description", "Chat"].map((name) =>
+      screen.getByRole("button", { name }).querySelector(".icon")?.getAttribute("data-icon"),
     );
-    expect(new Set(icons).size).toBe(3);
+    expect(new Set(icons).size).toBe(4);
   });
 });
 
-describe("SessionWindow, chat toggle (spec 008 FR-2, FR-3, FR-4, FR-6, FR-7)", () => {
-  const toolbar = () => screen.getByRole("toolbar", { name: "Session" });
+describe("SessionWindow, chat pin (spec 008 FR-2, FR-3, FR-4, FR-7; 2026-11-12 pins)", () => {
   const chatRegion = () => screen.queryByRole("region", { name: "Chat" });
   const descriptionRegion = () => screen.queryByRole("region", { name: "Description" });
-  const iconOf = (name: string) =>
-    within(toolbar())
-      .getByRole("button", { name })
-      .querySelector(".icon")
-      ?.getAttribute("data-icon");
 
-  it("FR-7: the chat button has its own icon, and is named Hide chat, then Show chat", async () => {
+  it("FR-7: the chat's pin is a toggle named Unpin chat, then Pin chat; its strip has the chat icon", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
 
-    const chatButton = within(toolbar()).getByRole("button", { name: "Hide chat" });
-    expect(chatButton.getAttribute("aria-pressed")).toBe("true");
-    const chatIcon = iconOf("Hide chat");
-    expect(chatIcon).toBeTruthy();
-    for (const other of ["Show sidebar", "Hide run results", "Hide inspector"]) {
-      expect(iconOf(other)).not.toBe(chatIcon);
-    }
-
-    fireEvent.click(chatButton);
-    const shown = within(toolbar()).getByRole("button", { name: "Show chat" });
-    expect(shown.getAttribute("aria-pressed")).toBe("false");
-  });
-
-  it("the chat button sits directly after the inspector toggle", async () => {
-    const socket = await joinAsAda();
-    serverSends(socket, welcome());
-    const inspectorToggle = within(toolbar()).getByRole("button", { name: "Hide inspector" });
-    expect(inspectorToggle.nextElementSibling).toBe(
-      within(toolbar()).getByRole("button", { name: "Hide chat" }),
+    const unpin = screen.getByRole("button", { name: "Unpin chat" });
+    expect(unpin.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(unpin);
+    const strip = screen.getByRole("button", { name: "Chat" });
+    expect(strip.querySelector(".icon")?.getAttribute("data-icon")).toBe("chat");
+    fireEvent.click(strip);
+    expect(screen.getByRole("button", { name: "Pin chat" }).getAttribute("aria-pressed")).toBe(
+      "false",
     );
   });
 
-  it("FR-2: Hide chat hides the chat and keeps the description; Show chat brings it back", async () => {
+  it("FR-2: unpinning the chat keeps the description; pinning brings it back", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
 
-    fireEvent.click(within(toolbar()).getByRole("button", { name: "Hide chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Unpin chat" }));
     expect(chatRegion()).toBeNull();
     expect(descriptionRegion()).toBeTruthy();
     expect(screen.getByRole("complementary", { name: "Inspector" })).toBeTruthy();
 
-    fireEvent.click(within(toolbar()).getByRole("button", { name: "Show chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pin chat" }));
     expect(chatRegion()).toBeTruthy();
     expect(descriptionRegion()).toBeTruthy();
   });
@@ -743,57 +787,38 @@ describe("SessionWindow, chat toggle (spec 008 FR-2, FR-3, FR-4, FR-6, FR-7)", (
   it("FR-4: the choice is remembered in this browser", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
-    fireEvent.click(within(toolbar()).getByRole("button", { name: "Hide chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Unpin chat" }));
     expect(localStorage.getItem("chatVisible")).toBe("hidden");
     cleanup();
 
     const again = await joinAsAda();
     serverSends(again, welcome());
     expect(chatRegion()).toBeNull();
-    expect(within(toolbar()).getByRole("button", { name: "Show chat" })).toBeTruthy();
-    fireEvent.click(within(toolbar()).getByRole("button", { name: "Show chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pin chat" }));
     expect(localStorage.getItem("chatVisible")).toBe("shown");
   });
 
-  it("FR-6: the inspector toggle leaves the chat choice alone", async () => {
+  it("FR-3: Ctrl+Alt+C pins an unpinned chat", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
-    const toggleInspector = (name: string) =>
-      fireEvent.click(within(toolbar()).getByRole("button", { name }));
-
-    toggleInspector("Hide inspector");
-    expect(screen.queryByRole("complementary", { name: "Inspector" })).toBeNull();
-    expect(within(toolbar()).getByRole("button", { name: "Show chat" })).toBeTruthy();
-    toggleInspector("Show inspector");
-    expect(descriptionRegion()).toBeTruthy();
-    expect(chatRegion()).toBeTruthy();
-
-    fireEvent.click(within(toolbar()).getByRole("button", { name: "Hide chat" }));
-    toggleInspector("Hide inspector");
-    toggleInspector("Show inspector");
-    expect(descriptionRegion()).toBeTruthy();
-    expect(chatRegion()).toBeNull();
-  });
-
-  it("FR-3: with the inspector hidden, Show chat opens the inspector with the chat", async () => {
-    const socket = await joinAsAda();
-    serverSends(socket, welcome());
-    fireEvent.click(within(toolbar()).getByRole("button", { name: "Hide inspector" }));
-
-    fireEvent.click(within(toolbar()).getByRole("button", { name: "Show chat" }));
-    expect(screen.getByRole("complementary", { name: "Inspector" })).toBeTruthy();
-    expect(descriptionRegion()).toBeTruthy();
-    expect(chatRegion()).toBeTruthy();
-  });
-
-  it("FR-3: with the inspector hidden, Ctrl+Alt+C opens the inspector with the chat", async () => {
-    const socket = await joinAsAda();
-    serverSends(socket, welcome());
-    fireEvent.click(within(toolbar()).getByRole("button", { name: "Hide inspector" }));
+    fireEvent.click(screen.getByRole("button", { name: "Unpin chat" }));
 
     fireEvent.keyDown(window, { key: "c", code: "KeyC", ctrlKey: true, altKey: true });
-    expect(screen.getByRole("complementary", { name: "Inspector" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Unpin chat" })).toBeTruthy();
     expect(chatRegion()).toBeTruthy();
+  });
+
+  it("both unpinned, the inspector narrows to two labelled strips", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    fireEvent.click(screen.getByRole("button", { name: "Unpin description" }));
+    fireEvent.click(screen.getByRole("button", { name: "Unpin chat" }));
+    const inspector = screen.getByRole("complementary", { name: "Inspector" });
+    expect(within(inspector).getByRole("button", { name: "Description" })).toBeTruthy();
+    expect(within(inspector).getByRole("button", { name: "Chat" })).toBeTruthy();
+    expect(descriptionRegion()).toBeNull();
+    expect(chatRegion()).toBeNull();
   });
 });
 
@@ -844,7 +869,7 @@ describe("SessionWindow, chat inspector (spec 003 FR-15)", () => {
     expect(sent).toContainEqual(expect.objectContaining({ type: "chat_send", text: "ok" }));
   });
 
-  it("Ctrl+Alt+C hides the chat when it is showing, and shows it again", async () => {
+  it("Ctrl+Alt+C unpins the chat, leaving it peeking until Escape, and pins it again", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome({ chat: HISTORY }));
     const press = () =>
@@ -852,9 +877,14 @@ describe("SessionWindow, chat inspector (spec 003 FR-15)", () => {
 
     expect(within(chatPanel()).getByText("hello there")).toBeTruthy();
     press();
+    const strip = screen.getByRole("button", { name: "Chat" });
+    expect(strip.getAttribute("aria-expanded")).toBe("true");
+    expect(within(chatPanel()).getByText("hello there")).toBeTruthy();
+    fireEvent.keyDown(document.body, { key: "Escape" });
     expect(screen.queryByRole("region", { name: "Chat" })).toBeNull();
     expect(screen.getByRole("region", { name: "Description" })).toBeTruthy();
     press();
+    expect(screen.getByRole("button", { name: "Unpin chat" })).toBeTruthy();
     expect(within(chatPanel()).getByText("hello there")).toBeTruthy();
   });
 
@@ -913,36 +943,36 @@ describe("SessionWindow, chat inspector (spec 003 FR-15)", () => {
     expect(screen.queryByRole("region", { name: "Description" })).toBeNull();
   });
 
-  it("spec 008 FR-2: the stale toolbar hides and shows the chat, and has no inspector toggle", async () => {
+  it("spec 008 FR-2: the stale session unpins and pins the chat from its own pin; no toolbar toggles", async () => {
     staleWithDescription();
     renderPage(fakeSocketFactory().factory);
     await screen.findByRole("region", { name: "Description" });
     const toolbar = screen.getByRole("toolbar", { name: "Session" });
-    expect(within(toolbar).queryByRole("button", { name: /inspector/i })).toBeNull();
+    expect(within(toolbar).queryByRole("button", { name: /inspector|chat/i })).toBeNull();
 
-    const hide = within(toolbar).getByRole("button", { name: "Hide chat" });
-    expect(hide.getAttribute("aria-pressed")).toBe("true");
-    fireEvent.click(hide);
+    const unpin = screen.getByRole("button", { name: "Unpin chat" });
+    expect(unpin.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(unpin);
     expect(screen.queryByRole("region", { name: "Chat" })).toBeNull();
     expect(screen.getByRole("region", { name: "Description" })).toBeTruthy();
     expect(localStorage.getItem("chatVisible")).toBe("hidden");
 
-    fireEvent.click(within(toolbar).getByRole("button", { name: "Show chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pin chat" }));
     expect(chatPanel()).toBeTruthy();
     expect(localStorage.getItem("chatVisible")).toBe("shown");
   });
 
-  it("spec 008 FR-4: a remembered hidden chat starts hidden in a stale session; Show chat brings it back", async () => {
+  it("spec 008 FR-4: a remembered unpinned chat starts as a strip in a stale session; its peek shows it", async () => {
     localStorage.setItem("chatVisible", "hidden");
     staleWithDescription();
     renderPage(fakeSocketFactory().factory);
     await screen.findByRole("region", { name: "Description" });
-    const toolbar = screen.getByRole("toolbar", { name: "Session" });
 
     expect(screen.queryByRole("region", { name: "Chat" })).toBeNull();
-    const show = within(toolbar).getByRole("button", { name: "Show chat" });
-    expect(show.getAttribute("aria-pressed")).toBe("false");
-    fireEvent.click(show);
+    const strip = screen.getByRole("button", { name: "Chat" });
+    expect(strip.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(strip);
     expect(await within(chatPanel()).findByText("try a hashmap")).toBeTruthy();
   });
 
@@ -987,46 +1017,103 @@ describe("SessionWindow, chat inspector (spec 003 FR-15)", () => {
 describe("SessionWindow, shortcuts (spec 003 FR-17)", () => {
   const press = (init: KeyboardEventInit) => fireEvent.keyDown(window, init);
   const RUN = { key: "Enter", ctrlKey: true };
-  const runs = (socket: FakeSocket) =>
+  const CHECK = { key: "Enter", ctrlKey: true, shiftKey: true };
+  const checks = (socket: FakeSocket) =>
     socket.sent.filter((m) => m === JSON.stringify({ type: "run" })).length;
+  const runs = (socket: FakeSocket) =>
+    socket.sent.filter((m) => m === JSON.stringify({ type: "scratch_run", input: "" })).length;
 
-  it("AC-18: Ctrl+Enter runs the code, also from inside the editor", async () => {
+  it("AC-18: Ctrl+Enter runs the code as a script, also from inside the editor", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
 
     fireEvent.keyDown(document.querySelector(".cm-content") as Element, RUN);
 
     expect(runs(socket)).toBe(1);
+    expect(checks(socket)).toBe(0);
+  });
+
+  it("Ctrl+Shift+Enter checks the solution, also from inside the editor", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+
+    fireEvent.keyDown(document.querySelector(".cm-content") as Element, CHECK);
+
+    expect(checks(socket)).toBe(1);
+    expect(runs(socket)).toBe(0);
     expect(screen.getAllByRole("progressbar").length).toBeGreaterThan(0);
   });
 
-  it("the run shortcut does nothing while a run is going or the problem is deleted", async () => {
+  it("the check shortcut does nothing while a check is going or the problem is deleted", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome({ run_in_progress: true }));
+    press(CHECK);
+    expect(checks(socket)).toBe(0);
+
+    serverSends(socket, welcome({ current_problem: { ...SUM_TWO, deleted: true } }));
+    press(CHECK);
+    expect(checks(socket)).toBe(0);
+  });
+
+  it("the run shortcut does nothing while a script run is going or the problem is deleted", async () => {
+    const socket = await joinAsAda();
+    serverSends(
+      socket,
+      welcome({
+        scratch_run: {
+          status: "running",
+          started_by: "A",
+          started_at: "2026-01-01T00:00:00Z",
+          input: "",
+          output: [],
+          seq: 0,
+          exit_code: null,
+        },
+      }),
+    );
     press(RUN);
     expect(runs(socket)).toBe(0);
 
-    serverSends(socket, welcome({ current_problem: { ...SUM_TWO, deleted: true } }));
+    serverSends(
+      socket,
+      welcome({ scratch_run: null, current_problem: { ...SUM_TWO, deleted: true } }),
+    );
     press(RUN);
     expect(runs(socket)).toBe(0);
   });
 
-  it("Ctrl+Alt+R hides and shows the run panel", async () => {
+  it("Ctrl+Alt+R unpins the run results (left peeking until Escape) and pins them again", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
     press({ key: "r", code: "KeyR", ctrlKey: true, altKey: true });
+    expect(screen.getByRole("button", { name: "Run results" }).getAttribute("aria-expanded")).toBe(
+      "true",
+    );
+    fireEvent.keyDown(document.body, { key: "Escape" });
     expect(screen.queryByRole("region", { name: "Run results" })).toBeNull();
     press({ key: "r", code: "KeyR", ctrlKey: true, altKey: true });
+    expect(screen.getByRole("button", { name: "Unpin run results" })).toBeTruthy();
     expect(screen.getByRole("region", { name: "Run results" })).toBeTruthy();
+  });
+
+  it("Ctrl+Alt+S pins the sidebar, and unpins it again", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    expect(screen.queryByRole("navigation", { name: "Sidebar" })).toBeNull();
+    press({ key: "s", code: "KeyS", ctrlKey: true, altKey: true });
+    expect(screen.getByRole("button", { name: "Unpin sidebar" })).toBeTruthy();
+    press({ key: "s", code: "KeyS", ctrlKey: true, altKey: true });
+    expect(screen.getByRole("button", { name: "Sidebar" })).toBeTruthy();
   });
 
   it("Ctrl+Alt+PageDown / PageUp switch to the next and previous problem, sidebar closed or open", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
     // Open the sidebar only to wait for the problem list, then close it: the shortcuts still work.
-    fireEvent.click(screen.getByRole("button", { name: "Show sidebar" }));
+    openSidebar();
     await screen.findByRole("option", { name: "Reverse list" });
-    fireEvent.click(screen.getByRole("button", { name: "Hide sidebar" }));
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole("navigation", { name: "Sidebar" })).toBeNull();
     const switches = () => socket.sent.filter((m) => String(m).includes("switch_problem"));
 
     press({ key: "PageUp", ctrlKey: true, altKey: true });
@@ -1068,6 +1155,7 @@ describe("SessionWindow, shortcuts (spec 003 FR-17)", () => {
     const calls = fetchFn.mock.calls.length;
 
     press(RUN);
+    press(CHECK);
     press({ key: "r", code: "KeyR", ctrlKey: true, altKey: true });
     press({ key: "PageDown", ctrlKey: true, altKey: true });
     press({ key: "i", code: "KeyI", ctrlKey: true, altKey: true });
@@ -1173,7 +1261,7 @@ describe("SessionWindow, accounts (spec 012)", () => {
   });
 });
 
-describe("SessionWindow, run with your own input (spec 011)", () => {
+describe("SessionWindow, Run output and Check tabs (spec 011, 2026-11-12 change)", () => {
   const RUN = {
     status: "finished" as const,
     started_by: "A",
@@ -1183,58 +1271,132 @@ describe("SessionWindow, run with your own input (spec 011)", () => {
     seq: 1,
     exit_code: 0,
   };
-  // Hidden until asked for, so the existing Run lookups stay unambiguous.
-  const panel = () => {
-    if (!screen.queryByRole("region", { name: "Run with your own input" }))
-      fireEvent.click(screen.getByRole("button", { name: "Show own-input run" }));
-    return screen.getByRole("region", { name: "Run with your own input" });
-  };
+  const results = () => screen.getByRole("region", { name: "Run results" });
+  const tab = (name: string) => within(results()).getByRole("tab", { name });
+  const selected = () =>
+    within(results())
+      .getAllByRole("tab")
+      .filter((t) => t.getAttribute("aria-selected") === "true")
+      .map((t) => t.textContent);
+  const output = () => within(results()).getByRole("tabpanel", { name: "Output" });
 
-  it("FR-10: a welcome's scratch run shows its input, output, status and starter", async () => {
+  it("the results panel has Output and Tests tabs, and no input box", async () => {
     const socket = await joinAsAda();
-    serverSends(socket, welcome({ scratch_run: RUN }));
-    const p = within(panel());
-    expect((p.getByLabelText("Input") as HTMLTextAreaElement).value).toBe("3");
-    expect(p.getByTestId("scratch-output").textContent).toBe("9");
-    expect(p.getByRole("status").textContent).toMatch(/finished.*started by A/);
+    serverSends(socket, welcome());
+    expect(within(results()).getByRole("tablist").textContent).toBe("OutputTests");
+    expect(selected()).toEqual(["Output"]);
+    expect(within(results()).queryByLabelText("Input")).toBeNull();
+    expect(screen.queryByRole("button", { name: /own-input/ })).toBeNull();
   });
 
-  it("FR-5: a started run and its output show as they arrive", async () => {
+  it("FR-10: a welcome's script run shows its output, status and starter", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ scratch_run: RUN }));
+    expect(within(output()).getByTestId("scratch-output").textContent).toBe("9");
+    expect(within(output()).getByRole("status").textContent).toMatch(/finished.*started by A/);
+  });
+
+  it("FR-5: a started run and its output show as they arrive, errors included", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome({ scratch_run: null }));
     serverSends(socket, {
       type: "scratch_run_started",
-      run: { ...RUN, status: "running", output: [], seq: 0, exit_code: null },
+      run: { ...RUN, input: "", status: "running", output: [], seq: 0, exit_code: null },
     });
-    serverSends(socket, { type: "scratch_run_output", seq: 0, s: "out", t: "hi" });
-    expect(within(panel()).getByTestId("scratch-output").textContent).toBe("hi");
-    expect(within(panel()).getByRole("status").textContent).toMatch(/running/);
-    serverSends(socket, { type: "scratch_run_end", status: "finished", exit_code: 0 });
-    expect(within(panel()).getByRole("status").textContent).toMatch(/finished/);
+    serverSends(socket, { type: "scratch_run_output", seq: 0, s: "out", t: "hi\n" });
+    serverSends(socket, { type: "scratch_run_output", seq: 3, s: "err", t: "ValueError: x\n" });
+    expect(within(output()).getByTestId("scratch-output").textContent).toContain("hi");
+    expect(within(output()).getByTestId("scratch-output").textContent).toContain("ValueError: x");
+    expect(within(output()).getByRole("status").textContent).toMatch(/running/);
+    serverSends(socket, { type: "scratch_run_end", status: "error", exit_code: 1 });
+    expect(within(output()).getByRole("status").textContent).toMatch(/error/);
   });
 
-  it("sends scratch_run with the typed input", async () => {
+  it("Run disables itself until the run ends", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome({ scratch_run: null }));
-    fireEvent.change(within(panel()).getByLabelText("Input"), { target: { value: "5" } });
-    fireEvent.click(within(panel()).getByRole("button", { name: "Run" }));
-    expect(socket.sent).toContain(JSON.stringify({ type: "scratch_run", input: "5" }));
+    fireEvent.click(runButton());
+    expect(runButton().disabled).toBe(true);
+    serverSends(socket, {
+      type: "scratch_run_started",
+      run: { ...RUN, input: "", status: "running", output: [], seq: 0, exit_code: null },
+    });
+    expect(runButton().disabled).toBe(true);
+    serverSends(socket, { type: "scratch_run_end", status: "finished", exit_code: 0 });
+    expect(runButton().disabled).toBe(false);
+  });
+
+  it("Run and Check are disabled for a deleted problem", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ current_problem: { ...SUM_TWO, deleted: true } }));
+    expect(runButton().disabled).toBe(true);
+    expect(checkButton().disabled).toBe(true);
+  });
+
+  it("starting Run selects Output; starting Check selects Tests", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    fireEvent.click(checkButton());
+    expect(selected()).toEqual(["Tests"]);
+    fireEvent.click(runButton());
+    expect(selected()).toEqual(["Output"]);
+  });
+
+  it("a run or check started by someone else switches the tab too", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    serverSends(socket, { type: "run_started", run_id: "r1", by: "Linus" });
+    expect(selected()).toEqual(["Tests"]);
+    serverSends(socket, {
+      type: "scratch_run_started",
+      run: { ...RUN, started_by: "Linus", status: "running", output: [], seq: 0, exit_code: null },
+    });
+    expect(selected()).toEqual(["Output"]);
+  });
+
+  it("a join opens on Tests when a check is going or the problem has results and no script run", async () => {
+    let socket = await joinAsAda();
+    serverSends(socket, welcome({ problems: { p1: { accepted: true, last_run: PASSED_RUN } } }));
+    expect(selected()).toEqual(["Tests"]);
+    cleanup();
+    socket = await joinAsAda();
+    serverSends(
+      socket,
+      welcome({ scratch_run: RUN, problems: { p1: { accepted: true, last_run: PASSED_RUN } } }),
+    );
+    expect(selected()).toEqual(["Output"]);
+  });
+
+  it("the tabs switch by click", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    fireEvent.click(tab("Tests"));
+    expect(selected()).toEqual(["Tests"]);
+    expect(within(results()).queryByTestId("scratch-output")).toBeNull();
+    fireEvent.click(tab("Output"));
+    expect(selected()).toEqual(["Output"]);
+  });
+
+  it("starting Run or Check peeks unpinned results, without pinning them", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    fireEvent.click(screen.getByRole("button", { name: "Unpin run results" }));
+    expect(screen.queryByRole("region", { name: "Run results" })).toBeNull();
+    fireEvent.click(runButton());
+    expect(screen.getByRole("region", { name: "Run results" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Pin run results" })).toBeTruthy();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole("region", { name: "Run results" })).toBeNull();
+    fireEvent.click(checkButton());
+    expect(screen.getByRole("region", { name: "Run results" })).toBeTruthy();
+    expect(localStorage.getItem("pinned.output")).toBe("false");
   });
 
   it("FR-9: a refusal as in progress names who started the run", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome());
     serverSends(socket, { type: "scratch_run_refused", reason: "in_progress", by: "A" });
-    expect(within(panel()).getByRole("alert").textContent).toContain("A");
-  });
-
-  it("toggles the panel from the toolbar, apart from the run results", async () => {
-    const socket = await joinAsAda();
-    serverSends(socket, welcome());
-    panel();
-    fireEvent.click(screen.getByRole("button", { name: "Hide own-input run" }));
-    expect(screen.queryByRole("region", { name: "Run with your own input" })).toBeNull();
-    expect(screen.getByRole("region", { name: "Run results" })).toBeTruthy();
+    expect(within(output()).getByRole("alert").textContent).toContain("A");
   });
 
   it("a gap in the output re-joins to fetch a fresh welcome", async () => {
@@ -1254,14 +1416,16 @@ describe("SessionWindow, run with your own input (spec 011)", () => {
     expect(sockets).toHaveLength(2);
     act(() => sockets[1]?.onopen?.(new Event("open")));
     serverSends(sockets[1] as FakeSocket, welcome({ scratch_run: RUN }));
-    expect(within(panel()).getByTestId("scratch-output").textContent).toBe("9");
+    expect(within(output()).getByTestId("scratch-output").textContent).toBe("9");
   });
 
-  it("FR-12: a stale session has no own-input Run", async () => {
+  it("FR-12: a stale session has Run and Check, both disabled, and no output tabs", async () => {
     stubServer([json(423, { error: "stale", can_reactivate: false })]);
     renderPage();
     await screen.findByText(/gone stale/);
-    expect(screen.queryByRole("region", { name: "Run with your own input" })).toBeNull();
+    expect(runButton().disabled).toBe(true);
+    expect(checkButton().disabled).toBe(true);
+    expect(screen.queryByRole("tabpanel", { name: "Output" })).toBeNull();
   });
 });
 

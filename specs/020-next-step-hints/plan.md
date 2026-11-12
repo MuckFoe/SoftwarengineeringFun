@@ -101,7 +101,14 @@ Dependency direction: `sessions/ws.py → hints/service.py → {hints/*, runs/*,
 
 ### Prompt (`hints/prompt.py`)
 
-- **System message (fixed text).** The model is a tutor giving **one** next step:
+- **Hint levels (FR-13, added 2026-11-12 at the user's request: "more vague, only very small steps; the more hints asked the less vague").** The user message ends with `## Hint level` = number of earlier hints on the problem + 1, capped at 4. The system message defines them:
+  - 1: a vague nudge, one question or observation about where to look; no technique, function or code,
+  - 2: the general idea in plain words; no function names, no code,
+  - 3: how the idea applies to their code; one built-in may be named; no code,
+  - 4+: the most concrete single step; one small fragment allowed.
+
+  All levels: at most 2 sentences, never solving code. The guard is unchanged (it still allows about 3 sentences).
+- **System message (fixed text).** The model is a tutor giving **one very small** next step:
   - at most 3 sentences, plain text,
   - the group writes the code: never code that solves the problem or could be the whole body, not even a one-liner, and usually no code at all (added 2026-11-12: with "at most one line of code" the model answered every easy problem with its one-line solution, so every hint was withheld),
   - at most one fragment in backticks (a function or method name, a small expression or condition), never a `return` statement,

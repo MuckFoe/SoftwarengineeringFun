@@ -2,6 +2,8 @@
 
 Status: validated
 
+*Note 2026-11-12 (spec 011 change):* the session toolbar's test run is now labelled *Check*; *Run* runs the code as a script and shows its output. "Clicks run" below means *Check*.
+
 ## Problem / Why
 
 Practising algorithm problems (LeetCode-style) is usually solitary, and pairing on one means screen-sharing, where only one person can type. People who want to solve problems *together* need a shared place to pick a problem, all edit the same solution at the same time, run it safely, and find out objectively whether it is correct. Problems should not depend on a third-party catalogue. Editors maintain a shared catalogue of problems with hidden tests, and a starter set means the site is useful on day one.

@@ -57,7 +57,6 @@ async function chooseAppearance(page: Page, choice: "Light" | "Dark" | "System")
   await page.keyboard.press("Escape");
 }
 
-const sessionToolbar = (page: Page) => page.getByRole("toolbar", { name: "Session" });
 const chat = (page: Page) =>
   page.getByRole("complementary", { name: "Inspector" }).getByRole("region", { name: "Chat" });
 
@@ -72,7 +71,7 @@ test.afterEach(async () => {
   await Promise.all(contexts.splice(0).map((c) => c.close()));
 });
 
-test("FR-15: dark and chat hidden on the laptop are dark and chat hidden in another browser", async ({
+test("FR-15: dark and chat unpinned on the laptop are dark and chat unpinned in another browser", async ({
   browser,
   keycloak,
   request,
@@ -86,7 +85,7 @@ test("FR-15: dark and chat hidden on the laptop are dark and chat hidden in anot
   expect(await appearance(laptop.page)).toBe("dark");
   await openSession(laptop.page, await createSession(request));
   await expect(chat(laptop.page)).toBeVisible();
-  await sessionToolbar(laptop.page).getByRole("button", { name: "Hide chat" }).click();
+  await laptop.page.getByRole("button", { name: "Unpin chat" }).click();
   await expect(chat(laptop.page)).toBeHidden();
   await expect
     .poll(() => accountPrefs(laptop.page))
@@ -97,7 +96,7 @@ test("FR-15: dark and chat hidden on the laptop are dark and chat hidden in anot
   await expect.poll(() => appearance(other.page)).toBe("dark");
   await openSession(other.page, await createSession(request));
   expect(await appearance(other.page)).toBe("dark");
-  await expect(sessionToolbar(other.page).getByRole("button", { name: "Show chat" })).toBeVisible();
+  await expect(other.page.getByRole("button", { name: "Chat", exact: true })).toBeVisible();
   await expect(chat(other.page)).toBeHidden();
 });
 

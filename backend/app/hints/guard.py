@@ -18,6 +18,7 @@ MAX_CHARS = 600
 MAX_CODE_LINES = 1
 MAX_SENTENCES = 4
 MAX_ENUMERATED_LINES = 2
+MAX_CONCURRENT_RUNS = 3
 
 _THINK = re.compile(r"<think>.*?</think>", re.IGNORECASE | re.DOTALL)
 _THINK_UNCLOSED = re.compile(r"<think>.*\Z", re.IGNORECASE | re.DOTALL)
@@ -208,16 +209,22 @@ def candidates(signature: str, line: str) -> list[str]:
 async def passes_all_tests(runner_url: str, problem: ProblemWithTests, codes: list[str]) -> bool:
     """True when any of `codes` passes every test of `problem` (step 5).
 
-    The codes run concurrently. Raises RunnerUnavailable.
+    The codes run concurrently, at most MAX_CONCURRENT_RUNS at a time. Raises RunnerUnavailable.
     """
     if not codes:
         return False
     function_name = parse_signature(problem.signature).name
     cases = [test.args for test in problem.tests]
     expected = [test.expected for test in problem.tests]
-    outcomes = await asyncio.gather(
-        *(execute(runner_url, code, function_name, cases) for code in codes)
-    )
+    # The runner's HTTP server drops connections past a handful at once; a hint with several
+    # fragments has several candidates each, so they go a few at a time.
+    limit = asyncio.Semaphore(MAX_CONCURRENT_RUNS)
+
+    async def run(code: str):
+        async with limit:
+            return await execute(runner_url, code, function_name, cases)
+
+    outcomes = await asyncio.gather(*(run(code) for code in codes))
     return any(is_accepted(grade(expected, outcome)) for outcome in outcomes)
 
 
