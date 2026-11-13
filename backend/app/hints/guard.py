@@ -3,6 +3,10 @@
 Steps 1-4 and `candidates` are pure. `passes_all_tests` and `check` add the executed step 5:
 candidates go to the runner and are graded in memory, never written to `run` or `run_result`
 and never broadcast (FR-11).
+
+`check_answer` applies the same checks to an answer to a question with looser length limits
+(FR-19); a complete solution there asks the asker to confirm instead (FR-20).
+`normalize_revealed` only cleans and caps an answer the asker confirmed.
 """
 
 import ast
@@ -19,6 +23,19 @@ MAX_CODE_LINES = 1
 MAX_SENTENCES = 4
 MAX_ENUMERATED_LINES = 2
 MAX_CONCURRENT_RUNS = 3
+
+# FR-19: an answer to a question may be a little longer than a hint.
+ANSWER_MAX_CHARS = 1200
+ANSWER_MAX_CODE_LINES = 3
+ANSWER_MAX_SENTENCES = 6
+ANSWER_MAX_ENUMERATED_LINES = 3
+# FR-20: a confirmed, revealing answer may carry the whole solution.
+REVEALED_MAX_CHARS = 4000
+
+_REVEALS = re.compile(r"\bREVEALS_SOLUTION\b")
+# FR-19: an answer never holds a whole function, fenced or not, in any form.
+_DEF_LINE = re.compile(r"^\s*(?:async\s+)?def\s+[A-Za-z_]\w*\s*\(", re.MULTILINE)
+_ANSWER_LABEL = re.compile(r"\A\s*answer\s*:\s*", re.IGNORECASE)
 
 _THINK = re.compile(r"<think>.*?</think>", re.IGNORECASE | re.DOTALL)
 _THINK_UNCLOSED = re.compile(r"<think>.*\Z", re.IGNORECASE | re.DOTALL)
@@ -71,12 +88,16 @@ def _collapse_prose(line: str) -> str:
     return "".join(out).strip()
 
 
-def normalize(raw: str) -> str | None:
-    """Clean a model answer; None when the result is not 1-600 characters (step 1)."""
+def _strip_thinking(raw: str) -> str:
     text = _THINK.sub("", raw)
     text = _THINK_UNCLOSED.sub("", text)
-    text = _THINK_ORPHAN_CLOSE.sub("", text)
-    text = _HINT_LABEL.sub("", text.strip(), count=1)
+    return _THINK_ORPHAN_CLOSE.sub("", text)
+
+
+def normalize(raw: str, max_chars: int = MAX_CHARS) -> str | None:
+    """Clean a model answer; None when the result is not 1-`max_chars` characters (step 1)."""
+    text = _HINT_LABEL.sub("", _strip_thinking(raw).strip(), count=1)
+    text = _ANSWER_LABEL.sub("", text, count=1)
     out: list[str] = []
     in_fence = False
     for line in text.split("\n"):
@@ -91,7 +112,7 @@ def normalize(raw: str) -> str | None:
             if collapsed:
                 out.append(collapsed)
     result = "\n".join(out).strip()
-    if not 1 <= len(result) <= MAX_CHARS:
+    if not 1 <= len(result) <= max_chars:
         return None
     return result
 
@@ -126,18 +147,24 @@ def _sentence_count(text: str) -> int:
     return count
 
 
-def shape_ok(text: str) -> bool:
+def shape_ok(
+    text: str,
+    max_code_lines: int = MAX_CODE_LINES,
+    max_sentences: int = MAX_SENTENCES,
+    max_enumerated: int = MAX_ENUMERATED_LINES,
+) -> bool:
     """FR-9: at most one code line, about 3 sentences, and no enumerated plan (step 3).
+    An answer (FR-19) passes the looser ANSWER_* limits.
 
-    Names in backticks (`a`, `str.split`) don't count towards the one code line.
+    Names in backticks (`a`, `str.split`) don't count towards the code lines.
     """
-    if len([line for line in code_lines(text) if not _BARE_NAME.match(line)]) > MAX_CODE_LINES:
+    if len([line for line in code_lines(text) if not _BARE_NAME.match(line)]) > max_code_lines:
         return False
-    if _sentence_count(text) > MAX_SENTENCES:
+    if _sentence_count(text) > max_sentences:
         return False
     lines = [line.strip() for in_fence, line in _split(text) if not in_fence]
     enumerated = sum(1 for line in lines if _ENUMERATED.match(line))
-    return enumerated <= MAX_ENUMERATED_LINES
+    return enumerated <= max_enumerated
 
 
 def _parse_lenient(code: str) -> ast.Module | None:
@@ -245,3 +272,48 @@ async def check(runner_url: str, problem: ProblemWithTests, raw: str) -> str | N
     if codes and await passes_all_tests(runner_url, problem, codes):
         return None
     return text
+
+
+def answer_candidates(signature: str, text: str) -> list[str]:
+    """Every fragment of an answer placed alone into the editor, plus all its code lines
+    together as the function body: an answer may split a solution over its 3 lines."""
+    lines = code_lines(text)
+    codes = [code for line in lines for code in candidates(signature, line)]
+    if len(lines) > 1:
+        header = signature.strip().rstrip(":").rstrip()
+        body = "\n".join(f"    {line}" for line in lines)
+        for form in (f"{header}:\n{body}", "\n".join(lines)):
+            if form not in codes and _compiles(form):
+                codes.append(form)
+    return codes
+
+
+async def check_answer(
+    runner_url: str, problem: ProblemWithTests, raw: str
+) -> tuple[str, str | None]:
+    """Every guard step on an answer to a question (FR-19, FR-20):
+    ("ok", body) to show, ("reveal", None) when it would give the solution away, so the asker
+    is asked first, or ("withheld", None) when it breaks the length rules.
+
+    Raises RunnerUnavailable when the executed check cannot reach the runner.
+    """
+    if _REVEALS.search(_strip_thinking(raw)):
+        return "reveal", None
+    text = normalize(raw, ANSWER_MAX_CHARS)
+    if text is None or not shape_ok(
+        text, ANSWER_MAX_CODE_LINES, ANSWER_MAX_SENTENCES, ANSWER_MAX_ENUMERATED_LINES
+    ):
+        return "withheld", None
+    if _DEF_LINE.search(text) or structurally_complete(
+        text, parse_signature(problem.signature).name
+    ):
+        return "reveal", None
+    codes = answer_candidates(problem.signature, text)
+    if codes and await passes_all_tests(runner_url, problem, codes):
+        return "reveal", None
+    return "ok", text
+
+
+def normalize_revealed(raw: str) -> str | None:
+    """FR-20: a confirmed answer is only cleaned and capped; None when empty or too long."""
+    return normalize(_REVEALS.sub("", raw), REVEALED_MAX_CHARS)

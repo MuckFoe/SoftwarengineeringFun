@@ -14,6 +14,8 @@ import httpx
 
 TEMPERATURE = 0.2
 MAX_TOKENS = 250
+ANSWER_MAX_TOKENS = 400  # spec 020 FR-19: an answer to a question
+REVEALED_MAX_TOKENS = 1200  # FR-20: a confirmed answer may carry the whole solution
 PS_TIMEOUT_S = 3.0
 
 
@@ -50,12 +52,14 @@ class LlmClient:
             return True
         return any(self._is_ours(m) for m in models)
 
-    async def complete(self, messages: list[dict[str, str]], timeout_s: float) -> str:
+    async def complete(
+        self, messages: list[dict[str, str]], timeout_s: float, max_tokens: int = MAX_TOKENS
+    ) -> str:
         body: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
             "temperature": TEMPERATURE,
-            "max_tokens": MAX_TOKENS,
+            "max_tokens": max_tokens,
             "stream": False,
         }
         if self._reasoning_effort:

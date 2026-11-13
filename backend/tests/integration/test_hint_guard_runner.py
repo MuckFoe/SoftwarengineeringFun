@@ -17,7 +17,7 @@ import asyncpg
 import pytest
 
 from app import db as app_db
-from app.hints.guard import candidates, check, passes_all_tests
+from app.hints.guard import candidates, check, check_answer, passes_all_tests
 from app.problems.repo import ProblemWithTests
 from app.problems.signature import TestInput
 from app.runs.runner_client import RunnerUnavailable
@@ -133,3 +133,14 @@ async def test_executed_check_raises_runner_unavailable_when_the_runner_is_unrea
         await check("http://127.0.0.1:9", ADD, "Try `a + b` here.")
     # No code line: nothing is executed, so an unreachable runner does not matter.
     assert await check("http://127.0.0.1:9", ADD, "Think about it.") == "Think about it."
+
+
+async def test_fr20_an_answer_splitting_the_solution_over_its_code_lines_asks_first() -> None:
+    """Spec 020 FR-20 (2026-11-13): an answer's code lines are also run together as the body."""
+    problem = _problem("def add(a: int, b: int) -> int", [([2, 3], 5), ([-1, 1], 0)])
+    split = "First `total = a + b`, then `return total`."
+    safe = "Use `a + 1` to see how `+` behaves."
+    verdicts = await asyncio.gather(
+        check_answer(RUNNER_URL, problem, split), check_answer(RUNNER_URL, problem, safe)
+    )
+    assert verdicts == [("reveal", None), ("ok", safe)]

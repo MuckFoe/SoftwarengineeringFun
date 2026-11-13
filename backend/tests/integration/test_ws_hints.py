@@ -238,6 +238,9 @@ async def test_ac3_a_guest_asks_and_both_see_preparing_then_hint_1_with_name_and
                             "by": "Grace",
                             "note": "stuck on empty input",
                             "warming": False,
+                            "kind": "hint",
+                            "question": None,
+                            "reveal": False,
                         },
                     }
                 ready = [_next(ws) for ws in (host, guest)]
@@ -249,7 +252,18 @@ async def test_ac3_a_guest_asks_and_both_see_preparing_then_hint_1_with_name_and
     assert hint["asked_by"] == "Grace"
     assert hint["note"] == "stuck on empty input"
     assert hint["problem_id"] == str(session.current_problem_id)
-    assert set(hint) == {"id", "problem_id", "number", "asked_by", "note", "body", "created_at"}
+    assert set(hint) == {
+        "id",
+        "problem_id",
+        "number",
+        "asked_by",
+        "note",
+        "body",
+        "created_at",
+        "kind",
+        "question",
+        "reveals_solution",
+    }
     assert hint["body"]
     (row,) = await _hint_rows(migrated, session.id)
     assert (row["number"], row["asked_by"], row["note"]) == (1, "Grace", "stuck on empty input")
@@ -360,6 +374,7 @@ async def test_ac8_a_solution_answer_is_withheld_from_both_and_uses_no_number(
                     "type": "hint_failed",
                     "problem_id": str(session.current_problem_id),
                     "reason": "withheld",
+                    "kind": "hint",
                 }
             assert await _hint_rows(migrated, session.id) == []
             assert await _doc_updates(migrated, session.id) == updates_before
@@ -404,6 +419,9 @@ async def test_ac13_a_late_joiner_while_a_hint_is_prepared_gets_hint_pending(
         "by": "Ada",
         "note": "edge cases",
         "warming": False,
+        "kind": "hint",
+        "question": None,
+        "reveal": False,
     }
 
 
@@ -500,6 +518,7 @@ async def test_ac12_an_unavailable_model_fails_for_both_within_the_deadline_and_
         "type": "hint_failed",
         "problem_id": str(session.current_problem_id),
         "reason": "unavailable",
+        "kind": "hint",
     }
     with fast_client.websocket_connect(_ws_url(session.invite_id, "Ada")) as ada:
         _welcome(ada)
@@ -571,6 +590,7 @@ async def test_ac12_the_runner_unreachable_during_the_guard_withholds_the_hint(
         "type": "hint_failed",
         "problem_id": str(session.current_problem_id),
         "reason": "withheld",
+        "kind": "hint",
     }
     assert await _hint_rows(migrated, session.id) == []
 
@@ -658,6 +678,7 @@ async def test_ac12a_a_cold_model_that_does_not_answer_in_time_is_unavailable(
         "type": "hint_failed",
         "problem_id": str(session.current_problem_id),
         "reason": "unavailable",
+        "kind": "hint",
     }
     assert elapsed < FAST["hint_cold_deadline_seconds"]
     assert await _hint_rows(migrated, session.id) == []
@@ -697,6 +718,9 @@ async def test_ac12a_a_late_joiner_sees_the_hint_warming_up(
         "by": "Ada",
         "note": "edge cases",
         "warming": True,
+        "kind": "hint",
+        "question": None,
+        "reveal": False,
     }
 
 
@@ -974,3 +998,183 @@ async def test_ac15_a_signed_in_askers_username_and_email_never_reach_the_model(
         sent = _everything(record)
         for identity in ("plain1", "plain1@example.test", you["name"]):
             assert identity not in sent, (identity, record.path)
+
+
+# --- Questions (FR-17 to FR-22, added 2026-11-13) ----------------------------
+
+
+def _question(ws, text: object) -> None:
+    ws.send_text(json.dumps({"type": "question_request", "question": text}))
+
+
+async def _question_rows(conn: asyncpg.Connection, session_id: uuid.UUID) -> list[asyncpg.Record]:
+    return await conn.fetch(
+        "select number, asked_by, question, body, reveals_solution from session_hint"
+        " where session_id = $1 and kind = 'question' order by number",
+        session_id,
+    )
+
+
+async def test_ac18_a_guests_question_reaches_both_and_does_not_number_hints(
+    client: TestClient, migrated: asyncpg.Connection, fake_llm: FakeLlm
+) -> None:
+    session = await _session(migrated)
+    fake_llm.reply_with("It yields (index, item) pairs.", "Look at the operator.")
+    with client.websocket_connect(_ws_url(session.invite_id, "Ada")) as ada:
+        _welcome(ada)
+        with client.websocket_connect(_ws_url(session.invite_id, "Grace")) as grace:
+            _welcome(grace)
+            _question(grace, "what does enumerate return?")
+            for ws in (ada, grace):
+                assert _next(ws) == {
+                    "type": "hint_started",
+                    "pending": {
+                        "problem_id": str(session.current_problem_id),
+                        "by": "Grace",
+                        "note": None,
+                        "warming": False,
+                        "kind": "question",
+                        "question": "what does enumerate return?",
+                        "reveal": False,
+                    },
+                }
+            answers = [_next(ws) for ws in (ada, grace)]
+            hint = _hint(ada)
+
+    assert answers[0] == answers[1]
+    answer = answers[0]["hint"]
+    assert answers[0]["type"] == "hint_ready"
+    assert (answer["kind"], answer["number"], answer["asked_by"]) == ("question", 1, "Grace")
+    assert answer["question"] == "what does enumerate return?"
+    assert answer["body"] == "It yields (index, item) pairs."
+    assert answer["reveals_solution"] is False
+    # FR-18: a question doesn't use a hint number or make the next hint more specific.
+    assert (hint["hint"]["kind"], hint["hint"]["number"]) == ("hint", 1)
+    question_prompt, hint_prompt = (_prompt(r) for r in _completions(fake_llm))
+    assert "what does enumerate return?" in question_prompt
+    assert "## Hint level\n1" in hint_prompt
+    assert "It yields" not in hint_prompt
+    (row,) = await _question_rows(migrated, session.id)
+    assert (row["number"], row["question"], row["reveals_solution"]) == (
+        1,
+        "what does enumerate return?",
+        False,
+    )
+
+
+async def test_ac18_an_empty_question_is_refused_and_nothing_is_asked(
+    client: TestClient, migrated: asyncpg.Connection, fake_llm: FakeLlm
+) -> None:
+    session = await _session(migrated)
+    with client.websocket_connect(_ws_url(session.invite_id, "Ada")) as ada:
+        _welcome(ada)
+        _question(ada, "  \n ")
+        assert _next(ada) == {"type": "hint_refused", "reason": "empty"}
+    assert _completions(fake_llm) == []
+
+
+async def test_ac19_a_revealing_answer_is_offered_to_the_asker_who_declines_then_confirms(
+    client: TestClient, migrated: asyncpg.Connection, fake_llm: FakeLlm
+) -> None:
+    session = await _session(migrated)
+    with client.websocket_connect(_ws_url(session.invite_id, "Ada")) as ada:
+        _welcome(ada)
+        with client.websocket_connect(_ws_url(session.invite_id, "Grace")) as grace:
+            grace_id = _welcome(grace)["you"]["participant_id"]
+            _question(grace, "fake:reveal give me the code")
+            awaiting = {
+                "problem_id": str(session.current_problem_id),
+                "participant_id": grace_id,
+                "by": "Grace",
+                "question": "fake:reveal give me the code",
+            }
+            for ws in (ada, grace):
+                assert _next(ws)["type"] == "hint_started"
+                assert _next(ws) == {"type": "question_confirm", "awaiting": awaiting}
+            assert await _hint_rows(migrated, session.id) == []
+
+            # Only the asker may decide.
+            ada.send_text(json.dumps({"type": "question_reveal"}))
+            assert _next(ada) == {"type": "hint_refused", "reason": "no_question"}
+            # Declined: nothing is shown or stored.
+            grace.send_text(json.dumps({"type": "question_decline"}))
+            for ws in (ada, grace):
+                assert _next(ws) == {"type": "question_confirm_ended", "outcome": "declined"}
+            assert await _hint_rows(migrated, session.id) == []
+
+            # Asked again and confirmed: everyone sees the answer, marked as revealing.
+            _question(grace, "fake:reveal give me the code")
+            for ws in (ada, grace):
+                assert _next(ws)["type"] == "hint_started"
+                assert _next(ws)["type"] == "question_confirm"
+            grace.send_text(json.dumps({"type": "question_reveal"}))
+            for ws in (ada, grace):
+                assert _next(ws) == {"type": "question_confirm_ended", "outcome": "confirmed"}
+                started = _next(ws)
+                assert started["type"] == "hint_started"
+                assert (started["pending"]["kind"], started["pending"]["reveal"]) == (
+                    "question",
+                    True,
+                )
+            ready = [_next(ws) for ws in (ada, grace)]
+
+    assert ready[0] == ready[1]
+    answer = ready[0]["hint"]
+    assert ready[0]["type"] == "hint_ready"
+    assert (answer["kind"], answer["number"], answer["reveals_solution"]) == ("question", 1, True)
+    assert "def add(" in answer["body"]
+    (row,) = await _question_rows(migrated, session.id)
+    assert row["reveals_solution"] is True
+
+
+async def test_ac19_an_answer_holding_the_solution_asks_first_even_without_the_marker(
+    client: TestClient, migrated: asyncpg.Connection
+) -> None:
+    session = await _session(migrated)
+    with client.websocket_connect(_ws_url(session.invite_id, "Ada")) as ada:
+        _welcome(ada)
+        _question(ada, "fake:solution how?")
+        assert _next(ada)["type"] == "hint_started"
+        confirm = _next(ada)
+    assert confirm["type"] == "question_confirm"
+    assert await _hint_rows(migrated, session.id) == []
+
+
+async def test_ac20_a_pending_confirmation_blocks_nothing_and_late_joiners_see_it(
+    client: TestClient, migrated: asyncpg.Connection, fake_llm: FakeLlm
+) -> None:
+    session = await _session(migrated)
+    with client.websocket_connect(_ws_url(session.invite_id, "Ada")) as ada:
+        ada_id = _welcome(ada)["you"]["participant_id"]
+        _question(ada, "fake:reveal what's the answer")
+        assert _next(ada)["type"] == "hint_started"
+        assert _next(ada)["type"] == "question_confirm"
+        outcome = _hint(ada)
+        assert outcome["type"] == "hint_ready"
+        with client.websocket_connect(_ws_url(session.invite_id, "Linus")) as linus:
+            welcome = _welcome(linus)
+    assert welcome["question_awaiting"] == {
+        "problem_id": str(session.current_problem_id),
+        "participant_id": ada_id,
+        "by": "Ada",
+        "question": "fake:reveal what's the answer",
+    }
+
+
+async def test_ac20_a_new_question_sees_earlier_questions_and_answers(
+    client: TestClient, migrated: asyncpg.Connection, fake_llm: FakeLlm
+) -> None:
+    session = await _session(migrated)
+    fake_llm.reply_with("FIRST_ANSWER_MARK it is a builtin.", "Second answer.")
+    with client.websocket_connect(_ws_url(session.invite_id, "Ada")) as ada:
+        _welcome(ada)
+        _question(ada, "FIRST_QUESTION_MARK what is sum?")
+        assert _next(ada)["type"] == "hint_started"
+        assert _next(ada)["type"] == "hint_ready"
+        _question(ada, "and len?")
+        assert _next(ada)["type"] == "hint_started"
+        second = _next(ada)
+    assert second["hint"]["number"] == 2
+    prompt = _prompt(_completions(fake_llm)[-1])
+    assert "FIRST_QUESTION_MARK" in prompt
+    assert "FIRST_ANSWER_MARK" in prompt

@@ -10,6 +10,7 @@ import type {
   Participant,
   Problem,
   ProblemProgress,
+  QuestionAwaiting,
   WsErrorCode,
 } from "../api/types";
 import { useMe } from "../auth/useMe";
@@ -125,6 +126,10 @@ interface Joined {
   /** A hint being prepared for the session (FR-5, FR-8, FR-14a). */
   hintPending: HintPending | null;
   hintNotice: HintNotice | null;
+  /** A question whose answer would reveal the solution, waiting for its asker (FR-20). */
+  questionAwaiting: QuestionAwaiting | null;
+  /** This socket's participant id: only the asker may decide on a revealing answer. */
+  selfId: string;
 }
 
 /**
@@ -142,9 +147,11 @@ function firstTab(msg: {
   return msg.problems[msg.current_problem.id]?.last_run ? "tests" : "output";
 }
 
-/** One problem's hints, by number (spec 020 FR-13). */
+/** One problem's hints and answers, oldest first (spec 020 FR-13, FR-18). */
 function hintsFor(hints: Hint[], problemId: string): Hint[] {
-  return hints.filter((h) => h.problem_id === problemId).sort((a, b) => a.number - b.number);
+  return hints
+    .filter((h) => h.problem_id === problemId)
+    .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.number - b.number);
 }
 
 function nameProblem(raw: string): string | null {
@@ -293,6 +300,8 @@ export function SessionWindow({ createSocket }: Props) {
         hintsEnabled: msg.hints_enabled ?? false,
         hintPending: msg.hint_pending ?? null,
         hintNotice: null,
+        questionAwaiting: msg.question_awaiting ?? null,
+        selfId: msg.you.participant_id,
       }));
     });
     // A new request clears the last notice, so a second failure in a row is announced again.
@@ -314,8 +323,17 @@ export function SessionWindow({ createSocket }: Props) {
       })),
     );
     provider.on("hint_failed", (msg) =>
-      update(() => ({ hintPending: null, hintNotice: msg.reason })),
+      update(() => ({
+        hintPending: null,
+        hintNotice:
+          msg.reason === "withheld" && msg.kind === "question" ? "answer_withheld" : msg.reason,
+      })),
     );
+    // FR-20: everyone learns who is deciding; only the asker's panel offers the choice.
+    provider.on("question_confirm", (msg) =>
+      update(() => ({ hintPending: null, hintNotice: null, questionAwaiting: msg.awaiting })),
+    );
+    provider.on("question_confirm_ended", () => update(() => ({ questionAwaiting: null })));
     provider.on("hint_refused", (msg) =>
       update((prev) => {
         if (msg.reason === "in_progress") return { hintNotice: "in_progress" };
@@ -323,6 +341,8 @@ export function SessionWindow({ createSocket }: Props) {
         if (msg.reason === "disabled") return { hintsEnabled: false };
         if (msg.reason === "problem_deleted")
           return { problem: { ...prev.problem, deleted: true } };
+        // The confirmation was gone already (replaced, or the server restarted).
+        if (msg.reason === "no_question") return { questionAwaiting: null };
         return {};
       }),
     );
@@ -848,7 +868,16 @@ function JoinedWindow({
                 canAsk={joined.hintsEnabled && !problem.deleted}
                 pending={joined.hintPending}
                 notice={joined.hintNotice}
-                onAsk={(note) => provider.send({ type: "hint_request", note })}
+                awaiting={
+                  joined.questionAwaiting?.problem_id === problem.id
+                    ? joined.questionAwaiting
+                    : null
+                }
+                selfId={joined.selfId}
+                onAsk={() => provider.send({ type: "hint_request" })}
+                onQuestion={(question) => provider.send({ type: "question_request", question })}
+                onReveal={() => provider.send({ type: "question_reveal" })}
+                onDecline={() => provider.send({ type: "question_decline" })}
               />
             }
           />

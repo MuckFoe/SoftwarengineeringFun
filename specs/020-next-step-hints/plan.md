@@ -246,6 +246,22 @@ interface HintPending { problem_id: string; by: string; note: string | null; war
 
 `problem_switched` is unchanged. The client already holds every hint and filters by the current problem (FR-13, FR-15).
 
+**Questions (2026-11-13, FR-17 to FR-22).**
+
+```ts
+// client → server
+{ type: "question_request"; question: string }    // server: one line, ≤500, empty → hint_refused "empty"
+{ type: "question_reveal" } | { type: "question_decline" }   // the asker only; else hint_refused "no_question"
+// server → client
+{ type: "question_confirm"; awaiting: { problem_id; participant_id; by; question } }   // broadcast (FR-20)
+{ type: "question_confirm_ended"; outcome: "confirmed" | "declined" }                   // broadcast
+welcome.question_awaiting: QuestionAwaiting | null
+// Hint gains kind: "hint" | "question", question: string | null, reveals_solution: boolean
+// HintPending gains kind, question, reveal; hint_failed gains kind
+```
+
+Answers share the hint slot, deadlines and pipeline (`service._start`/`_produce`). See notes.md, 2026-11-13.
+
 ### REST
 
 `GET /api/sessions/{invite}/hints` returns `200 {"hints": Hint[]}` for an active or stale session. It returns 410 `session_deleted` or 404 `not_found` through `sessions.api.missing_invite`. No auth beyond the invite, the same as `GET …/chat`. The stale window uses it (FR-15, AC-2).

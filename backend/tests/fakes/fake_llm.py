@@ -18,6 +18,8 @@ What a completion answers, first match wins:
        fake:solution  a full `def` of the function named in the prompt's signature
        fake:markup    `MARKUP_REPLY`
        fake:cold      sleeps `cold_seconds` (about 2), then a default hint
+       fake:reveal    `REVEALS_SOLUTION` (a question whose answer is the solution), or, once
+                      the asker confirmed (the reveal system message), a full `def`
   3. otherwise a safe one-step hint cycling through `DEFAULT_HINTS`, so two in a row differ.
 `fail_with`, `garbage` and `delay` apply before any of that.
 
@@ -251,6 +253,10 @@ class FakeLlm:
         if queued is not None:
             return 200, _choice(queued)
         prompt = _last_user_message(body)
+        if "fake:reveal" in prompt:
+            if "has confirmed" in _system_message(body):
+                return 200, _choice(_solution_for(prompt))
+            return 200, _choice("REVEALS_SOLUTION")
         if "fake:error" in prompt:
             return 500, {"error": {"message": "fake:error"}}
         if "fake:solution" in prompt:
@@ -285,6 +291,15 @@ def _last_user_message(body: Any) -> str:
         return ""
     for message in reversed(messages):
         if isinstance(message, dict) and message.get("role") == "user":
+            content = message.get("content")
+            return content if isinstance(content, str) else ""
+    return ""
+
+
+def _system_message(body: Any) -> str:
+    messages = body.get("messages") if isinstance(body, dict) else None
+    for message in messages if isinstance(messages, list) else []:
+        if isinstance(message, dict) and message.get("role") == "system":
             content = message.get("content")
             return content if isinstance(content, str) else ""
     return ""

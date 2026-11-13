@@ -1540,23 +1540,17 @@ describe("SessionWindow, hints (spec 020)", () => {
     ).toBe(true);
   });
 
-  it("AC-3/AC-6: asking sends hint_request with the note; hint_started shows who asked; hint_ready shows the hint", async () => {
+  it("AC-3/AC-6/AC-17: Hint sends hint_request at once; hint_started shows who asked; hint_ready shows the hint", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome({ hints_enabled: true }));
 
     fireEvent.click(hintButton() as HTMLElement);
-    fireEvent.change(within(description()).getByLabelText("What are you stuck on? (optional)"), {
-      target: { value: "stuck on empty input" },
-    });
-    fireEvent.click(within(description()).getByRole("button", { name: "Ask" }));
-    expect(sentJson(socket)).toContainEqual({
-      type: "hint_request",
-      note: "stuck on empty input",
-    });
+    expect(sentJson(socket)).toContainEqual({ type: "hint_request" });
+    expect(within(description()).queryByRole("textbox")).toBeNull();
 
     serverSends(socket, {
       type: "hint_started",
-      pending: { problem_id: "p1", by: "Ada", note: "stuck on empty input", warming: false },
+      pending: { problem_id: "p1", by: "Ada", note: null, warming: false },
     });
     expect(within(description()).getByText("Preparing hint…")).toBeTruthy();
     expect(within(description()).getByText(/Asked by Ada/)).toBeTruthy();
@@ -1564,7 +1558,7 @@ describe("SessionWindow, hints (spec 020)", () => {
 
     serverSends(socket, {
       type: "hint_ready",
-      hint: hint({ asked_by: "Ada", note: "stuck on empty input" }),
+      hint: hint({ asked_by: "Ada", note: null }),
     });
     expect(within(description()).queryByText("Preparing hint…")).toBeNull();
     expect(hintHeadings()).toEqual(["Hint 1"]);
@@ -1572,13 +1566,65 @@ describe("SessionWindow, hints (spec 020)", () => {
     expect((hintButton() as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("AC-6: hint_refused in_progress shows that a hint is already being prepared", async () => {
+  it("AC-6: hint_refused in_progress shows that the model is already busy", async () => {
     const socket = await joinAsAda();
     serverSends(socket, welcome({ hints_enabled: true }));
     serverSends(socket, { type: "hint_refused", reason: "in_progress", by: "Ben" });
     expect(
-      within(description()).getByText("A hint is already being prepared", VISIBLE),
+      within(description()).getByText("The model is already working on a request", VISIBLE),
     ).toBeTruthy();
+  });
+
+  it("AC-18: Question sends question_request; the answer shows as Question 1", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ hints_enabled: true }));
+    fireEvent.click(within(description()).getByRole("button", { name: "Question" }));
+    fireEvent.change(within(description()).getByLabelText("Your question"), {
+      target: { value: "what does zip do?" },
+    });
+    fireEvent.click(within(description()).getByRole("button", { name: "Ask" }));
+    expect(sentJson(socket)).toContainEqual({
+      type: "question_request",
+      question: "what does zip do?",
+    });
+    serverSends(socket, {
+      type: "hint_ready",
+      hint: hint({
+        id: "q1",
+        kind: "question",
+        question: "what does zip do?",
+        reveals_solution: false,
+        note: null,
+      }),
+    });
+    expect(hintHeadings()).toEqual(["Question 1"]);
+    expect(within(description()).getByText("Model answer")).toBeTruthy();
+  });
+
+  it("AC-19: only the asker is offered a revealing answer; deciding sends the choice", async () => {
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ hints_enabled: true }));
+    const selfId = (welcome({}) as { you: { participant_id: string } }).you.participant_id;
+    const awaiting = { problem_id: "p1", by: "Ada", question: "the code?" };
+
+    serverSends(socket, {
+      type: "question_confirm",
+      awaiting: { ...awaiting, participant_id: "someone-else" },
+    });
+    expect(within(description()).queryByRole("button", { name: "Show the answer" })).toBeNull();
+    expect(within(description()).getByText(/Ada is deciding/, VISIBLE)).toBeTruthy();
+
+    serverSends(socket, {
+      type: "question_confirm",
+      awaiting: { ...awaiting, participant_id: selfId },
+    });
+    fireEvent.click(within(description()).getByRole("button", { name: "Show the answer" }));
+    expect(sentJson(socket)).toContainEqual({ type: "question_reveal" });
+    fireEvent.click(within(description()).getByRole("button", { name: "Keep trying" }));
+    expect(sentJson(socket)).toContainEqual({ type: "question_decline" });
+
+    serverSends(socket, { type: "question_confirm_ended", outcome: "declined" });
+    expect(within(description()).queryByRole("button", { name: "Show the answer" })).toBeNull();
   });
 
   it("FR-8: a late joiner sees the welcome's pending hint", async () => {

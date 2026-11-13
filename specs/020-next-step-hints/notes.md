@@ -31,3 +31,22 @@
 - **Change:** at the user's request, hints start vague and get more concrete with each hint on a problem. There are 4 levels, set by the number of earlier hints (see plan.md, Prompt).
 - **Real model (qwen3.6:35b):** 15 of 15 hints shown across three starter problems, asked 5 in a row each. Level 1 was a question ("Have you considered how to handle the case where the input list is empty?"); levels 4 and 5 gave one fragment (`if not xs:`).
 - **Guard concurrency:** the guard now runs at most 3 candidates at a time, because a hint with several fragments could overrun the runner, which drops connections past about 5 simultaneous requests.
+
+## 2026-11-13: questions, and Hint without a note
+
+- **Change (user request):** a *Question* button next to *Hint* sends one question (≤500 characters) to the model. The answer is shared and stored like a hint, numbered "Question N" on its own. *Hint* now asks at once, with no note field. The spec was amended first: FR-5, FR-8 and FR-15 changed, FR-17 to FR-22 and AC-17 to AC-20 added, AC-4 superseded.
+- **Decisions (user, 2026-11-13):** questions and answers are visible to everyone and stored with the session. Only the asker is asked to confirm a revealing answer. The spec was amended, then built in one pass, without a separate plan/tasks cycle.
+- **How it works:**
+  - The question prompt tells the model to answer with exactly `REVEALS_SOLUTION` when any useful answer would be the solution.
+  - The app's own check (`guard.check_answer`) also catches a `def` line, a structurally complete line, or code lines that pass every test, alone or joined as the body. Any of these leads to the confirmation instead of a withheld answer.
+  - Confirming asks the model again with a reveal system message. That answer is only cleaned and capped (4000 characters) and is marked `reveals_solution`.
+  - A pending confirmation lives in memory (`service._AWAITING`, one per session, newest wins). It never holds the request slot and is broadcast as `question_confirm`. Clients show the choice only when `participant_id` is their own.
+- **Data:** migration 0014 adds `kind`, `question` and `reveals_solution` to `session_hint`. Each kind is numbered separately, and the body cap is per kind (600 for a hint, 1200 for an answer, 4000 for a revealing answer).
+- **Protocol:**
+  - Client to server: `question_request {question}`, `question_reveal`, `question_decline`.
+  - Server to client: `question_confirm {awaiting}`, `question_confirm_ended {outcome}`, and `welcome.question_awaiting`.
+  - `hint_failed` gains `kind`. `Hint` and `HintPending` gain `kind`, `question` and `reveals_solution`/`reveal`.
+  - `hint_request` still accepts a `note` from older clients.
+- **Tests:** the E2E and look-matrix directives (`fake:slow`, `fake:cold`, `fake:error`) now go in a question, because Hint has no input. The matrix's held states drop `hint_ready` as well, so a plain Hint stays "preparing". The fake gained `fake:reveal`. A new matrix screen, "session question confirm", was added.
+- **Real model (qwen3.6:35b), 2026-11-13:** on "Reverse words", questions about `str.split()` and reversing a list got short answers. "Give me the code" and "the full algorithm" both returned `REVEALS_SOLUTION`. Reveal mode returned the one-line solution in a fenced block.
+- **Found:** an unfenced multi-line `def` got past the answer check, because a `def …:` header alone isn't a parsable code line. Answers now treat any `def` line as revealing.

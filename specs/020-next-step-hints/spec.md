@@ -16,7 +16,9 @@ A group stuck on a coding problem whose hidden tests keep failing has one option
 
 - **Hint**: a short piece of guidance about what to consider or do next on the session's current problem. The self-hosted model produces it when a participant asks.
 - **Complete solution**: code that makes every test pass when put in the editor as the session's solution, or a full implementation of the problem's function in any form (code, pseudo-code, or a step-by-step recipe that leaves nothing to work out).
-- **Note**: an optional single line the asker types to say what they are stuck on, sent with the request.
+- **Note**: a single line that came with hints asked before 2026-11-13. The *Hint* action no longer takes one (FR-5); notes already stored are still shown.
+- **Question**: a single line a participant types to ask the model something specific about the current problem (FR-17).
+- **Answer**: the model's reply to a question. A **revealing answer** is one the asker explicitly agreed to see although it gives away the complete solution (FR-20).
 
 ## Functional requirements
 
@@ -29,10 +31,10 @@ A group stuck on a coding problem whose hidden tests keep failing has one option
 
 ### Asking for a hint
 
-- **FR-5** WHEN any participant, signed in or a guest, activates *Hint*, THE SYSTEM SHALL let them add an optional note (one line) about what they are stuck on, then ask the self-hosted model for a hint on the session's current problem. Everyone in the session sees that a hint is being prepared and who asked.
-- **FR-6** WHEN the hint is ready, THE SYSTEM SHALL show it to everyone in the session. It is labelled as a model-generated hint, numbered within the problem ("Hint 2"), and shown with the asker's name and their note, if any. The label keeps it from being mistaken for the problem's own text.
+- **FR-5** WHEN any participant, signed in or a guest, activates *Hint*, THE SYSTEM SHALL ask the self-hosted model for a hint on the session's current problem at once, with no input from the asker (changed 2026-11-13: the note field is gone). Everyone in the session sees that a hint is being prepared and who asked.
+- **FR-6** WHEN the hint is ready, THE SYSTEM SHALL show it to everyone in the session. It is labelled as a model-generated hint, numbered within the problem ("Hint 2"), and shown with the asker's name (and the note, for hints that have one). The label keeps it from being mistaken for the problem's own text.
 - **FR-7** THE SYSTEM SHALL give a hint only when asked. It never offers hints unprompted. No earlier run is required.
-- **FR-8** WHILE a hint is being prepared for a session, THE SYSTEM SHALL not start another hint request for that session, and SHALL show anyone who asks that a hint is already being prepared. This is the only limit: there is no cooldown and no cap on the number of hints.
+- **FR-8** WHILE a hint or an answer is being prepared for a session, THE SYSTEM SHALL not start another hint or question request for that session, and SHALL show anyone who asks that a hint is already being prepared. This is the only limit: there is no cooldown and no cap on the number of hints.
 
 ### What a hint is and is not
 
@@ -47,9 +49,18 @@ A group stuck on a coding problem whose hidden tests keep failing has one option
 - **FR-14** WHEN the self-hosted model cannot be reached, answers with an error, or does not answer within its time limit, THE SYSTEM SHALL tell the session that hints are unavailable right now. No hint is recorded or numbered, *Hint* can be used again, and everything else in the session keeps working exactly as before. The time limit is 30 seconds while the model is loaded and 2 minutes while it is cold (FR-14a).
 - **FR-14a** WHEN a participant asks for a hint while the self-hosted model is not loaded (cold), THE SYSTEM SHALL tell the session within 5 seconds that the model is warming up and the hint will take longer, and SHALL then show the hint, or the "unavailable" message, within 2 minutes of asking. The model is not kept loaded between hints; nothing warms it in advance.
 
+### Asking a question (added 2026-11-13)
+
+- **FR-17** WHEREVER *Hint* is offered (FR-1 to FR-4), THE SYSTEM SHALL also offer a *Question* action beside it. WHEN a participant activates it, THE SYSTEM SHALL let them type one question (one line, at most 500 characters, not empty) and send it to the self-hosted model about the session's current problem. Everyone in the session sees that an answer is being prepared, who asked and the question.
+- **FR-18** WHEN the answer is ready, THE SYSTEM SHALL show it to everyone in the session, labelled as a model answer, numbered within the problem separately from hints ("Question 2"), with the asker's name and the question. Questions do not change hint numbering or how specific the next hint is.
+- **FR-19** THE SYSTEM SHALL answer the question itself but never give a complete solution (see Terms) in an answer. An answer is short prose of at most about 6 sentences and at most 3 lines of code. The app checks every answer as it checks hints (FR-10); an answer that breaks the length rules is withheld and the session is told no answer could be given this time.
+- **FR-20** WHEN the model judges that answering the question would basically give the complete solution, or the app's check finds a complete solution in the answer, THE SYSTEM SHALL not show it. Instead it SHALL ask the asker, and only the asker, whether they really want the answer even though it is basically the solution. Everyone else sees that the asker is deciding. WHEN the asker confirms, THE SYSTEM SHALL ask the model again with permission to give the solution and show that answer to everyone, marked as revealing the solution. WHEN the asker declines, nothing is shown or stored and the question is dropped.
+- **FR-21** A pending confirmation does not block *Hint* or *Question* for anyone. At most one confirmation is pending per session: a newer one replaces it. It is not kept across a server restart.
+- **FR-22** THE SYSTEM SHALL base an answer on what a hint is based on (FR-12), plus the question and the earlier questions and answers on that problem in this session. FR-11 (no hidden tests) and FR-14 / FR-14a (unavailable, cold model) apply to answers, revealing answers included.
+
 ### Keeping hints
 
-- **FR-15** THE SYSTEM SHALL store every hint shown, with its number, asker's name, note and problem, durably with the session. Hints stay visible after a reload, to participants who join later, when the session is reopened from the profile, and read-only in a stale session. They also return when the session switches back to their problem.
+- **FR-15** THE SYSTEM SHALL store every hint and answer shown, with its number, asker's name, note or question and problem, durably with the session. Hints stay visible after a reload, to participants who join later, when the session is reopened from the profile, and read-only in a stale session. They also return when the session switches back to their problem.
 - **FR-16** WHEN a session is deleted (spec 019), THE SYSTEM SHALL delete its hints with it.
 
 ## Non-functional requirements
@@ -65,7 +76,8 @@ A group stuck on a coding problem whose hidden tests keep failing has one option
 ## Out of scope
 
 - Hints in learning, presentation or chess sessions.
-- A chat-style tutor or free conversation with the model. The one-line note is the only thing a participant types to it.
+- A chat-style tutor or free conversation with the model. A question gets one answer; there are no follow-up turns, though later questions see earlier ones (FR-22).
+- Questions or answers private to the asker; everything is shared with the session.
 - A cooldown or a cap on the number of hints; per-session, per-problem or per-user switches to turn hints off.
 - A notice or consent step about content being sent to the model.
 - Explaining run errors on their own, reviewing code style, or grading.
@@ -79,9 +91,9 @@ A group stuck on a coding problem whose hidden tests keep failing has one option
 
 **AC-2 (FR-3)** Given a stale coding session with earlier hints, or a coding session whose current problem was deleted, When a participant opens it, Then no *Hint* is shown and the earlier hints are still visible.
 
-**AC-3 (FR-5, FR-6)** Given an active coding session with a signed-in participant and a guest who joined by invite link, When the guest activates *Hint* and enters the note "stuck on empty input", Then both see "preparing hint" with the guest's name. Within 30 s both see a hint labelled as a model hint, numbered "Hint 1", with the guest's name and the note.
+**AC-3 (FR-5, FR-6)** Given an active coding session with a signed-in participant and a guest who joined by invite link, When the guest activates *Hint*, Then both see "preparing hint" with the guest's name. Within 30 s both see a hint labelled as a model hint, numbered "Hint 1", with the guest's name.
 
-**AC-4 (FR-5)** Given a participant activates *Hint* and leaves the note empty, When the hint arrives, Then it is shown without a note. And Given a note longer than 200 characters or containing a line break, Then it is refused or cut to one line of 200 characters before sending.
+**AC-4 (FR-5)** Superseded 2026-11-13: *Hint* takes no note. A note sent by an older client is still cut to one line of 200 characters, and an empty one is no note.
 
 **AC-5 (FR-7)** Given a session where nobody has asked, When runs fail repeatedly, Then no hint appears. And Given a session that has never run its code, When a participant asks, Then a hint is given.
 
@@ -107,7 +119,15 @@ A group stuck on a coding problem whose hidden tests keep failing has one option
 
 **AC-15 (NFR Data stays on the user's network, Security)** Given a hint request, Then it goes only to the configured self-hosted model and carries no username or email. And Given a model answer or note containing markup or script, Then it is shown as inert text and nothing runs. And Given a hint containing a code line, Then the shared editor is unchanged until a participant types it themselves.
 
-**AC-16 (NFR UI rules)** Given the coding session window at ≈390 px and at ≥1024 px, in light and dark, with reduced motion, When a keyboard-only user moves to *Hint*, enters a note, sends it and a hint arrives, Then *Hint* has a visible focus ring and an accessible name. "Preparing" and the hint's arrival are each announced politely once, nothing animates under reduced motion, and nothing overflows horizontally.
+**AC-17 (FR-5)** Given an active coding session with a model, When a participant activates *Hint*, Then a hint is requested at once; no text field appears.
+
+**AC-18 (FR-17, FR-18)** Given an active coding session with a signed-in participant and a guest, When the guest activates *Question* and sends "what does enumerate return?", Then both see an answer being prepared with the guest's name and the question, and then the answer labelled as a model answer, numbered "Question 1", with the guest's name and question. And When a hint is asked next on that problem, Then it is "Hint 1" and the model was told the hint level of a first hint. And Given an empty question, Then nothing is sent.
+
+**AC-19 (FR-19, FR-20)** Given a model that answers a question with a full working implementation, or that says the answer would be the solution, When the guest asks, Then no answer is shown, the guest is asked whether they really want the answer although it is basically the solution, and the other participant sees that the guest is deciding. And When the guest declines, Then nothing is shown or stored. And When the guest asks again and confirms, Then both see the answer marked as revealing the solution, numbered as the next question. And the other participant is never offered the confirmation.
+
+**AC-20 (FR-21, FR-22)** Given a confirmation is pending, When anyone asks for a hint, Then the hint is given. And Given an earlier question and answer on the problem, When a new question is asked, Then the model was given them, and no hidden test, chat line or username or email.
+
+**AC-16 (NFR UI rules)** Given the coding session window at ≈390 px and at ≥1024 px, in light and dark, with reduced motion, When a keyboard-only user activates *Hint* and a hint arrives, then activates *Question*, types a question, sends it and an answer arrives, Then *Hint* and *Question* have a visible focus ring and an accessible name. "Preparing" and the hint's arrival are each announced politely once, nothing animates under reduced motion, and nothing overflows horizontally.
 
 ## Open questions
 
@@ -123,6 +143,8 @@ None. Resolved 2026-11-12:
 - No notice about sending code to the model.
 - An optional one-line note goes with the request and is shown with the hint.
 - Confirmed defaults: hints are labelled model-generated, shown as plain text, about 3 sentences at most, and never inserted automatically. The 30 s unavailable message stands for a loaded model; a cold model gets a warming-up notice and up to 2 minutes (user, 2026-11-12: no keep-alive), and stale sessions get no new hints.
+
+Resolved 2026-11-13 (questions): questions and answers are shared with the whole session and stored with it like hints; only the asker is asked to confirm a revealing answer; *Hint* takes no note any more.
 
 ## UI spec checklist (constitution-ui section E)
 

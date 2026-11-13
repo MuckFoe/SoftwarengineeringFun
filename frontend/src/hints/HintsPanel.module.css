@@ -112,3 +112,39 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* The asker's choice on an answer that gives the solution away (spec 020 FR-20). */
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-16);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.question {
+  margin: 0;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.reveals {
+  color: var(--form-caption);
+}
+
+.block {
+  margin: var(--space-4) 0;
+  padding: var(--space-8);
+  overflow-x: auto;
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-copy-3);
+  white-space: pre;
+}
+
+.block code {
+  padding: 0;
+  background: none;
+}

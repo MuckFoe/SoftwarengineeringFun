@@ -119,6 +119,9 @@ async def test_hint_dict_has_the_contract_shape(migrated: asyncpg.Connection) ->
         "note": "n",
         "body": "body",
         "created_at": row.created_at.isoformat(),
+        "kind": "hint",
+        "question": None,
+        "reveals_solution": False,
     }
 
 
@@ -135,6 +138,9 @@ async def test_no_account_id_is_stored(migrated: asyncpg.Connection) -> None:
         "note",
         "body",
         "created_at",
+        "kind",
+        "question",
+        "reveals_solution",
     }
 
 

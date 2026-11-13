@@ -504,6 +504,16 @@ async def _handle_text(
         await hints_service.request(
             websocket.app, websocket, session, hub, actor, payload.get("note")
         )
+    elif msg_type == "question_request":
+        # Spec 020 FR-17: a question shares the hint slot and pipeline.
+        await hints_service.ask_question(
+            websocket.app, websocket, session, hub, actor, participant_id, payload.get("question")
+        )
+    elif msg_type == "question_reveal":
+        # FR-20: only the asker may confirm a revealing answer.
+        await hints_service.reveal(websocket.app, websocket, session, hub, participant_id)
+    elif msg_type == "question_decline":
+        await hints_service.decline(websocket, session, hub, participant_id)
 
 
 async def _handle_binary(
@@ -640,6 +650,7 @@ async def session_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
                 "hints_enabled": websocket.app.state.hint_llm is not None,
                 "hints": hints,
                 "hint_pending": hints_service.pending(session.id),
+                "question_awaiting": hints_service.awaiting(session.id),
             }
         )
         # `welcome` already carries the current presence list, so the new participant

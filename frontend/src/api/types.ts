@@ -281,6 +281,8 @@ export interface WelcomeMessage {
   hints?: Hint[];
   /** A hint being prepared, for late joiners (spec 020 FR-8). Absent: null. */
   hint_pending?: HintPending | null;
+  /** A question waiting for its asker to confirm a revealing answer (spec 020 FR-20). Absent: null. */
+  question_awaiting?: QuestionAwaiting | null;
 }
 
 export interface PresenceMessage {
@@ -380,24 +382,57 @@ export type ScratchRunRefusedMessage =
   | { type: "scratch_run_refused"; reason: "in_progress"; by: string }
   | { type: "scratch_run_refused"; reason: "stale" };
 
-/** A model-generated hint on one problem of the session (spec 020 FR-6, FR-15). */
+/**
+ * A model-generated hint, or an answer to a question (`kind: "question"`), on one problem of the
+ * session (spec 020 FR-6, FR-15, FR-18). Absent `kind` (older servers): a hint.
+ */
 export interface Hint {
   id: string;
   problem_id: string;
-  /** Numbered within the problem, from 1. */
+  /** Numbered within the problem and kind, from 1. */
   number: number;
   asked_by: string;
   note: string | null;
   body: string;
   created_at: string;
+  kind?: "hint" | "question";
+  question?: string | null;
+  /** The asker confirmed an answer that gives the solution away (FR-20). */
+  reveals_solution?: boolean;
 }
 
-/** A hint being prepared (spec 020 FR-5, FR-8); `warming` once `hint_warming` was sent (FR-14a). */
+/**
+ * A hint or answer being prepared (spec 020 FR-5, FR-8, FR-17); `warming` once `hint_warming`
+ * was sent (FR-14a). `reveal`: the confirmed, revealing answer (FR-20).
+ */
 export interface HintPending {
   problem_id: string;
   by: string;
   note: string | null;
   warming: boolean;
+  kind?: "hint" | "question";
+  question?: string | null;
+  reveal?: boolean;
+}
+
+/** A question whose answer would give the solution away, waiting for its asker (FR-20). */
+export interface QuestionAwaiting {
+  problem_id: string;
+  participant_id: string;
+  by: string;
+  question: string;
+}
+
+/** A question's answer would reveal the solution; broadcast, only the asker may decide (FR-20). */
+export interface QuestionConfirmMessage {
+  type: "question_confirm";
+  awaiting: QuestionAwaiting;
+}
+
+/** The asker decided; broadcast (FR-20). */
+export interface QuestionConfirmEndedMessage {
+  type: "question_confirm_ended";
+  outcome: "confirmed" | "declined";
 }
 
 /** Someone asked for a hint; broadcast (spec 020 FR-5). */
@@ -423,12 +458,16 @@ export interface HintFailedMessage {
   type: "hint_failed";
   problem_id: string;
   reason: "unavailable" | "withheld";
+  kind?: "hint" | "question";
 }
 
 /** A `hint_request` that did not start, to the sender only (spec 020 FR-2, FR-3, FR-8). */
 export type HintRefusedMessage =
   | { type: "hint_refused"; reason: "in_progress"; by: string }
-  | { type: "hint_refused"; reason: "stale" | "problem_deleted" | "disabled" };
+  | {
+      type: "hint_refused";
+      reason: "stale" | "problem_deleted" | "disabled" | "empty" | "no_question";
+    };
 
 export type ServerMessage =
   | WelcomeMessage
@@ -450,7 +489,9 @@ export type ServerMessage =
   | HintWarmingMessage
   | HintReadyMessage
   | HintFailedMessage
-  | HintRefusedMessage;
+  | HintRefusedMessage
+  | QuestionConfirmMessage
+  | QuestionConfirmEndedMessage;
 
 export interface RunMessage {
   type: "run";
@@ -487,14 +528,27 @@ export interface ScratchRunMessage {
   input: string;
 }
 
-/** Ask the model for a hint on the current problem (spec 020 FR-5); the server normalizes `note`. */
+/** Ask the model for a hint on the current problem (spec 020 FR-5). The UI sends no note. */
 export interface HintRequestMessage {
   type: "hint_request";
   note?: string;
 }
 
+/** Ask the model a question about the current problem (spec 020 FR-17). */
+export interface QuestionRequestMessage {
+  type: "question_request";
+  question: string;
+}
+
+/** The asker's choice on a revealing answer (spec 020 FR-20). */
+export interface QuestionDecisionMessage {
+  type: "question_reveal" | "question_decline";
+}
+
 export type ClientMessage =
   | HintRequestMessage
+  | QuestionRequestMessage
+  | QuestionDecisionMessage
   | ScratchRunMessage
   | RunMessage
   | SwitchProblemMessage

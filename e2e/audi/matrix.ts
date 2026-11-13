@@ -74,18 +74,19 @@ async function coldModel(): Promise<void> {
 }
 
 /**
- * Keeps a pending hint on screen: the session socket's `hint_failed` never reaches the page.
- * The E2E timeouts are short (3 s loaded, 6 s cold), shorter than the checks at every width, so
- * the preparing and warming-up states are held on the page while the server has moved on.
- * Call before the page opens the socket.
+ * Keeps a pending hint on screen: the session socket's `hint_ready` and `hint_failed` never
+ * reach the page. The E2E timeouts are short (3 s loaded, 6 s cold), shorter than the checks at
+ * every width, so the preparing and warming-up states are held on the page while the server
+ * has moved on. Call before the page opens the socket.
  */
 async function holdPendingHint(page: Page): Promise<void> {
+  const held = new Set(["hint_ready", "hint_failed"]);
   await page.routeWebSocket(/\/sessions\/[^/]+\/ws/, (ws) => {
     const server = ws.connectToServer();
     server.onMessage((message) => {
-      if (typeof message === "string" && message.includes('"hint_failed"')) {
+      if (typeof message === "string" && message.includes('"hint_')) {
         try {
-          if ((JSON.parse(message) as { type?: string }).type === "hint_failed") return;
+          if (held.has((JSON.parse(message) as { type?: string }).type ?? "")) return;
         } catch {
           // Not JSON: pass it on.
         }
@@ -118,10 +119,16 @@ async function openHintSession(page: Page, request: APIRequestContext): Promise<
   await expect(page.getByRole("button", { name: "Hint", exact: true })).toBeEnabled();
 }
 
-/** Opens the note field, types the note and asks (spec 020 FR-5). */
-async function askHint(page: Page, note: string): Promise<void> {
+/** Asks for a hint: no input (spec 020 FR-5). */
+async function askHint(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Hint", exact: true }).click();
-  await page.getByLabel("What are you stuck on? (optional)").fill(note);
+}
+
+/** Opens the question field, types the question and asks (spec 020 FR-17). The fake model
+ * reads its directives (fake:slow, ...) from the question. */
+async function askQuestion(page: Page, question: string): Promise<void> {
+  await page.getByRole("button", { name: "Question", exact: true }).click();
+  await page.getByLabel("Your question").fill(question);
   await page.getByRole("button", { name: "Ask", exact: true }).click();
 }
 
@@ -246,31 +253,45 @@ export const SCREENS: Screen[] = [
     },
   },
   {
-    // Spec 020 task 18: two hints given, the note field open for a third (AC-16).
+    // Spec 020: a hint and an answer given, the question field open for another (AC-16).
     name: "session hints",
     lowerBound: 1024,
     narrow: true,
     async open(page, request) {
       await openHintSession(page, request);
-      await askHint(page, "stuck on empty input");
+      await askHint(page);
       await expect(page.getByRole("heading", { name: "Hint 1", level: 3 })).toBeVisible();
       await expect(page.getByRole("button", { name: "Hint", exact: true })).toBeEnabled();
-      await askHint(page, "");
-      await expect(page.getByRole("heading", { name: "Hint 2", level: 3 })).toBeVisible();
-      await page.getByRole("button", { name: "Hint", exact: true }).click();
-      await page.getByLabel("What are you stuck on? (optional)").fill("what about negatives?");
+      await askQuestion(page, "what does enumerate return?");
+      await expect(page.getByRole("heading", { name: "Question 1", level: 3 })).toBeVisible();
+      await page.getByRole("button", { name: "Question", exact: true }).click();
+      await page.getByLabel("Your question").fill("what about negatives?");
       await expectStillUnderReducedMotion(page);
     },
   },
   {
-    // Spec 020 task 18: a hint being prepared (`fake:slow`), shown with who asked (AC-16).
+    // Spec 020 FR-20: the asker is asked whether they want an answer that is the solution.
+    name: "session question confirm",
+    lowerBound: 1024,
+    narrow: true,
+    async open(page, request) {
+      await openHintSession(page, request);
+      await askQuestion(page, "fake:reveal can you write it for me?");
+      await expect(
+        page.getByRole("region", { name: "Answer would reveal the solution" }),
+      ).toBeVisible();
+      await expectStillUnderReducedMotion(page);
+    },
+  },
+  {
+    // Spec 020 task 18: a hint being prepared (its outcome held back), shown with who asked (AC-16).
     name: "session hint preparing",
     lowerBound: 1024,
     narrow: true,
     async open(page, request) {
       await holdPendingHint(page);
       await openHintSession(page, request);
-      await askHint(page, "fake:slow");
+      await askHint(page);
       await expect(shownText(page, "Preparing hint…")).toBeVisible();
       await expect(page.getByRole("button", { name: "Hint", exact: true })).toBeDisabled();
       await expectStillUnderReducedMotion(page);
@@ -292,7 +313,7 @@ export const SCREENS: Screen[] = [
       for (let attempt = 1; ; attempt++) {
         await openHintSession(page, request);
         await coldModel();
-        await askHint(page, "fake:slow");
+        await askHint(page);
         try {
           await expect(warming).toBeVisible({ timeout: attempt < 3 ? 2_000 : 5_000 });
           break;
@@ -310,7 +331,7 @@ export const SCREENS: Screen[] = [
     narrow: true,
     async open(page, request) {
       await openHintSession(page, request);
-      await askHint(page, "fake:error");
+      await askQuestion(page, "fake:error");
       await expect(shownText(page, "Hints are unavailable right now")).toBeVisible();
       await expect(page.getByRole("button", { name: "Hint", exact: true })).toBeEnabled();
       await expectStillUnderReducedMotion(page);

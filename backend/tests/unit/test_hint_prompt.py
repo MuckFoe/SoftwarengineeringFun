@@ -56,6 +56,7 @@ def test_ac10_hint_context_holds_only_the_fr12_inputs() -> None:
         "latest_run",
         "earlier_hints",
         "note",
+        "earlier_questions",
     }
     for forbidden in ("name", "user", "username", "email", "chat", "tests", "account"):
         assert forbidden not in names, forbidden
