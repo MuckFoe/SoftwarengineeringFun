@@ -1,0 +1,55 @@
+/* A divider on a resized part's inner edge; its line shows only on hover, like SplitPane's.
+   A touch drag moves it, not the page. */
+.handle {
+  position: absolute;
+  z-index: 3;
+  touch-action: none;
+  background: none;
+}
+
+.handle[data-edge="left"] {
+  top: 0;
+  bottom: 0;
+  right: -4px;
+  width: 7px;
+  cursor: col-resize;
+}
+
+.handle[data-edge="right"] {
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  width: 7px;
+  cursor: col-resize;
+}
+
+.handle[data-edge="bottom"] {
+  left: 0;
+  right: 0;
+  top: -4px;
+  height: 7px;
+  cursor: row-resize;
+}
+
+.handle[data-edge="top"] {
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 7px;
+  cursor: row-resize;
+}
+
+.handle[data-edge="left"]:hover,
+.handle[data-edge="right"]:hover {
+  background: linear-gradient(var(--divider), var(--divider)) center / 1px 100% no-repeat;
+}
+
+.handle[data-edge="top"]:hover,
+.handle[data-edge="bottom"]:hover {
+  background: linear-gradient(var(--divider), var(--divider)) center / 100% 1px no-repeat;
+}
+
+.handle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}

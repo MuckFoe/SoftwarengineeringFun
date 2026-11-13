@@ -101,10 +101,12 @@ const RESULTS_TABS = [
   { id: "tests", label: "Tests" },
 ] as const;
 
-/** The pinned run results' default height, bar included; the pinned chat matches it (2026-11-12). */
+/** The pinned run results' default height, bar included. */
 const RESULTS_HEIGHT_PX = 220;
 /** The pinned sidebar's default width. */
 const SIDEBAR_WIDTH_PX = 220;
+/** The description and chat column's default width. */
+const INSPECTOR_WIDTH_PX = 320;
 
 type Chat = ReturnType<typeof useChat>;
 
@@ -769,9 +771,11 @@ function JoinedWindow({
   // the run results start pinned; the description and chat as `useInspectorPins` says.
   const [sidebarPinned, setSidebarPinned] = usePinned("sidebar", false);
   const [outputPinned, setOutputPinned] = usePinned("output", true);
-  // Pinned, the sidebar's width and the run results' height follow their dividers, remembered.
+  // Pinned, the sidebar's width, the run results' height and the description and chat column's
+  // width follow their dividers, each on its own, remembered.
   const [sidebarWidth, setSidebarWidth] = usePanelSize("sidebar", SIDEBAR_WIDTH_PX);
   const [resultsHeight, setResultsHeight] = usePanelSize("output", RESULTS_HEIGHT_PX);
+  const [inspectorWidth, setInspectorWidth] = usePanelSize("inspector", INSPECTOR_WIDTH_PX);
   const sidebarRef = useRef<PinnablePanelHandle>(null);
   const outputRef = useRef<PinnablePanelHandle>(null);
   const chatRef = useRef<PinnablePanelHandle>(null);
@@ -819,7 +823,7 @@ function JoinedWindow({
             size={`${sidebarWidth}px`}
             onResize={setSidebarWidth}
             minSize={160}
-            keepFree={480}
+            keepFree={640}
             pinned={sidebarPinned}
             onPinnedChange={setSidebarPinned}
           >
@@ -870,8 +874,8 @@ function JoinedWindow({
             chatVisible={pins.chat.pinned}
             chat={chatProps(chat, gifs)}
             pins={pins}
-            // Pinned beside pinned run results, the chat's bar lines up with theirs.
-            chatHeight={outputPinned ? resultsHeight : undefined}
+            width={inspectorWidth}
+            onWidthChange={setInspectorWidth}
             hints={
               <HintsPanel
                 hints={hintsFor(joined.hints, problem.id)}
@@ -901,7 +905,7 @@ function JoinedWindow({
             size={`${resultsHeight}px`}
             onResize={setResultsHeight}
             minSize={96}
-            keepFree={160}
+            keepFree={200}
             region
             pinned={outputPinned}
             onPinnedChange={setOutputPinned}

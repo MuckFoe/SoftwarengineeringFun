@@ -1,7 +1,8 @@
-import type { CSSProperties, ReactNode, Ref } from "react";
+import { type CSSProperties, type ReactNode, type Ref, useRef } from "react";
 import type { IconName } from "./Icon";
 import styles from "./PinnableColumn.module.css";
 import { type PinEdge, PinnablePanel, type PinnablePanelHandle } from "./PinnablePanel";
+import { ResizeHandle } from "./ResizeHandle";
 import { SplitPane, type SplitPaneProps } from "./SplitPane";
 
 /** One of the column's two panels. */
@@ -25,6 +26,15 @@ export interface PinnableColumnProps {
   width?: string;
   /** How far a panel's peek reaches into the column from its strip; default 70%. */
   peekSize?: string;
+  /**
+   * Makes the column's width resizable while a panel is pinned: a divider on its left edge
+   * reports the new width in px. `width` should then be that width in px.
+   */
+  onWidthChange?(px: number): void;
+  /** The smallest width the divider allows, px; default 240. */
+  minWidth?: number;
+  /** How much of the viewport the divider always leaves to the rest, px; default 480. */
+  keepFree?: number;
   /** The divider while both are pinned (see SplitPane). */
   split: Pick<
     SplitPaneProps,
@@ -47,11 +57,15 @@ export function PinnableColumn({
   bottom,
   width = "320px",
   peekSize = "70%",
+  onWidthChange,
+  minWidth = 240,
+  keepFree = 480,
   split,
 }: PinnableColumnProps) {
   const both = !top.pinned && !bottom.pinned;
   const stack = both ? "both" : !top.pinned ? "top" : !bottom.pinned ? "bottom" : undefined;
   const style = { "--column-width": width } as CSSProperties;
+  const columnRef = useRef<HTMLElement>(null);
 
   function panel(p: PinnableColumnPanel, edge: PinEdge) {
     return (
@@ -73,7 +87,13 @@ export function PinnableColumn({
   }
 
   return (
-    <aside aria-label={label} className={styles.column} data-collapsed={both} style={style}>
+    <aside
+      ref={columnRef}
+      aria-label={label}
+      className={styles.column}
+      data-collapsed={both}
+      style={style}
+    >
       <SplitPane
         {...split}
         top={panel(top, "top")}
@@ -81,6 +101,17 @@ export function PinnableColumn({
         bottomOpen
         stack={stack}
       />
+      {onWidthChange && !both && (
+        <ResizeHandle
+          edge="right"
+          target={columnRef}
+          size={Number.parseFloat(width)}
+          onResize={onWidthChange}
+          minSize={minWidth}
+          keepFree={keepFree}
+          label={`Resize ${label.toLowerCase()}`}
+        />
+      )}
     </aside>
   );
 }

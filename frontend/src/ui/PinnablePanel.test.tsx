@@ -375,16 +375,46 @@ describe("resizable pinned panel", () => {
   }
 
   it("has a divider while pinned that the arrow keys move", () => {
-    // jsdom lays nothing out: the panel measures 0, so a step is clamped to the minimum.
     render(<Results />);
     const divider = screen.getByRole("separator", { name: "Resize run results" });
     expect(divider.getAttribute("aria-valuenow")).toBe("220");
+    // A bottom panel grows upwards.
     fireEvent.keyDown(divider, { key: "ArrowUp" });
-    expect(divider.getAttribute("aria-valuenow")).toBe("96");
+    expect(divider.getAttribute("aria-valuenow")).toBe("236");
   });
 
   it("has no divider while unpinned", () => {
     render(<Results pinned={false} />);
     expect(screen.queryByRole("separator")).toBeNull();
+  });
+});
+
+describe("resizable column", () => {
+  function Column({ pinned = true }: { pinned?: boolean }) {
+    const [width, setWidth] = useState(320);
+    const pin = { pinned, onPinnedChange: () => {} };
+    return (
+      <PinnableColumn
+        label="Inspector"
+        width={`${width}px`}
+        onWidthChange={setWidth}
+        top={{ title: "Description", ...pin, children: <p>Problem text</p> }}
+        bottom={{ title: "Chat", ...pin, children: <p>Messages</p> }}
+        split={{ minTop: 100, minBottom: 100, dividerLabel: "Resize description and chat" }}
+      />
+    );
+  }
+
+  it("resizes the shared width from its left edge; the arrow keys widen it to the left", () => {
+    render(<Column />);
+    const divider = screen.getByRole("separator", { name: "Resize inspector" });
+    expect(divider.getAttribute("aria-valuenow")).toBe("320");
+    fireEvent.keyDown(divider, { key: "ArrowLeft" });
+    expect(divider.getAttribute("aria-valuenow")).toBe("336");
+  });
+
+  it("has no width divider with both unpinned", () => {
+    render(<Column pinned={false} />);
+    expect(screen.queryByRole("separator", { name: "Resize inspector" })).toBeNull();
   });
 });

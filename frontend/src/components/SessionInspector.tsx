@@ -35,11 +35,11 @@ export interface SessionInspectorProps {
    */
   pins?: { description: PanelPin; chat: PanelPin };
   /**
-   * With both pinned: the chat panel's height in px (its bar included) until the divider is
-   * moved, so its bar lines up with a bottom panel of that height beside it. Overrides the
-   * description fitting its content.
+   * With pins: the column's width in px, and where its left-edge divider reports a new one.
+   * Both pinned panels share the width.
    */
-  chatHeight?: number;
+  width?: number;
+  onWidthChange?(px: number): void;
 }
 
 /**
@@ -54,7 +54,8 @@ export function SessionInspector({
   chat,
   hints,
   pins,
-  chatHeight,
+  width,
+  onWidthChange,
 }: SessionInspectorProps) {
   const chatRegion = (
     <section aria-label="Chat" className={styles.chat}>
@@ -85,7 +86,6 @@ export function SessionInspector({
     minBottom: 160 + header,
     fitTop: (chat.messages.length > 0 ? 280 : 160) + header,
     dividerLabel: "Resize description and chat",
-    fixBottom: pins ? chatHeight : undefined,
   };
 
   if (pins) {
@@ -100,7 +100,16 @@ export function SessionInspector({
     if (chatOnly) {
       return (
         <aside aria-label="Inspector" className={styles.single}>
-          <PinnablePanel ref={chatPanel.handle} edge="right" {...chatPanel} />
+          <PinnablePanel
+            ref={chatPanel.handle}
+            edge="right"
+            size={width === undefined ? undefined : `${width}px`}
+            onResize={onWidthChange}
+            minSize={240}
+            keepFree={480}
+            resizeLabel="Resize inspector"
+            {...chatPanel}
+          />
         </aside>
       );
     }
@@ -117,6 +126,8 @@ export function SessionInspector({
         }}
         bottom={chatPanel}
         split={split}
+        width={width === undefined ? undefined : `${width}px`}
+        onWidthChange={onWidthChange}
       />
     );
   }
