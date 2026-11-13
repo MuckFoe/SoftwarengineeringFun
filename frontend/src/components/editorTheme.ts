@@ -18,7 +18,8 @@ export const themeSpec = {
   "&.cm-focused": { outline: "3px solid var(--focus)", outlineOffset: "-3px" },
   ".cm-scroller": { fontFamily: "ui-monospace, Menlo, Consolas, monospace", lineHeight: "1.5" },
   ".cm-content": { caretColor: "var(--focus)" },
-  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--focus)" },
+  // 2 px, so the caret stays visible beside a highlighted bracket.
+  ".cm-cursor, .cm-dropCursor": { borderLeft: "2px solid var(--focus)" },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
     { backgroundColor: "color-mix(in srgb, var(--focus) 30%, transparent)" },
   // No current-line band: it ran to the editor's edge, behind the panels' rounded bars. The
@@ -38,9 +39,12 @@ export const themeSpec = {
     border: "1px solid var(--ui-stroke)",
     color: "var(--text)",
   },
+  // Neutral, no outline. A blue box drawn in the caret's colour hid the blinking caret,
+  // which sits right on the edge between auto-closed brackets ("(|)").
   "&.cm-focused .cm-matchingBracket": {
-    backgroundColor: "color-mix(in srgb, var(--focus) 30%, transparent)",
-    outline: "1px solid var(--focus)",
+    backgroundColor: "var(--neutral-700)",
+    textDecoration: "underline",
+    textDecorationColor: "var(--form-caption)",
   },
   "&.cm-focused .cm-nonmatchingBracket": { color: "var(--negative)" },
   ".cm-searchMatch": {
