@@ -355,3 +355,36 @@ describe("PinnableColumn", () => {
     expect(shown("Messages")).toBe(false);
   });
 });
+
+describe("resizable pinned panel", () => {
+  function Results({ pinned = true }: { pinned?: boolean }) {
+    const [height, setHeight] = useState(220);
+    return (
+      <PinnablePanel
+        title="Run results"
+        edge="bottom"
+        pinned={pinned}
+        onPinnedChange={() => {}}
+        size={`${height}px`}
+        onResize={setHeight}
+        minSize={96}
+      >
+        <p>Output</p>
+      </PinnablePanel>
+    );
+  }
+
+  it("has a divider while pinned that the arrow keys move", () => {
+    // jsdom lays nothing out: the panel measures 0, so a step is clamped to the minimum.
+    render(<Results />);
+    const divider = screen.getByRole("separator", { name: "Resize run results" });
+    expect(divider.getAttribute("aria-valuenow")).toBe("220");
+    fireEvent.keyDown(divider, { key: "ArrowUp" });
+    expect(divider.getAttribute("aria-valuenow")).toBe("96");
+  });
+
+  it("has no divider while unpinned", () => {
+    render(<Results pinned={false} />);
+    expect(screen.queryByRole("separator")).toBeNull();
+  });
+});

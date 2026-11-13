@@ -4,6 +4,7 @@ import {
   forwardRef,
   type KeyboardEvent,
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useId,
@@ -56,6 +57,18 @@ export interface PinnablePanelProps {
   anchor?: "self" | "parent";
   /** Expose the shown panel as a region named by its title, such as "Run results". */
   region?: boolean;
+  /**
+   * Makes the pinned, self-anchored panel resizable: a divider on its inner edge (the right
+   * of a left panel, the top of a bottom one) reports the new size in px. `size` should then
+   * be that size in px.
+   */
+  onResize?(px: number): void;
+  /** The smallest size the divider allows, px; default 160. */
+  minSize?: number;
+  /** How much of its container the divider leaves to the rest, px; default 240. */
+  keepFree?: number;
+  /** Accessible name of the divider; default "Resize <title>". */
+  resizeLabel?: string;
   className?: string;
 }
 
@@ -88,6 +101,10 @@ export const PinnablePanel = forwardRef<PinnablePanelHandle, PinnablePanelProps>
       size,
       anchor = "self",
       region = false,
+      onResize,
+      minSize = 160,
+      keepFree = 240,
+      resizeLabel,
       className,
     },
     ref,
@@ -212,6 +229,60 @@ export const PinnablePanel = forwardRef<PinnablePanelHandle, PinnablePanelProps>
       toggleRef.current?.focus();
     }
 
+    const resizable = pinned && anchor === "self" && onResize !== undefined;
+    const horizontal = edge === "left" || edge === "right";
+    /** While dragging: where the pointer went down and the size then. */
+    const drag = useRef<{ at: number; size: number } | null>(null);
+
+    function currentSize(): number {
+      const rect = rootRef.current?.getBoundingClientRect();
+      return rect ? (horizontal ? rect.width : rect.height) : 0;
+    }
+
+    function resizeTo(next: number) {
+      const container = rootRef.current?.parentElement?.getBoundingClientRect();
+      const room = container ? (horizontal ? container.width : container.height) : 0;
+      const max = room > 0 ? Math.max(minSize, room - keepFree) : Number.POSITIVE_INFINITY;
+      onResize?.(Math.min(Math.max(next, minSize), max));
+    }
+
+    /** Growing direction: away from the panel's edge. */
+    const grow = edge === "left" || edge === "top" ? 1 : -1;
+
+    function onHandleDown(e: ReactPointerEvent<HTMLDivElement>) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      drag.current = { at: horizontal ? e.clientX : e.clientY, size: currentSize() };
+    }
+
+    function onHandleMove(e: ReactPointerEvent<HTMLDivElement>) {
+      const d = drag.current;
+      if (!d) return;
+      const at = horizontal ? e.clientX : e.clientY;
+      resizeTo(d.size + grow * (at - d.at));
+    }
+
+    function onHandleEnd(e: ReactPointerEvent<HTMLDivElement>) {
+      if (!drag.current) return;
+      drag.current = null;
+      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    }
+
+    function onHandleKey(e: KeyboardEvent<HTMLDivElement>) {
+      const step = 16;
+      const keys: Record<string, number> = horizontal
+        ? { ArrowRight: step, ArrowLeft: -step }
+        : { ArrowUp: -step, ArrowDown: step };
+      const delta = keys[e.key];
+      if (delta === undefined) return;
+      e.preventDefault();
+      e.stopPropagation();
+      resizeTo(currentSize() + grow * delta);
+    }
+
     const style = { "--pin-size": size ?? DEFAULT_SIZE[edge] } as CSSProperties;
     const label = (
       <>
@@ -286,6 +357,24 @@ export const PinnablePanel = forwardRef<PinnablePanelHandle, PinnablePanelProps>
             {children}
           </div>
         </div>
+        {resizable && (
+          // biome-ignore lint/a11y/useSemanticElements: a focusable, resizable splitter is a separator widget; <hr> cannot take focus or keys.
+          <div
+            role="separator"
+            aria-orientation={horizontal ? "vertical" : "horizontal"}
+            aria-label={resizeLabel ?? `Resize ${title.toLowerCase()}`}
+            aria-valuenow={Math.round(Number.parseFloat(size ?? DEFAULT_SIZE[edge]))}
+            aria-valuemin={minSize}
+            tabIndex={0}
+            className={styles.resize}
+            onPointerDown={onHandleDown}
+            onPointerMove={onHandleMove}
+            onPointerUp={onHandleEnd}
+            onPointerCancel={onHandleEnd}
+            onLostPointerCapture={onHandleEnd}
+            onKeyDown={onHandleKey}
+          />
+        )}
       </div>
     );
   },
