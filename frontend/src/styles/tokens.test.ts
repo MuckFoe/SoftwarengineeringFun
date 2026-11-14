@@ -58,7 +58,12 @@ const EXPLICIT_DARK = ':root[data-appearance="dark"]';
 const SYSTEM_DARK = ":root:not([data-appearance])";
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
-const norm = (v: string) => v.replace(/\s+/g, "").toLowerCase();
+// Text sizes are the kit's px value times the user's text scale; the kit value is what's pinned.
+const norm = (v: string) =>
+  v
+    .replace(/\s+/g, "")
+    .toLowerCase()
+    .replace(/^calc\(([\d.]+px)\*var\(--text-scale\)\)$/, "$1");
 const widthOf = (media: string) => {
   const m = /^\(min-width:\s*(\d+)px\)$/.exec(media);
   return m ? Number(m[1]) : null;
@@ -242,9 +247,25 @@ describe("token contract (FR-1, Consistency NFR)", () => {
           .map(Number)
           .filter((b) => b <= w)
           .sort((a, b) => b - a)[0];
-        expect([w, name, got.get(name)]).toEqual([w, name, byWidth[String(key)]]);
+        expect([w, name, norm(got.get(name) ?? "")]).toEqual([
+          w,
+          name,
+          norm(byWidth[String(key)] ?? ""),
+        ]);
       }
     }
+  });
+
+  it("every text size is its kit value times --text-scale, 0.75 by default", () => {
+    const got = resolve("light", 1920);
+    expect(got.get("--text-scale")).toBe("0.75");
+    const sizes = [...got].filter(([n]) => /^--(fs|lh)-/.test(n));
+    expect(sizes.length).toBeGreaterThan(20);
+    for (const [name, v] of sizes)
+      expect([name, v]).toEqual([
+        name,
+        expect.stringMatching(/^calc\([\d.]+px \* var\(--text-scale\)\)$/),
+      ]);
   });
 
   it("uses the kit breakpoints for its media queries", () => {

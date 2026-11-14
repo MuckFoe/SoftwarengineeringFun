@@ -170,7 +170,7 @@ describe("ProfileWindow", () => {
   });
 
   // NFR-5 (unit level)
-  it("signed in: Sign out, appearance, then the chat checkbox, in Tab order", async () => {
+  it("signed in: Sign out, appearance, text size, then the chat checkbox, in Tab order", async () => {
     renderProfile(DARK_USER);
     const main = screen.getByRole("main");
     const account = await within(main).findByRole("region", { name: "Account" });
@@ -189,6 +189,7 @@ describe("ProfileWindow", () => {
     expect(stops.map((el) => (el.closest("label") ?? el).textContent?.trim())).toEqual([
       "Sign out",
       "Dark",
+      "S",
       "Show chat beside the description",
     ]);
   });

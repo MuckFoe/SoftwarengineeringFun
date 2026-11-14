@@ -5,7 +5,9 @@ import type { Me } from "../api/types";
 import { useMe } from "../auth/useMe";
 import { useChatVisible } from "../components/chatVisibility";
 import type { Choice } from "../theme/appearance";
+import type { TextSize } from "../theme/textSize";
 import { useAppearance } from "../theme/useAppearance";
+import { useTextSize } from "../theme/useTextSize";
 import { AppHeader } from "../ui/AppHeader";
 import { AreaTitle } from "../ui/AreaTitle";
 import { Button } from "../ui/Button";
@@ -157,13 +159,22 @@ const APPEARANCE_OPTIONS: { value: Choice; label: string }[] = [
   { value: "system", label: "System" },
 ];
 
+const TEXT_SIZE_OPTIONS: { value: TextSize; label: string }[] = [
+  { value: "xs", label: "XS" },
+  { value: "s", label: "S" },
+  { value: "m", label: "M" },
+  { value: "l", label: "L" },
+  { value: "xl", label: "XL" },
+];
+
 /**
- * Appearance and chat visibility (FR-18), through the one preference store like the
+ * Appearance, text size and chat visibility (FR-18), through the one preference store like the
  * toolbar's controls: applied at once here and everywhere, and saved to the account.
  */
 function PreferencesSection() {
   const { choice, setChoice } = useAppearance();
   const [chatVisible, setChatVisible] = useChatVisible();
+  const [textSize, setTextSize] = useTextSize();
 
   return (
     <section className={styles.card} aria-labelledby="profile-preferences">
@@ -181,6 +192,18 @@ function PreferencesSection() {
             value={choice}
             onChange={setChoice}
             options={APPEARANCE_OPTIONS}
+          />
+        </div>
+        <div className={styles.prefRow}>
+          <div className={styles.prefText} aria-hidden="true">
+            <span className={styles.prefLabel}>Text size</span>
+            <span className={styles.prefHint}>Every text grows or shrinks together</span>
+          </div>
+          <SegmentedControl
+            label="Text size"
+            value={textSize}
+            onChange={setTextSize}
+            options={TEXT_SIZE_OPTIONS}
           />
         </div>
         <div className={styles.prefRow}>

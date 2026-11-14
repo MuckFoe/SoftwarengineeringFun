@@ -27,8 +27,8 @@
   background: transparent;
   color: var(--action-text);
   font-family: var(--font-copy);
-  font-size: 16px;
-  line-height: 24px;
+  font-size: calc(16px * var(--text-scale));
+  line-height: calc(24px * var(--text-scale));
   text-decoration: none;
   transition:
     background-color var(--motion-fast) ease,
@@ -40,8 +40,8 @@
   min-height: 32px;
   padding: 0 var(--space-12);
   border-color: transparent;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: calc(14px * var(--text-scale));
+  line-height: calc(20px * var(--text-scale));
 }
 
 .action:first-child {

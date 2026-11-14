@@ -128,16 +128,19 @@ async def delete_session(
 class PreferencesIn(BaseModel):
     appearance: repo.Appearance | None = None
     chat_visible: StrictBool | None = None
+    text_size: repo.TextSize | None = None
 
     @model_validator(mode="after")
     def _at_least_one(self) -> "PreferencesIn":
-        if self.appearance is None and self.chat_visible is None:
-            raise ValueError("give appearance, chat_visible or both")
+        if self.appearance is None and self.chat_visible is None and self.text_size is None:
+            raise ValueError("give at least one of appearance, chat_visible, text_size")
         return self
 
 
 @router.put("/preferences")
 async def put_preferences(body: PreferencesIn, user: Account, conn: Conn) -> dict[str, Any]:
-    """FR-15, FR-16, FR-18: store the caller's preferences; returns the stored pair."""
-    stored = await repo.put_preferences(conn, user.sub, body.appearance, body.chat_visible)
+    """FR-15, FR-16, FR-18: store the caller's preferences; returns all of them as stored."""
+    stored = await repo.put_preferences(
+        conn, user.sub, body.appearance, body.chat_visible, body.text_size
+    )
     return asdict(stored)

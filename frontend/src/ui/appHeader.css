@@ -84,7 +84,7 @@
   align-items: center;
   gap: var(--space-8);
   font-family: var(--font-copy);
-  font-size: 24px;
+  font-size: calc(24px * var(--text-scale));
   white-space: nowrap;
   /* The brand is a link, but looks as it did before: header text colour, no underline. */
   color: inherit;
@@ -92,11 +92,11 @@
 }
 
 .app-header .brand-logo {
-  font-size: 24px;
+  font-size: calc(24px * var(--text-scale));
 }
 
 .app-header .brand-name {
-  font-size: 16px;
+  font-size: calc(16px * var(--text-scale));
   font-weight: 700;
 }
 

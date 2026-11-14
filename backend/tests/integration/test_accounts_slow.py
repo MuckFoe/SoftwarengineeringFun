@@ -226,14 +226,22 @@ async def test_nfr3_list_hidden_sessions_and_preferences_survive_a_restart(
         )
         assert put.status_code == 200, put.text
         assert _invites(client, jar) == [l1, s1]
-        assert _preferences(client, jar) == {"appearance": "dark", "chat_visible": True}
+        assert _preferences(client, jar) == {
+            "appearance": "dark",
+            "chat_visible": True,
+            "text_size": "s",
+        }
 
     # Restart: the startup step runs again on the same database, then a fresh app.
     await asgi._migrate_and_seed(_settings(keycloak, database_url), lessons_dir=tmp_path)
 
     with _deployed(keycloak, database_url) as client:
         assert _invites(client, jar) == [l1, s1]
-        assert _preferences(client, jar) == {"appearance": "dark", "chat_visible": True}
+        assert _preferences(client, jar) == {
+            "appearance": "dark",
+            "chat_visible": True,
+            "text_size": "s",
+        }
 
 
 # --- NFR-4 ------------------------------------------------------------------------------------

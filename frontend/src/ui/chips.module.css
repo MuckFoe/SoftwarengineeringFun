@@ -41,7 +41,7 @@
   justify-content: center;
   border-radius: var(--radius-max);
   font-family: var(--font-copy);
-  font-size: var(--fs-small, 12px);
+  font-size: var(--fs-copy-2);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -78,7 +78,7 @@
   background: transparent;
   color: var(--text-interactive);
   font-family: var(--font-copy);
-  font-size: var(--fs-small, 12px);
+  font-size: var(--fs-copy-2);
 }
 
 button.tag {

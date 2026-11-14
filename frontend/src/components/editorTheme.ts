@@ -11,7 +11,8 @@ export const themeSpec = {
   "&": {
     color: "var(--text)",
     backgroundColor: "var(--surface-1)",
-    fontSize: "13px",
+    // The user's text scale applies to code too (tokens.css --text-scale).
+    fontSize: "calc(13px * var(--text-scale))",
     height: "100%",
   },
   // Like any text field, the focused editor shows the focus ring (NFR-4, AC-21).

@@ -289,9 +289,18 @@ async def test_nfr1_preferences_are_per_account(
     assert _put(client, theirs, {"appearance": "light"}).json() == {
         "appearance": "light",
         "chat_visible": True,
+        "text_size": "s",
     }
-    assert _me(client, mine)["preferences"] == {"appearance": "dark", "chat_visible": False}
-    assert _me(client, theirs)["preferences"] == {"appearance": "light", "chat_visible": True}
+    assert _me(client, mine)["preferences"] == {
+        "appearance": "dark",
+        "chat_visible": False,
+        "text_size": "s",
+    }
+    assert _me(client, theirs)["preferences"] == {
+        "appearance": "light",
+        "chat_visible": True,
+        "text_size": "s",
+    }
 
 
 def test_nfr1_signed_out_is_401_and_no_me_route_names_an_account(client: TestClient) -> None:
@@ -321,8 +330,12 @@ async def test_fr15_preferences_follow_the_account_to_another_device(
     response = _put(client, device_a, {"appearance": "dark", "chat_visible": False})
 
     assert response.status_code == 200
-    assert response.json() == {"appearance": "dark", "chat_visible": False}
-    assert _me(client, device_b)["preferences"] == {"appearance": "dark", "chat_visible": False}
+    assert response.json() == {"appearance": "dark", "chat_visible": False, "text_size": "s"}
+    assert _me(client, device_b)["preferences"] == {
+        "appearance": "dark",
+        "chat_visible": False,
+        "text_size": "s",
+    }
 
 
 async def test_fr15_a_later_write_of_one_field_keeps_the_other(
@@ -335,8 +348,28 @@ async def test_fr15_a_later_write_of_one_field_keeps_the_other(
     assert _put(client, jar, {"chat_visible": True}).json() == {
         "appearance": "dark",
         "chat_visible": True,
+        "text_size": "s",
     }
-    assert _me(client, jar)["preferences"] == {"appearance": "dark", "chat_visible": True}
+    assert _me(client, jar)["preferences"] == {
+        "appearance": "dark",
+        "chat_visible": True,
+        "text_size": "s",
+    }
+
+
+async def test_text_size_is_stored_and_kept_by_later_writes(
+    client: TestClient,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    jar = signed_in_jar(client, "newuser")
+
+    assert _put(client, jar, {"text_size": "l"}).json() == {
+        "appearance": "system",
+        "chat_visible": True,
+        "text_size": "l",
+    }
+    _put(client, jar, {"appearance": "dark"})
+    assert _me(client, jar)["preferences"]["text_size"] == "l"
 
 
 # --- FR-16 input ------------------------------------------------------------------------------
@@ -354,8 +387,12 @@ async def test_fr16_preferences_null_until_written_then_defaults_fill_the_gap(
     response = _put(client, jar, {"appearance": "dark"})
 
     assert response.status_code == 200
-    assert response.json() == {"appearance": "dark", "chat_visible": True}
-    assert _me(client, jar)["preferences"] == {"appearance": "dark", "chat_visible": True}
+    assert response.json() == {"appearance": "dark", "chat_visible": True, "text_size": "s"}
+    assert _me(client, jar)["preferences"] == {
+        "appearance": "dark",
+        "chat_visible": True,
+        "text_size": "s",
+    }
 
 
 async def test_fr16_first_write_of_chat_only_defaults_appearance_to_system(
@@ -367,11 +404,20 @@ async def test_fr16_first_write_of_chat_only_defaults_appearance_to_system(
     assert _put(client, jar, {"chat_visible": False}).json() == {
         "appearance": "system",
         "chat_visible": False,
+        "text_size": "s",
     }
 
 
 @pytest.mark.parametrize(
-    "body", [{}, {"appearance": "blue"}, {"chat_visible": "nope"}, {"appearance": None}]
+    "body",
+    [
+        {},
+        {"appearance": "blue"},
+        {"chat_visible": "nope"},
+        {"appearance": None},
+        {"text_size": "huge"},
+        {"text_size": 0.75},
+    ],
 )
 async def test_fr16_empty_or_invalid_body_is_422_and_stores_nothing(
     client: TestClient,

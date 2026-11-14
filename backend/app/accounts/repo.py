@@ -14,6 +14,7 @@ import asyncpg
 
 Kind = Literal["coding", "learning", "presentation", "chess"]
 Appearance = Literal["light", "dark", "system"]
+TextSize = Literal["xs", "s", "m", "l", "xl"]
 
 
 @dataclass(frozen=True)
@@ -127,12 +128,13 @@ async def hide(conn: asyncpg.Connection, account_sub: str, kind: str, invite_id:
 class Preferences:
     appearance: Appearance
     chat_visible: bool
+    text_size: TextSize
 
 
 async def get_preferences(conn: asyncpg.Connection, account_sub: str) -> Preferences | None:
     """FR-15, FR-16: the account's stored preferences, or None before the first write."""
     row = await conn.fetchrow(
-        "select appearance, chat_visible from account_preference where account_sub = $1",
+        "select appearance, chat_visible, text_size from account_preference where account_sub = $1",
         account_sub,
     )
     return None if row is None else Preferences(**dict(row))
@@ -143,19 +145,23 @@ async def put_preferences(
     account_sub: str,
     appearance: str | None,
     chat_visible: bool | None,
+    text_size: str | None = None,
 ) -> Preferences:
     """FR-15, FR-16, FR-18: upsert. A missing field keeps its stored value, or on the first
-    write takes its default (`system`, `true`)."""
+    write takes its default (`system`, `true`, `s`)."""
     row = await conn.fetchrow(
-        """insert into account_preference (account_sub, appearance, chat_visible)
-           values ($1, coalesce($2::text, 'system'), coalesce($3::boolean, true))
+        """insert into account_preference (account_sub, appearance, chat_visible, text_size)
+           values ($1, coalesce($2::text, 'system'), coalesce($3::boolean, true),
+                   coalesce($4::text, 's'))
            on conflict (account_sub) do update
               set appearance = coalesce($2::text, account_preference.appearance),
                   chat_visible = coalesce($3::boolean, account_preference.chat_visible),
+                  text_size = coalesce($4::text, account_preference.text_size),
                   updated_at = now()
-           returning appearance, chat_visible""",
+           returning appearance, chat_visible, text_size""",
         account_sub,
         appearance,
         chat_visible,
+        text_size,
     )
     return Preferences(**dict(row))

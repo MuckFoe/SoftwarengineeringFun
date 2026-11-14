@@ -6,9 +6,17 @@ import {
   saveChatVisibility,
 } from "../components/chatVisibility";
 import { type Choice, loadChoice, resolve, saveChoice } from "../theme/appearance";
+import {
+  applyTextSize,
+  DEFAULT_TEXT_SIZE,
+  isTextSize,
+  loadTextSize,
+  saveTextSize,
+  type TextSize,
+} from "../theme/textSize";
 
 /**
- * The one preference store (spec 012 FR-15..FR-18): appearance and chat visibility, kept
+ * The one preference store (spec 012 FR-15..FR-18): appearance, chat visibility and text size, kept
  * in memory over `localStorage`. Every hook reading a preference subscribes here, so a
  * change anywhere (toolbar, profile, another account sync) applies at once everywhere.
  * `localStorage` stays the browser's copy, so the pre-paint script and the signed-out
@@ -17,6 +25,7 @@ import { type Choice, loadChoice, resolve, saveChoice } from "../theme/appearanc
 export interface PrefValues {
   appearance: Choice;
   chatVisible: boolean;
+  textSize: TextSize;
 }
 
 export type PrefKey = keyof PrefValues;
@@ -29,7 +38,11 @@ export function osIsDark(): boolean {
   return document.documentElement.getAttribute("data-appearance") === "dark";
 }
 
-const memory: PrefValues = { appearance: "system", chatVisible: true };
+const memory: PrefValues = {
+  appearance: "system",
+  chatVisible: true,
+  textSize: DEFAULT_TEXT_SIZE,
+};
 const listeners = new Set<() => void>();
 let signedIn = false;
 
@@ -47,12 +60,14 @@ function read(): PrefValues {
   if (storageReadable()) {
     memory.appearance = loadChoice();
     memory.chatVisible = loadChatVisibility() === "shown";
+    memory.textSize = loadTextSize();
   }
   return memory;
 }
 
 export const getAppearance = (): Choice => read().appearance;
 export const getChatVisible = (): boolean => read().chatVisible;
+export const getTextSize = (): TextSize => read().textSize;
 
 export function subscribe(listener: () => void): () => void {
   listeners.add(listener);
@@ -67,6 +82,9 @@ function write<K extends PrefKey>(key: K, value: PrefValues[K]): void {
     saveChoice(value as Choice);
     // Applied at once, before React re-renders (FR-18 "at once").
     document.documentElement.setAttribute("data-appearance", resolve(value as Choice, osIsDark()));
+  } else if (key === "textSize") {
+    saveTextSize(value as TextSize);
+    applyTextSize(value as TextSize);
   } else {
     saveChatVisibility(value ? "shown" : "hidden");
   }
@@ -90,7 +108,13 @@ export function savePreference<K extends PrefKey>(key: K, value: PrefValues[K]):
   write(key, value);
   notify();
   if (!signedIn) return;
-  send(key === "appearance" ? { appearance: value as Choice } : { chat_visible: value as boolean });
+  send(
+    key === "appearance"
+      ? { appearance: value as Choice }
+      : key === "textSize"
+        ? { text_size: value as TextSize }
+        : { chat_visible: value as boolean },
+  );
 }
 
 /**
@@ -103,12 +127,14 @@ export function syncOnLoad(me: Me): void {
   if (!me.signed_in) return;
   if (me.preferences === null) {
     const now = read();
-    send({ appearance: now.appearance, chat_visible: now.chatVisible });
+    send({ appearance: now.appearance, chat_visible: now.chatVisible, text_size: now.textSize });
     return;
   }
   // A `Me` without the field (older server, test doubles) changes nothing.
   if (!me.preferences) return;
   write("appearance", me.preferences.appearance);
   write("chatVisible", me.preferences.chat_visible);
+  // An older server sends no text size: this browser's stays.
+  if (isTextSize(me.preferences.text_size)) write("textSize", me.preferences.text_size);
   notify();
 }

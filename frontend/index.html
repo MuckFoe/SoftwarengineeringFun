@@ -21,6 +21,14 @@
           choice = osDark ? "dark" : "light";
         }
         document.documentElement.setAttribute("data-appearance", choice);
+        // Same rules as src/theme/textSize.ts: the stored text size, else tokens.css's 0.75.
+        const scales = { xs: 0.625, s: 0.75, m: 0.875, l: 1, xl: 1.125 };
+        try {
+          const size = localStorage.getItem("textSize");
+          if (Object.hasOwn(scales, size)) {
+            document.documentElement.style.setProperty("--text-scale", String(scales[size]));
+          }
+        } catch {}
       })();
     </script>
   </head>

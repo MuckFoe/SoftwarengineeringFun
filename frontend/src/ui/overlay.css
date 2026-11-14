@@ -15,8 +15,8 @@
   border-radius: var(--radius-0);
   background: var(--canvas-inverted);
   color: var(--canvas);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: calc(12px * var(--text-scale));
+  line-height: calc(16px * var(--text-scale));
   white-space: nowrap;
   pointer-events: none;
   transition: opacity var(--dur-fast) var(--ease-audi);
@@ -32,8 +32,8 @@
   border-radius: var(--radius-0);
   background: var(--canvas-inverted);
   color: var(--canvas);
-  font-size: 16px;
-  line-height: 24px;
+  font-size: calc(16px * var(--text-scale));
+  line-height: calc(24px * var(--text-scale));
   transition: opacity var(--dur-fast) var(--ease-audi);
 }
 

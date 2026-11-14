@@ -5,6 +5,10 @@
    accent drops under 4.5:1 there in light, so tinted labels, counts and rows use this. */
 
 :root {
+  /* The user's text size (profile, prefs/accountPrefs.ts): every --fs-* and --lh-* below is the
+     kit's px value times this, so the sizes keep their ratios. 0.75 ("s") unless chosen; set
+     on <html> before first paint by index.html. */
+  --text-scale: 0.75;
   --radius-0: 0;
   --radius-xs: 2px;
   --radius-sm: 4px;
@@ -41,35 +45,35 @@
   --font-display: "Audi Type", "Roboto Flex", Verdana, system-ui, sans-serif;
   --wdth-copy: 108;
   --wdth-display: 130;
-  --fs-copy-1: 16px;
-  --lh-copy-1: 24px;
-  --fs-copy-dense: 14px;
-  --lh-copy-dense: 20px;
-  --fs-copy-2: 12px;
-  --lh-copy-2: 20px;
-  --fs-copy-3: 10px;
-  --lh-copy-3: 16px;
-  --fs-label-1: 16px;
-  --lh-label-1: 20px;
-  --fs-label-2: 12px;
-  --lh-label-2: 16px;
-  --fs-label-3: 10px;
-  --lh-label-3: 12px;
+  --fs-copy-1: calc(16px * var(--text-scale));
+  --lh-copy-1: calc(24px * var(--text-scale));
+  --fs-copy-dense: calc(14px * var(--text-scale));
+  --lh-copy-dense: calc(20px * var(--text-scale));
+  --fs-copy-2: calc(12px * var(--text-scale));
+  --lh-copy-2: calc(20px * var(--text-scale));
+  --fs-copy-3: calc(10px * var(--text-scale));
+  --lh-copy-3: calc(16px * var(--text-scale));
+  --fs-label-1: calc(16px * var(--text-scale));
+  --lh-label-1: calc(20px * var(--text-scale));
+  --fs-label-2: calc(12px * var(--text-scale));
+  --lh-label-2: calc(16px * var(--text-scale));
+  --fs-label-3: calc(10px * var(--text-scale));
+  --lh-label-3: calc(12px * var(--text-scale));
   --ease-audi: cubic-bezier(0.75, 0.02, 0.5, 1);
   --dur-fast: 150ms;
   --dur-base: 250ms;
-  --fs-display-1: 40px;
-  --lh-display-1: 60px;
-  --fs-display-2: 36px;
-  --lh-display-2: 52px;
-  --fs-h1: 28px;
-  --lh-h1: 40px;
-  --fs-h2: 24px;
-  --lh-h2: 36px;
-  --fs-h3: 20px;
-  --lh-h3: 32px;
-  --fs-h4: 16px;
-  --lh-h4: 24px;
+  --fs-display-1: calc(40px * var(--text-scale));
+  --lh-display-1: calc(60px * var(--text-scale));
+  --fs-display-2: calc(36px * var(--text-scale));
+  --lh-display-2: calc(52px * var(--text-scale));
+  --fs-h1: calc(28px * var(--text-scale));
+  --lh-h1: calc(40px * var(--text-scale));
+  --fs-h2: calc(24px * var(--text-scale));
+  --lh-h2: calc(36px * var(--text-scale));
+  --fs-h3: calc(20px * var(--text-scale));
+  --lh-h3: calc(32px * var(--text-scale));
+  --fs-h4: calc(16px * var(--text-scale));
+  --lh-h4: calc(24px * var(--text-scale));
   --page-margin: 16px;
   --canvas: #f4f6fa;
   --canvas-inverted: #000000;
@@ -402,56 +406,56 @@
 
 @media (min-width: 768px) {
   :root {
-    --fs-display-1: 48px;
-    --lh-display-1: 68px;
+    --fs-display-1: calc(48px * var(--text-scale));
+    --lh-display-1: calc(68px * var(--text-scale));
     --page-margin: 40px;
   }
 }
 
 @media (min-width: 1024px) {
   :root {
-    --fs-display-1: 60px;
-    --lh-display-1: 84px;
-    --fs-display-2: 44px;
-    --lh-display-2: 64px;
-    --fs-h1: 36px;
-    --lh-h1: 52px;
-    --fs-h2: 28px;
-    --lh-h2: 40px;
+    --fs-display-1: calc(60px * var(--text-scale));
+    --lh-display-1: calc(84px * var(--text-scale));
+    --fs-display-2: calc(44px * var(--text-scale));
+    --lh-display-2: calc(64px * var(--text-scale));
+    --fs-h1: calc(36px * var(--text-scale));
+    --lh-h1: calc(52px * var(--text-scale));
+    --fs-h2: calc(28px * var(--text-scale));
+    --lh-h2: calc(40px * var(--text-scale));
     --page-margin: 60px;
   }
 }
 
 @media (min-width: 1440px) {
   :root {
-    --fs-display-1: 72px;
-    --lh-display-1: 100px;
-    --fs-display-2: 52px;
-    --lh-display-2: 76px;
-    --fs-h1: 40px;
-    --lh-h1: 60px;
-    --fs-h2: 32px;
-    --lh-h2: 44px;
-    --fs-h3: 24px;
-    --lh-h3: 36px;
-    --fs-h4: 18px;
-    --lh-h4: 28px;
+    --fs-display-1: calc(72px * var(--text-scale));
+    --lh-display-1: calc(100px * var(--text-scale));
+    --fs-display-2: calc(52px * var(--text-scale));
+    --lh-display-2: calc(76px * var(--text-scale));
+    --fs-h1: calc(40px * var(--text-scale));
+    --lh-h1: calc(60px * var(--text-scale));
+    --fs-h2: calc(32px * var(--text-scale));
+    --lh-h2: calc(44px * var(--text-scale));
+    --fs-h3: calc(24px * var(--text-scale));
+    --lh-h3: calc(36px * var(--text-scale));
+    --fs-h4: calc(18px * var(--text-scale));
+    --lh-h4: calc(28px * var(--text-scale));
     --page-margin: 96px;
   }
 }
 
 @media (min-width: 1920px) {
   :root {
-    --fs-display-1: 84px;
-    --lh-display-1: 112px;
-    --fs-display-2: 60px;
-    --lh-display-2: 84px;
-    --fs-h1: 44px;
-    --lh-h1: 64px;
-    --fs-h2: 36px;
-    --lh-h2: 52px;
-    --fs-h4: 20px;
-    --lh-h4: 32px;
+    --fs-display-1: calc(84px * var(--text-scale));
+    --lh-display-1: calc(112px * var(--text-scale));
+    --fs-display-2: calc(60px * var(--text-scale));
+    --lh-display-2: calc(84px * var(--text-scale));
+    --fs-h1: calc(44px * var(--text-scale));
+    --lh-h1: calc(64px * var(--text-scale));
+    --fs-h2: calc(36px * var(--text-scale));
+    --lh-h2: calc(52px * var(--text-scale));
+    --fs-h4: calc(20px * var(--text-scale));
+    --lh-h4: calc(32px * var(--text-scale));
   }
 }
 

@@ -9,6 +9,8 @@ import type { Run, RunStatus } from "../scratch/scratchReducer";
 export interface Preferences {
   appearance: "light" | "dark" | "system";
   chat_visible: boolean;
+  /** Older servers leave it out. */
+  text_size?: "xs" | "s" | "m" | "l" | "xl";
 }
 
 /** GET /api/me. `preferences` is `null` until the account first stores any (spec 012 FR-16). */

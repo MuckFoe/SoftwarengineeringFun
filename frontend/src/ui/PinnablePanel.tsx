@@ -304,18 +304,19 @@ export const PinnablePanel = forwardRef<PinnablePanelHandle, PinnablePanelProps>
           <div id={bodyId} className={styles.body} {...collapsedProps(shown)}>
             {children}
           </div>
+          {/* Inside the panel, so it sits in the panel's landmark (axe "region"). */}
+          {resizable && (
+            <ResizeHandle
+              edge={edge}
+              target={rootRef}
+              size={Number.parseFloat(size ?? DEFAULT_SIZE[edge])}
+              onResize={onResize}
+              minSize={minSize}
+              keepFree={keepFree}
+              label={resizeLabel ?? `Resize ${title.toLowerCase()}`}
+            />
+          )}
         </div>
-        {resizable && (
-          <ResizeHandle
-            edge={edge}
-            target={rootRef}
-            size={Number.parseFloat(size ?? DEFAULT_SIZE[edge])}
-            onResize={onResize}
-            minSize={minSize}
-            keepFree={keepFree}
-            label={resizeLabel ?? `Resize ${title.toLowerCase()}`}
-          />
-        )}
       </div>
     );
   },

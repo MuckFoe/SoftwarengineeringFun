@@ -9,6 +9,7 @@ import { putPreferences } from "../api/client";
 import type { Me, Preferences } from "../api/types";
 import { useChatVisible } from "../components/chatVisibility";
 import { useAppearance } from "../theme/useAppearance";
+import { useTextSize } from "../theme/useTextSize";
 import { savePreference, syncOnLoad } from "./accountPrefs";
 
 const put = vi.mocked(putPreferences);
@@ -30,6 +31,38 @@ beforeEach(() => {
 afterEach(() => {
   localStorage.clear();
   document.documentElement.removeAttribute("data-appearance");
+  document.documentElement.style.removeProperty("--text-scale");
+});
+
+const scaleProp = () => document.documentElement.style.getPropertyValue("--text-scale");
+
+describe("text size", () => {
+  it("applies the scale at once, keeps it in this browser and PUTs it when signed in", () => {
+    syncOnLoad(newuser({ appearance: "dark", chat_visible: true, text_size: "s" }));
+    const hook = renderHook(() => useTextSize());
+    expect(hook.result.current[0]).toBe("s");
+    act(() => hook.result.current[1]("l"));
+    expect(hook.result.current[0]).toBe("l");
+    expect(scaleProp()).toBe("1");
+    expect(localStorage.getItem("textSize")).toBe("l");
+    expect(put).toHaveBeenLastCalledWith({ text_size: "l" });
+  });
+
+  it("the default is no stored value", () => {
+    savePreference("textSize", "xl");
+    savePreference("textSize", "s");
+    expect(localStorage.getItem("textSize")).toBeNull();
+    expect(scaleProp()).toBe("0.75");
+  });
+
+  it("takes the account's size on sign-in; an older server without one keeps this browser's", () => {
+    localStorage.setItem("textSize", "m");
+    syncOnLoad(newuser({ appearance: "dark", chat_visible: true }));
+    expect(localStorage.getItem("textSize")).toBe("m");
+    syncOnLoad(newuser({ appearance: "dark", chat_visible: true, text_size: "xs" }));
+    expect(localStorage.getItem("textSize")).toBe("xs");
+    expect(scaleProp()).toBe("0.625");
+  });
 });
 
 describe("syncOnLoad", () => {
@@ -39,13 +72,13 @@ describe("syncOnLoad", () => {
     localStorage.setItem("chatVisible", "hidden");
     syncOnLoad(newuser(null));
     expect(put).toHaveBeenCalledTimes(1);
-    expect(put).toHaveBeenCalledWith({ appearance: "dark", chat_visible: false });
+    expect(put).toHaveBeenCalledWith({ appearance: "dark", chat_visible: false, text_size: "s" });
   });
 
   it("PUTs chat shown when this browser has nothing stored for it", () => {
     localStorage.setItem("appearance", "dark");
     syncOnLoad(newuser(null));
-    expect(put).toHaveBeenCalledWith({ appearance: "dark", chat_visible: true });
+    expect(put).toHaveBeenCalledWith({ appearance: "dark", chat_visible: true, text_size: "s" });
   });
 
   // FR-15

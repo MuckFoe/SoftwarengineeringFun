@@ -22,6 +22,7 @@ const LIGHT_OS = { colorScheme: "light" as const };
 interface StoredPrefs {
   appearance: "light" | "dark" | "system";
   chat_visible: boolean;
+  text_size: "xs" | "s" | "m" | "l" | "xl";
 }
 
 /**
@@ -89,7 +90,7 @@ test("FR-15: dark and chat unpinned on the laptop are dark and chat unpinned in 
   await expect(chat(laptop.page)).toBeHidden();
   await expect
     .poll(() => accountPrefs(laptop.page))
-    .toEqual({ appearance: "dark", chat_visible: false });
+    .toEqual({ appearance: "dark", chat_visible: false, text_size: "s" });
 
   const other = await signedInContext(browser, keycloak, "prefsuser", "/", LIGHT_OS);
   contexts.push(other.context);
