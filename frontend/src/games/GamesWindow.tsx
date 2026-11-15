@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { ApiError } from "../api/client";
+import { apiPath } from "../base";
 import { AppHeader } from "../ui/AppHeader";
 import { AreaTitle } from "../ui/AreaTitle";
 import { Button } from "../ui/Button";
@@ -7,11 +9,29 @@ import { Card } from "../ui/Card";
 import { InlineMessage } from "../ui/InlineMessage";
 import { Window } from "../ui/Window";
 import styles from "./GamesWindow.module.css";
-import { createChessSession, type GameInfo, listGames } from "./gamesApi";
+import { type GameInfo, listGames } from "./gamesApi";
+
+/** Where each game's sessions open, by catalogue `id` (spec 021 FR-1). */
+const SESSION_ROUTES: Record<string, string> = {
+  chess: "/games/chess/s/",
+  rps: "/games/rps/s/",
+};
+
+/** POST to a catalogue entry's `start_path` ("/api/…"), under the app's base path. */
+async function startSession(startPath: string): Promise<string> {
+  const res = await fetch(apiPath(startPath.replace(/^\/api(?=\/)/, "")), {
+    method: "POST",
+    credentials: "same-origin",
+  });
+  if (!res.ok) throw new ApiError(res.status, { kind: "http" });
+  const { invite_id } = (await res.json()) as { invite_id: string };
+  return invite_id;
+}
 
 /**
  * The games catalogue (spec 014 FR-1–FR-3): each game with its name and description and a
- * *Start* button, open to anyone. Starting chess creates a session and opens its invite route.
+ * *Start* button, open to anyone. Starting a game posts to its `start_path` and opens the
+ * invite route for its `id` (spec 021 FR-1).
  */
 export function GamesWindow() {
   const navigate = useNavigate();
@@ -34,10 +54,11 @@ export function GamesWindow() {
   }, []);
 
   async function start(game: GameInfo) {
-    if (game.id !== "chess") return;
+    const route = SESSION_ROUTES[game.id];
+    if (!route) return;
     try {
-      const { invite_id } = await createChessSession();
-      navigate(`/games/chess/s/${encodeURIComponent(invite_id)}`);
+      const inviteId = await startSession(game.start_path);
+      navigate(`${route}${encodeURIComponent(inviteId)}`);
     } catch {
       setError("Could not start a game.");
     }

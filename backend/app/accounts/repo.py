@@ -1,5 +1,5 @@
 """Account reads and writes (spec 012 plan.md "Python signatures"): the recent-sessions
-list across the four session kinds, hiding a session, and account preferences. FR-2, FR-4,
+list across the session kinds, hiding a session, and account preferences. FR-2, FR-4,
 FR-12, FR-13, FR-15, FR-16, NFR-1, NFR-4. Spec 019: the host rule and `can_delete` (FR-0–FR-3).
 
 Every query is keyed by the caller's `account_sub` and driven by each participant table's
@@ -12,7 +12,7 @@ from typing import Literal
 
 import asyncpg
 
-Kind = Literal["coding", "learning", "presentation", "chess"]
+Kind = Literal["coding", "learning", "presentation", "chess", "rps"]
 Appearance = Literal["light", "dark", "system"]
 TextSize = Literal["xs", "s", "m", "l", "xl"]
 
@@ -30,8 +30,9 @@ class RecentSession:
 
 # Spec 019 FR-0, the host rule: each kind's host account, an expression over its session row.
 # Coding, learning: the recorded starter, else the first signed-in participant to join.
-# Chess: the recorded starter, else the starter participant's account, else the first signed-in
-# participant. Presentation: the presenter (`host_participant_id`). Null: no host.
+# Chess and rps (spec 021): the recorded starter, else the starter participant's account, else
+# the first signed-in participant. Presentation: the presenter (`host_participant_id`).
+# Null: no host.
 HOST_SUB: dict[str, str] = {
     "coding": """coalesce(s.started_by_sub,
                  (select fp.account_sub from participant fp
@@ -49,10 +50,17 @@ HOST_SUB: dict[str, str] = {
                 (select fp.account_sub from chess_participant fp
                   where fp.session_id = cs.id and fp.account_sub is not null
                   order by fp.joined_at, fp.id limit 1))""",
+    "rps": """coalesce(rs.started_by_sub,
+              (select sp.account_sub from rps_participant sp
+                where sp.id = rs.starter_participant_id),
+              (select fp.account_sub from rps_participant fp
+                where fp.session_id = rs.id and fp.account_sub is not null
+                order by fp.joined_at, fp.id limit 1))""",
 }
 
 # Titles: coding — the current problem's (deleted problems keep theirs); learning — the
-# session's lesson version; presentation — the presentation of the session's version.
+# session's lesson version; presentation — the presentation of the session's version; chess and
+# rps — the game's name.
 # Stale is each kind's `stale_at` rule. Hidden participants are left out (FR-13).
 # `hosted_by_me`: the kind's HOST_SUB is the caller (spec 019 FR-0).
 _RECENT_SESSIONS = f"""
@@ -83,6 +91,12 @@ select 'chess', cs.invite_id, 'Chess', cs.last_activity_at,
   from chess_participant p
   join chess_session cs on cs.id = p.session_id
  where p.account_sub = $1 and p.hidden_at is null and cs.deleted_at is null
+union all
+select 'rps', rs.invite_id, 'Rock Paper Siege', rs.last_activity_at,
+       rs.stale_at is not null, coalesce({HOST_SUB["rps"]} = $1, false)
+  from rps_participant p
+  join rps_session rs on rs.id = p.session_id
+ where p.account_sub = $1 and p.hidden_at is null and rs.deleted_at is null
 order by last_activity_at desc, invite_id
 """  # noqa: S608  (HOST_SUB is fixed SQL, not input)
 
@@ -102,6 +116,7 @@ _TABLES: dict[str, tuple[str, str]] = {
     "learning": ("learning_participant", "learning_session"),
     "presentation": ("presentation_participant", "presentation_session"),
     "chess": ("chess_participant", "chess_session"),
+    "rps": ("rps_participant", "rps_session"),
 }
 
 

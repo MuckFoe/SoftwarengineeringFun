@@ -10,6 +10,7 @@ import json
 import uuid
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 import asyncpg
 import pytest
@@ -58,7 +59,7 @@ async def client(keycloak: Keycloak, database_url: str) -> AsyncIterator[TestCli
             """update presentation_session set host_participant_id = null;
                truncate participant, session_problem, session, learning_participant,
                         learning_session, presentation_participant, presentation_session,
-                        chess_participant, chess_session
+                        chess_participant, chess_session, rps_participant, rps_session
                         cascade"""
         )
     finally:
@@ -434,3 +435,128 @@ async def test_014_hide_accepts_the_chess_kind(
 
     assert await repo.hide(db_conn, me, "chess", invite) is True
     assert _list(client, signed_in_jar(client, "newuser")) == []
+
+
+# --- spec 021 FR-2 (spec 012), FR-26 ----------------------------------------------------------
+
+
+async def _rps(
+    conn: asyncpg.Connection, sub: str, at: datetime, *, starter: bool = True
+) -> tuple[str, uuid.UUID]:
+    """An rps session with one signed-in participant; `starter` makes them the starter."""
+    invite = _invite()
+    session_id = await conn.fetchval(
+        "insert into rps_session (invite_id, last_activity_at) values ($1, $2) returning id",
+        invite,
+        at,
+    )
+    participant_id = await conn.fetchval(
+        """insert into rps_participant (session_id, display_name, rejoin_token_hash, account_sub)
+           values ($1, 'x', $2, $3) returning id""",
+        session_id,
+        uuid.uuid4().hex,
+        sub,
+    )
+    if starter:
+        await conn.execute(
+            "update rps_session set starter_participant_id = $1 where id = $2",
+            participant_id,
+            session_id,
+        )
+    return invite, session_id
+
+
+async def _join_rps(conn: asyncpg.Connection, session_id: uuid.UUID, sub: str) -> None:
+    await conn.execute(
+        """insert into rps_participant (session_id, display_name, rejoin_token_hash, account_sub,
+                                       joined_at)
+           values ($1, 'y', $2, $3, now() + interval '1 minute')""",
+        session_id,
+        uuid.uuid4().hex,
+        sub,
+    )
+
+
+async def test_021_fr26_rps_sessions_are_listed_with_kind_title_and_host_flag(
+    client: TestClient,
+    db_conn: asyncpg.Connection,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    me, someone = _sub("newuser"), _sub("other")
+    hosted, hosted_id = await _rps(db_conn, me, NOW)
+    joined, joined_id = await _rps(db_conn, someone, NOW - timedelta(hours=1))
+    await _join_rps(db_conn, joined_id, me)
+    await db_conn.execute("update rps_session set stale_at = now() where id = $1", joined_id)
+    client.app.state.rps_hubs[hosted_id] = SimpleNamespace(connections={"p": object()})
+
+    rows = _list(client, signed_in_jar(client, "newuser"))
+
+    assert rows == [
+        {
+            "kind": "rps",
+            "invite_id": hosted,
+            "title": "Rock Paper Siege",
+            "last_activity_at": NOW.isoformat(),
+            "stale": False,
+            "hosted_by_me": True,
+            "can_delete": True,
+            "live": True,
+        },
+        {
+            "kind": "rps",
+            "invite_id": joined,
+            "title": "Rock Paper Siege",
+            "last_activity_at": (NOW - timedelta(hours=1)).isoformat(),
+            "stale": True,
+            "hosted_by_me": False,
+            "can_delete": False,
+            "live": False,
+        },
+    ]
+
+
+async def test_021_fr26_rps_host_rule_follows_chess(
+    client: TestClient,
+    db_conn: asyncpg.Connection,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    """Recorded starter, else the starter participant's account, else the first signed-in."""
+    me, someone = _sub("newuser"), _sub("other")
+    recorded, recorded_id = await _rps(db_conn, someone, NOW)
+    await _join_rps(db_conn, recorded_id, me)
+    await db_conn.execute(
+        "update rps_session set started_by_sub = $1 where id = $2", me, recorded_id
+    )
+    first, _ = await _rps(db_conn, me, NOW - timedelta(minutes=1), starter=False)
+    later, later_id = await _rps(db_conn, someone, NOW - timedelta(minutes=2), starter=False)
+    await _join_rps(db_conn, later_id, me)
+
+    rows = _list(client, signed_in_jar(client, "newuser"))
+
+    assert [(r["invite_id"], r["hosted_by_me"]) for r in rows] == [
+        (recorded, True),
+        (first, True),
+        (later, False),
+    ]
+
+
+async def test_021_fr26_non_participant_deleted_and_hidden_rps_sessions_are_not_listed(
+    client: TestClient,
+    db_conn: asyncpg.Connection,
+    signed_in_jar,  # noqa: F811
+) -> None:
+    from app.accounts import repo
+
+    me, someone = _sub("newuser"), _sub("other")
+    theirs, _ = await _rps(db_conn, someone, NOW)
+    _, gone_id = await _rps(db_conn, me, NOW)
+    await db_conn.execute(
+        "update rps_session set deleted_at = now(), deleted_reason = 'admin' where id = $1",
+        gone_id,
+    )
+    hidden, _ = await _rps(db_conn, me, NOW)
+    kept, _ = await _rps(db_conn, me, NOW - timedelta(minutes=1))
+    assert await repo.hide(db_conn, me, "rps", hidden) is True
+
+    assert [r["invite_id"] for r in _list(client, signed_in_jar(client, "newuser"))] == [kept]
+    assert [r["invite_id"] for r in _list(client, signed_in_jar(client, "other"))] == [theirs]

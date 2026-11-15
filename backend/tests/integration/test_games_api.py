@@ -22,9 +22,18 @@ def test_ac1_games_list_contains_chess_without_auth() -> None:
     response = _client().get("/api/games")
     assert response.status_code == 200
     games = response.json()
-    assert len(games) == 1
+    assert [g["id"] for g in games] == ["chess", "rps"]
     chess = games[0]
     assert chess["id"] == "chess"
     assert chess["name"]
     assert chess["description"]
     assert chess["start_path"] == "/api/games/chess/sessions"
+
+
+def test_ac1_spec021_rock_paper_siege_is_listed_beside_chess() -> None:
+    """Spec 021 AC-1 (FR-1, FR-3)."""
+    games = {g["id"]: g for g in _client().get("/api/games").json()}
+    rps = games["rps"]
+    assert rps["name"] == "Rock Paper Siege"
+    assert rps["description"]
+    assert rps["start_path"] == "/api/games/rps/sessions"

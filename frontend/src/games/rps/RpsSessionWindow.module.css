@@ -1,0 +1,168 @@
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-stretch: calc(var(--wdth-display) * 1%);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+  color: var(--text-interactive);
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-16);
+  padding: var(--space-32) var(--page-margin);
+  color: var(--text);
+}
+
+.joinCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  width: 100%;
+  max-width: 24rem;
+  box-sizing: border-box;
+}
+
+.joinTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-stretch: calc(var(--wdth-display) * 1%);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+  font-weight: 700;
+  color: var(--text-interactive);
+}
+
+.joinForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  min-width: 0;
+}
+
+/* One screen, no page scroll: board and its bar | seats, controls | chat. The board's own
+   height cap comes from --rps-board-reserve, measured by the window (RpsBoard.module.css). */
+.layout {
+  display: flex;
+  gap: var(--space-16);
+  height: 100%;
+  min-height: 0;
+  padding: var(--space-16);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.boardCol {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  /* Clear of the dock's reach at the bottom centre, as the chess board column. */
+  padding-bottom: calc(var(--dock-height) / 2 + var(--space-8));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: var(--space-8);
+}
+
+.boardBox {
+  width: 100%;
+}
+
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.bar:empty {
+  display: none;
+}
+
+.side {
+  width: 18rem;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  overflow: auto;
+}
+
+.events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.events:empty {
+  display: none;
+}
+
+.event,
+.watching {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-copy-2);
+  line-height: var(--lh-copy-2);
+}
+
+.watching {
+  color: var(--form-caption);
+}
+
+.chat {
+  width: 20rem;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-2);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.frozen {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .layout {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  .boardCol {
+    flex: none;
+    padding-bottom: 0;
+  }
+
+  .side,
+  .chat {
+    width: auto;
+  }
+
+  .side {
+    overflow: visible;
+  }
+
+  .chat {
+    min-height: 20rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .side {
+    width: 14rem;
+  }
+
+  .chat {
+    width: 16rem;
+  }
+}

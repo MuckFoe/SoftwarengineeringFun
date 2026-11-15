@@ -63,6 +63,13 @@ const C2: RecentSession = {
   can_delete: false,
 };
 
+const R1: RecentSession = {
+  ...C1,
+  kind: "rps",
+  invite_id: "r1invite",
+  title: "Rock Paper Siege with Sam",
+};
+
 function stubServer(sessions: RecentSession[], me?: Me, deleteResponse?: () => Response) {
   const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), "http://localhost");
@@ -112,6 +119,19 @@ describe("ProfileSessions", () => {
         `/games/chess/s/${c.invite_id}`,
       );
     }
+  });
+
+  it("021 FR-2: rps sessions are labelled Rock Paper Siege and link to their rps route", async () => {
+    renderSessions([R1]);
+    const [row] = await bodyRows();
+    expect(within(row as HTMLElement).getAllByRole("cell")[0]?.textContent).toBe(
+      "Rock Paper Siege",
+    );
+    expect(
+      within(row as HTMLElement)
+        .getByRole("link", { name: R1.title })
+        .getAttribute("href"),
+    ).toBe("/games/rps/s/r1invite");
   });
 
   it("FR-2: lists P1, L1, S1 in the given order with kind, title, last activity and status", async () => {

@@ -35,6 +35,15 @@ _HOST_SQL: dict[str, str] = {
               where p.session_id = cs.id and p.account_sub is not null
               order by p.joined_at, p.id limit 1))
           from chess_session cs where cs.id = $1""",
+    "rps": """
+        select coalesce(
+            rs.started_by_sub,
+            (select p.account_sub from rps_participant p
+              where p.id = rs.starter_participant_id),
+            (select p.account_sub from rps_participant p
+              where p.session_id = rs.id and p.account_sub is not null
+              order by p.joined_at, p.id limit 1))
+          from rps_session rs where rs.id = $1""",
     "presentation": """
         select p.account_sub
           from presentation_session ps
@@ -78,6 +87,17 @@ _PURGE_SQL: dict[str, tuple[str, ...]] = {
         "delete from chess_chat_message where session_id = $1",
         "delete from chess_participant where session_id = $1",
         "delete from chess_session where id = $1",
+    ),
+    "rps": (
+        """update rps_session set starter_participant_id = null, a_participant_id = null,
+               b_participant_id = null, current_game_id = null
+            where id = $1""",
+        "delete from rps_duel where game_id in (select id from rps_game where session_id = $1)",
+        "delete from rps_piece where game_id in (select id from rps_game where session_id = $1)",
+        "delete from rps_game where session_id = $1",
+        "delete from rps_chat_message where session_id = $1",
+        "delete from rps_participant where session_id = $1",
+        "delete from rps_session where id = $1",
     ),
 }
 

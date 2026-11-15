@@ -559,6 +559,21 @@ async def test_nfr5_fr9_tests_reach_only_editors(
             chess_ws.receive_json()
     assert closed.value.code == 4404
 
+    # Spec 021 Rock Paper Siege routes: same shape as chess, no problem data.
+    rps = "/api/games/rps/sessions"
+    rs = rps + "/{invite}"
+    sweep.http(("POST", rps), client.post(rps))
+    sweep.http(("GET", rs), client.get(rps + "/no-such"))
+    sweep.http(("GET", rs + "/chat"), client.get(rps + "/no-such/chat"))
+    sweep.http(("DELETE", rs + "/chat/{message_id}"), client.delete(rps + "/no-such/chat/1"))
+    sweep.http(("POST", rs + "/reactivate"), client.post(rps + "/no-such/reactivate"))
+    sweep.http(("DELETE", rs), client.delete(rps + "/no-such"))
+    sweep.routes_hit.add(("WS", rs + "/ws"))
+    with client.websocket_connect(rps + "/no-such/ws?name=Ada") as rps_ws:
+        with pytest.raises(WebSocketDisconnect) as closed:
+            rps_ws.receive_json()
+    assert closed.value.code == 4404
+
     # Spec 012 account routes hold no problem data; swept for coverage. Signed in only (not
     # editor-only): the anonymous observer gets 401, plain1 its own (empty) rows.
     signed_in_status = 200 if observer == "plain1" else 401

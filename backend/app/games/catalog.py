@@ -18,4 +18,11 @@ GAMES: tuple[Game, ...] = (
         description="Play a game of chess with a friend; others can watch and chat.",
         start_path="/api/games/chess/sessions",
     ),
+    Game(
+        id="rps",
+        name="Rock Paper Siege",
+        description="Outwit a friend on a hidden board of rocks, papers and scissors; "
+        "others can watch.",
+        start_path="/api/games/rps/sessions",
+    ),
 )

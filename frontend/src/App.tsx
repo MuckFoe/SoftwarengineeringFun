@@ -3,6 +3,7 @@ import { Route, Routes, useParams } from "react-router";
 import { RequireRole } from "./auth/RequireRole";
 import { ChessSessionWindow } from "./games/chess/ChessSessionWindow";
 import { GamesWindow } from "./games/GamesWindow";
+import { RpsSessionWindow } from "./games/rps/RpsSessionWindow";
 import { HomeLanding } from "./home/HomeLanding";
 import { LearningSessionWindow } from "./learn/LearningSessionWindow";
 import { LearnWindow } from "./learn/LearnWindow";
@@ -75,6 +76,7 @@ function AppShell() {
         <Route path="/present/s/:invite" element={<PresentSessionWindow />} />
         <Route path="/games" element={<GamesWindow />} />
         <Route path="/games/chess/s/:invite" element={<ChessSessionWindow />} />
+        <Route path="/games/rps/s/:invite" element={<RpsSessionWindow />} />
         <Route path="/profile" element={<ProfileWindow />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

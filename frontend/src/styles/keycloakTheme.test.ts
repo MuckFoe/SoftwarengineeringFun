@@ -43,6 +43,18 @@ describe("keycloak theme token copy (FR-9)", () => {
       expect(have.has(n), n).toBe(true);
   });
 
+  it("carries the five rps side and trap aliases on :root, which dark inherits (spec 021 task 3)", () => {
+    expect(block(region, ':root[data-appearance="dark"]').has("--rps-side-a")).toBe(false);
+    for (const selector of [":root"]) {
+      const have = block(region, selector);
+      expect([selector, have.get("--rps-side-a")]).toEqual([selector, "var(--accent)"]);
+      expect([selector, have.get("--rps-side-a-edge")]).toEqual([selector, "var(--on-accent)"]);
+      expect([selector, have.get("--rps-side-b")]).toEqual([selector, "var(--text)"]);
+      expect([selector, have.get("--rps-side-b-fill")]).toEqual([selector, "var(--bg)"]);
+      expect([selector, have.get("--rps-trap-flash")]).toEqual([selector, "var(--danger)"]);
+    }
+  });
+
   it("registration card, fields and buttons use the v2 shapes", () => {
     expect(collab).toMatch(/\.pf-v5-c-login__main\s*\{[^}]*border-radius:\s*var\(--radius-card\)/);
     expect(collab).toMatch(/\.pf-v5-c-login__main\s*\{[^}]*background:\s*var\(--surface\)/);

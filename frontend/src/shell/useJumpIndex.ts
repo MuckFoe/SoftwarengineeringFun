@@ -9,6 +9,7 @@ const SESSION_ROUTE: Record<RecentSession["kind"], string> = {
   learning: "/learn/s/",
   presentation: "/present/s/",
   chess: "/games/chess/s/",
+  rps: "/games/rps/s/",
 };
 
 /**

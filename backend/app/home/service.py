@@ -17,6 +17,9 @@ import asyncpg
 
 from app.auth.deps import User
 from app.games.chess import rules as chess_rules
+from app.games.chess.hub import ChessHub
+from app.games.rps import service as rps_service
+from app.games.rps import views as rps_views
 from app.home import preview
 
 IDLE_CAP = 8
@@ -112,6 +115,7 @@ async def _games(
         turn_color = "white" if board.turn else "black"
         tiles.append(
             {
+                "game": "chess",
                 "id": str(row["id"]),
                 "invite_id": row["invite_id"],
                 "title": "Chess",
@@ -134,6 +138,75 @@ class Connected:
 
     participant_id: Any
     name: str
+
+
+# Spec 021 FR-25: the viewer's Rock Paper Siege sessions, by participant-row membership as
+# `_GAMES`; active only (waiting, setup or in play), never stale, deleted or finished.
+_RPS_GAMES = """
+select rs.id, rs.invite_id, me.id as me_id, rs.a_participant_id as a_id,
+       rs.b_participant_id as b_id, g.id as game_id, g.a_ready, g.b_ready, g.turn,
+       st.id as starter_id, st.display_name as starter_name
+  from rps_participant me
+  join rps_session rs on rs.id = me.session_id
+  left join rps_game g on g.id = rs.current_game_id
+  left join lateral (select id, display_name from rps_participant
+                      where session_id = rs.id
+                      order by (id = rs.starter_participant_id) desc, joined_at, id
+                      limit 1) st on true
+ where (me.account_sub = $1 or me.id = $2) and me.hidden_at is null
+   and rs.deleted_at is null and rs.stale_at is null
+   and (rs.current_game_id is null or g.ended_at is null)
+ order by rs.last_activity_at desc, rs.id
+"""
+
+# Stands in for a session nobody is connected to: no one away, no viewers, no claim.
+_NO_HUB = ChessHub(abandon_seconds=0)
+
+
+async def _rps_games(
+    conn: asyncpg.Connection,
+    sub: str | None,
+    participant_id: Any,
+    live: dict[Any, list[Connected]],
+) -> list[dict[str, Any]]:
+    """FR-25, NFR-1: rps tiles. `board` is `views.tile_board`, the same for every requester,
+    so a viewer of the session gets hidden pieces too."""
+    tiles = []
+    for row in await conn.fetch(_RPS_GAMES, sub, participant_id):
+        full = await rps_service.snapshot(conn, row["id"], _NO_HUB)
+        connected = live.get(row["id"]) or []
+        mine = row["me_id"]
+        side = "a" if mine == row["a_id"] else "b" if mine == row["b_id"] else None
+        if row["game_id"] is None:
+            status = "waiting"
+        elif row["a_ready"] and row["b_ready"]:
+            status = "in_progress"
+        else:
+            status = "setup"
+        turn = (
+            ("you" if row["turn"] == side else "opponent")
+            if status == "in_progress" and side is not None and row["turn"] is not None
+            else "none"
+        )
+        tiles.append(
+            {
+                "game": "rps",
+                "id": str(row["id"]),
+                "invite_id": row["invite_id"],
+                "title": "Rock Paper Siege",
+                "starter": {"id": str(row["starter_id"]), "name": row["starter_name"]},
+                "status": status,
+                "turn": turn,
+                "live": bool(connected),
+                "participant_count": len(connected),
+                "participants": [
+                    {"id": str(c.participant_id), "name": c.name, "avatar_url": None}
+                    for c in connected[:AVATAR_CAP]
+                ],
+                "board": rps_views.tile_board(full),
+            }
+        )
+    return tiles
 
 
 async def build_home(
@@ -170,7 +243,7 @@ async def build_home(
         "sessions": [_tile(r, live[r["id"]], r["id"] in with_code) for r in visible_live]
         + [_tile(r, None) for r in idle[:IDLE_CAP]],
         "idle_total": len(idle),
-        "games": await _games(conn, user.sub),
+        "games": await _games(conn, user.sub) + await _rps_games(conn, user.sub, None, live),
     }
 
 
@@ -197,7 +270,7 @@ def _tile(
 
 @dataclass(frozen=True)
 class Guest:
-    """An anonymous guest or chess invitee: no account, identified by the rejoin token the
+    """An anonymous guest, chess or rps invitee: no account, identified by the rejoin token the
     server issued for the one session or game they joined (the token is never stored, only
     its SHA-256, as the sockets check it)."""
 
@@ -210,6 +283,9 @@ select id, display_name from presentation_participant
  where rejoin_token_hash = $1 and hidden_at is null
 union all
 select id, display_name from chess_participant
+ where rejoin_token_hash = $1 and hidden_at is null
+union all
+select id, display_name from rps_participant
  where rejoin_token_hash = $1 and hidden_at is null
 """
 
@@ -229,5 +305,6 @@ async def build_guest_home(
         "live_participant_count": None,
         "sessions": [_tile(r, live.get(r["id"]) or None) for r in rows],
         "idle_total": 0,
-        "games": await _games(conn, None, guest.participant_id),
+        "games": await _games(conn, None, guest.participant_id)
+        + await _rps_games(conn, None, guest.participant_id, live),
     }

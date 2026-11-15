@@ -148,6 +148,11 @@
   --on-accent: #ffffff;
   --danger: #c8102e;
   --edge-light: #ffffffcc;
+  --rps-side-a: var(--accent);
+  --rps-side-a-edge: var(--on-accent);
+  --rps-side-b: var(--text);
+  --rps-side-b-fill: var(--bg);
+  --rps-trap-flash: var(--danger);
   --glow: 0 0 24px 0 rgba(31, 95, 255, 0.45);
   --radius-pill: 999px;
   --radius-card: 24px;

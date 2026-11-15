@@ -156,6 +156,31 @@ async function expectStillUnderReducedMotion(page: Page): Promise<void> {
   await page.emulateMedia({ reducedMotion: null });
 }
 
+/**
+ * Spec 021 task 34: a guest (Ada) in a fresh Rock Paper Siege session, a second guest (Boris)
+ * seated and the game started, so both are in setup. Returns Boris's page for the play entry.
+ */
+async function startRps(page: Page, request: APIRequestContext): Promise<Page> {
+  const created = await request.post(appUrl("/api/games/rps/sessions"));
+  expect(created.status()).toBe(201);
+  const invite = ((await created.json()) as { invite_id: string }).invite_id;
+  await page.goto(appUrl(`/games/rps/s/${invite}`));
+  await page.getByLabel("Your name").fill("Ada");
+  await page.getByRole("button", { name: "Join" }).click();
+  const browser = page.context().browser();
+  if (!browser) throw new Error("no browser");
+  const second = await (await browser.newContext()).newPage();
+  await second.goto(appUrl(`/games/rps/s/${invite}`));
+  await second.getByLabel("Your name").fill("Boris");
+  await second.getByRole("button", { name: "Join" }).click();
+  await expect(page.getByRole("region", { name: "Seats" })).toContainText("Boris");
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await expect(page.getByRole("grid", { name: "Rock Paper Siege board" })).toBeVisible();
+  await expect(page.getByRole("gridcell")).toHaveCount(42);
+  await expect(page.getByRole("button", { name: "Ready", exact: true })).toBeEnabled();
+  return second;
+}
+
 export const SCREENS: Screen[] = [
   {
     name: "problems library",
@@ -437,6 +462,29 @@ export const SCREENS: Screen[] = [
       await page.getByRole("button", { name: "Start" }).click();
       await expect(page.getByRole("grid", { name: "Chess board" })).toBeVisible();
       await expect(page.getByRole("gridcell")).toHaveCount(64);
+    },
+  },
+  {
+    // Spec 021 task 34 (NFR-5): Rock Paper Siege as a guest, both players setting up.
+    name: "rps session (guest) setup",
+    lowerBound: 1024,
+    narrow: true,
+    async open(page, request) {
+      await startRps(page, request);
+      await expect(page.getByRole("region", { name: "Setup" })).toBeVisible();
+    },
+  },
+  {
+    // Spec 021 task 34 (NFR-5): Rock Paper Siege as a guest, both ready, the game in play.
+    name: "rps session (guest) play",
+    lowerBound: 1024,
+    narrow: true,
+    async open(page, request) {
+      const second = await startRps(page, request);
+      await page.getByRole("button", { name: "Ready", exact: true }).click();
+      await second.getByRole("button", { name: "Ready", exact: true }).click();
+      await expect(page.getByRole("region", { name: "Setup" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Resign" })).toBeVisible();
     },
   },
   {

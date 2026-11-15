@@ -36,10 +36,14 @@ Account = Annotated[User, Depends(signed_in)]
 
 
 def live_session_ids(
-    coding_learning: dict[Any, Any], presentation: dict[Any, Any], chess: dict[Any, Any]
+    coding_learning: dict[Any, Any],
+    presentation: dict[Any, Any],
+    chess: dict[Any, Any],
+    rps: dict[Any, Any] | None = None,
 ) -> dict[str, set[Any]]:
     """Spec 016 FR-2, FR-5: per kind, the ids of sessions whose in-memory hub has at least one
-    connected participant. Coding and learning share one hub registry (ids are unique)."""
+    connected participant. Coding and learning share one hub registry (ids are unique).
+    Spec 021: rps sessions from `rps_hubs`."""
 
     def connected(hubs: dict[Any, Any]) -> set[Any]:
         return {sid for sid, h in hubs.items() if h.connections}
@@ -50,6 +54,7 @@ def live_session_ids(
         "learning": both,
         "presentation": connected(presentation),
         "chess": connected(chess),
+        "rps": connected(rps or {}),
     }
 
 
@@ -68,6 +73,7 @@ select 'coding' as kind, invite_id, id from session where invite_id = any($1)
 union all select 'learning', invite_id, id from learning_session where invite_id = any($1)
 union all select 'presentation', invite_id, id from presentation_session where invite_id = any($1)
 union all select 'chess', invite_id, id from chess_session where invite_id = any($1)
+union all select 'rps', invite_id, id from rps_session where invite_id = any($1)
 """
 
 
@@ -85,6 +91,7 @@ async def my_sessions(request: Request, user: Account, conn: Conn) -> list[dict[
         session_hub._hubs,  # noqa: SLF001
         present_hub._hubs,  # noqa: SLF001
         getattr(request.app.state, "chess_hubs", {}),
+        getattr(request.app.state, "rps_hubs", {}),
     )
     ids: dict[tuple[str, str], Any] = {}
     if rows and any(live.values()):

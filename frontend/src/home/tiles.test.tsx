@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { GameTile as GameTileData, SessionTile as SessionTileData } from "../api/types";
+import type { ChessGameTile as GameTileData, SessionTile as SessionTileData } from "../api/types";
 import { GameTile } from "./GameTile";
 import { SessionTile } from "./SessionTile";
 

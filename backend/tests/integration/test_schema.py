@@ -88,6 +88,7 @@ async def test_migrations_applied_twice_apply_once(db: asyncpg.Connection) -> No
         "0013_session_hint.sql",
         "0014_session_hint_questions.sql",
         "0015_text_size.sql",
+        "0016_rps.sql",
     ]
 
 

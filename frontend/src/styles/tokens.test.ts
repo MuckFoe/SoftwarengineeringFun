@@ -406,3 +406,38 @@ describe("v2 tokens (spec 016 task 1)", () => {
     for (const n of motion) expect(resolve("light").get(n), n).not.toBe("0s");
   });
 });
+
+// Spec 021 task 3 (NFR-5): the Rock Paper Siege side and trap tokens are aliases of existing
+// tokens (one accent, no new hue) in every theme path.
+const RPS_ALIASES: [string, string][] = [
+  ["--rps-side-a", "var(--accent)"],
+  ["--rps-side-a-edge", "var(--on-accent)"],
+  ["--rps-side-b", "var(--text)"],
+  ["--rps-side-b-fill", "var(--bg)"],
+  ["--rps-trap-flash", "var(--danger)"],
+];
+
+describe("rps tokens (spec 021 task 3)", () => {
+  it("defines the side and trap aliases in light, dark and the system-dark path", () => {
+    for (const path of ["light", "explicit-light", "dark", "system-dark"] as Path[]) {
+      const got = resolve(path);
+      for (const [name, alias] of RPS_ALIASES)
+        expect([path, name, norm(got.get(name) ?? "")]).toEqual([path, name, norm(alias)]);
+    }
+  });
+
+  it("declares them once on :root; aliases follow their targets, so theme blocks don't repeat them (FR-7)", () => {
+    for (const sel of [EXPLICIT_LIGHT, EXPLICIT_DARK, SYSTEM_DARK]) {
+      const declared = rules
+        .filter((r) => r.selector === sel)
+        .flatMap((r) => [...r.decls.keys()])
+        .filter((n) => n.startsWith("--rps-"));
+      expect([sel, declared]).toEqual([sel, []]);
+    }
+    const root = rules
+      .filter((r) => r.selector === LIGHT)
+      .flatMap((r) => [...r.decls.keys()])
+      .filter((n) => n.startsWith("--rps-"));
+    expect(root.sort()).toEqual(RPS_ALIASES.map(([n]) => n).sort());
+  });
+});

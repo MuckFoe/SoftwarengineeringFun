@@ -27,6 +27,9 @@ from app.games.api import router as games_router
 from app.games.chess import stale as chess_stale
 from app.games.chess.api import router as chess_router
 from app.games.chess.ws import router as chess_ws_router
+from app.games.rps import stale as rps_stale
+from app.games.rps.api import router as rps_router
+from app.games.rps.ws import router as rps_ws_router
 from app.gifs.giphy import GiphyClient
 from app.gifs.ratelimit import POSTS_PER_MINUTE, SEARCHES_PER_MINUTE, SlidingWindowLimiter
 from app.hints import service as hints_service
@@ -103,6 +106,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     learn_stale_task = asyncio.create_task(learn_stale.run_periodically(pool))
     present_stale_task = asyncio.create_task(present_stale.run_periodically(pool))
     chess_stale_task = asyncio.create_task(chess_stale.run_periodically(pool))
+    rps_stale_task = asyncio.create_task(rps_stale.run_periodically(pool))
     try:
         yield
     finally:
@@ -111,6 +115,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         learn_stale_task.cancel()
         present_stale_task.cancel()
         chess_stale_task.cancel()
+        rps_stale_task.cancel()
         await drain_runs()
         await drain_gif_tasks()
         await drain_present_gif_tasks()
@@ -141,6 +146,7 @@ def create_app(settings: Settings) -> FastAPI:
     app = FastAPI(lifespan=lifespan)
     app.state.settings = settings
     app.state.chess_hubs = {}
+    app.state.rps_hubs = {}
     app.add_middleware(
         SessionMiddleware,
         secret_key=settings.session_cookie_key,
@@ -166,6 +172,8 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(games_router)
     app.include_router(chess_router)
     app.include_router(chess_ws_router)
+    app.include_router(rps_router)
+    app.include_router(rps_ws_router)
 
     @app.exception_handler(HTTPException)
     async def _http_exception(request: Request, exc: HTTPException) -> JSONResponse:

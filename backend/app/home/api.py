@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 
 from app.auth.deps import User, current_user
+from app.games.chess.hub import ChessHub
 from app.home import service
 from app.home.preview import may_open, preview
 from app.present import hub as present_hub
@@ -20,11 +21,13 @@ router = APIRouter(prefix="/api/home")
 Conn = Annotated[asyncpg.Connection, Depends(get_conn)]
 
 
-def connected_now() -> dict[Any, list[service.Connected]]:
-    """Session id -> its connected participants, across the coding/learning and the
-    presentation hub registries (ids are unique across them)."""
+def connected_now(
+    rps_hubs: dict[Any, ChessHub] | None = None,
+) -> dict[Any, list[service.Connected]]:
+    """Session id -> its connected participants, across the coding/learning, the
+    presentation and the Rock Paper Siege hub registries (ids are unique across them)."""
     live: dict[Any, list[service.Connected]] = {}
-    for registry in (session_hub._hubs, present_hub._hubs):  # noqa: SLF001
+    for registry in (session_hub._hubs, present_hub._hubs, rps_hubs or {}):  # noqa: SLF001
         for session_id, hub in registry.items():
             if hub.connections:
                 live[session_id] = [
@@ -50,13 +53,15 @@ Viewer = Annotated[tuple[User | None, service.Guest | None], Depends(viewer)]
 
 
 @router.get("")
-async def home(who: Viewer, conn: Conn) -> dict[str, Any]:
-    """FR-1, FR-3, FR-8, FR-10: the home snapshot; FR-11: reduced for a guest or invitee."""
+async def home(request: Request, who: Viewer, conn: Conn) -> dict[str, Any]:
+    """FR-1, FR-3, FR-8, FR-10: the home snapshot; FR-11: reduced for a guest or invitee.
+    Spec 021 FR-25: rps tiles take live state and avatars from `app.state.rps_hubs`."""
+    live = connected_now(getattr(request.app.state, "rps_hubs", {}))
     user, guest = who
     if user is None:
         assert guest is not None  # noqa: S101
-        return await service.build_guest_home(conn, guest, connected_now())
-    return await service.build_home(conn, user, connected_now())
+        return await service.build_guest_home(conn, guest, live)
+    return await service.build_home(conn, user, live)
 
 
 @router.get("/preview/{session_id}")

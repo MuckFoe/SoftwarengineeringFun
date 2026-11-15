@@ -10,6 +10,7 @@ import {
   THRESHOLD,
   toastText,
 } from "./contrast";
+import tokensCss from "./tokens.css?raw";
 
 // Spec 015 task 5: WCAG contrast harness over declared token pairs, both appearances.
 // Later tasks append their pairs to PAIRS in contrast.ts; this test iterates all of them.
@@ -145,6 +146,51 @@ describe.each(APPEARANCES)("text on accent tints in %s appearance", (appearance)
   for (const pair of TINT_PAIRS) {
     it(`${pair.name} >= 4.5:1`, () => {
       expect(evaluatePair(pair, appearance).ratio).toBeGreaterThanOrEqual(THRESHOLD.text);
+    });
+  }
+});
+
+// Spec 021 task 3 (NFR-5): Rock Paper Siege pieces on the board squares. As with chess, a piece
+// reads when its fill or its edge reaches 3:1 against the square. The rps tokens are aliases, so
+// each is resolved through tokens.css to the token it names; the squares come from tokens.css too.
+const tokenBlock = (selector: string): Map<string, string> => {
+  const css = tokensCss.replace(/\/\*[\s\S]*?\*\//g, "");
+  const re = new RegExp(`(^|\\})\\s*${selector.replace(/[[\]"()]/g, "\\$&")}\\s*\\{([^}]*)\\}`);
+  const out = new Map<string, string>();
+  for (const d of (re.exec(css)?.[2] ?? "").split(";")) {
+    const m = /^\s*(--[\w-]+)\s*:\s*([\s\S]+?)\s*$/.exec(d);
+    if (m?.[1] && m[2]) out.set(m[1], m[2]);
+  }
+  return out;
+};
+const ROOT_TOKENS = tokenBlock(":root");
+const DARK_TOKENS = tokenBlock(':root[data-appearance="dark"]');
+const rpsAlias = (name: string): Colour => {
+  const target = /^var\((--[\w-]+)\)$/.exec(ROOT_TOKENS.get(name) ?? "")?.[1];
+  if (!target) throw new Error(`${name} is not an alias in tokens.css`);
+  return target;
+};
+const square = (name: string): Colour => ({
+  light: ROOT_TOKENS.get(name) ?? "",
+  dark: DARK_TOKENS.get(name) ?? "",
+});
+const RPS_SIDES: [string, Colour[]][] = [
+  ["a", [rpsAlias("--rps-side-a"), rpsAlias("--rps-side-a-edge")]],
+  ["b", [rpsAlias("--rps-side-b-fill"), rpsAlias("--rps-side-b")]],
+];
+const RPS_PAIRS: Pair[] = RPS_SIDES.flatMap(([side, fg]) =>
+  ["--board-light", "--board-dark"].map(
+    (sq): Pair => ({ name: `rps side ${side} piece on ${sq}`, kind: "ui", fg, bg: square(sq) }),
+  ),
+);
+
+describe.each(APPEARANCES)("rps pieces on board squares in %s appearance (spec 021 NFR-5)", (a) => {
+  it("declares both sides on both squares", () => {
+    expect(RPS_PAIRS).toHaveLength(4);
+  });
+  for (const pair of RPS_PAIRS) {
+    it(`${pair.name}: fill or edge >= 3:1`, () => {
+      expect(evaluatePair(pair, a).ratio).toBeGreaterThanOrEqual(THRESHOLD.ui);
     });
   }
 });

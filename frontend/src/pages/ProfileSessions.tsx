@@ -13,6 +13,7 @@ const KIND_LABEL: Record<RecentSession["kind"], string> = {
   learning: "Learning",
   presentation: "Presentation",
   chess: "Chess",
+  rps: "Rock Paper Siege",
 };
 
 const KIND_ICON: Record<RecentSession["kind"], IconName> = {
@@ -20,6 +21,7 @@ const KIND_ICON: Record<RecentSession["kind"], IconName> = {
   learning: "doc",
   presentation: "people",
   chess: "play",
+  rps: "play",
 };
 
 const KIND_ROUTE: Record<RecentSession["kind"], string> = {
@@ -27,6 +29,7 @@ const KIND_ROUTE: Record<RecentSession["kind"], string> = {
   learning: "/learn/s/",
   presentation: "/present/s/",
   chess: "/games/chess/s/",
+  rps: "/games/rps/s/",
 };
 
 /** "just now", "5 minutes ago", "1 day ago": how long ago, in the largest whole unit. */

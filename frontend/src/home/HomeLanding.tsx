@@ -14,6 +14,9 @@ const KIND_ROUTE = {
   presentation: "/present/s/",
 } as const;
 
+/** Spec 021 FR-25: a game tile opens its own game's route; tiles without `game` are chess. */
+const GAME_ROUTE = { chess: "/games/chess/s/", rps: "/games/rps/s/" } as const;
+
 /**
  * The landing at `/` (spec 017 FR-10, FR-11). An account, or a guest or invitee holding a
  * rejoin token, gets the home tiles. Anyone else, or anyone /api/home refuses or cannot
@@ -44,9 +47,10 @@ function Home({ token }: { token: string | null }) {
           const s = snapshot.sessions.find((t) => t.id === id);
           if (s) open(KIND_ROUTE[s.kind], s.invite_id);
         }}
-        onOpenGame={(id) =>
-          open("/games/chess/s/", snapshot.games.find((g) => g.id === id)?.invite_id)
-        }
+        onOpenGame={(id) => {
+          const g = snapshot.games.find((t) => t.id === id);
+          if (g) open(GAME_ROUTE[g.game ?? "chess"], g.invite_id);
+        }}
         onShowMore={() => navigate("/profile")}
       />
     </Window>

@@ -18,6 +18,10 @@ export interface ChessSessionCheck {
 
 export type ChessSessionLookup = ChessSessionCheck | { error: "not_found" | "session_deleted" };
 
+/** Spec 021: the rps pre-join check has the same shape as chess's. */
+export type RpsSessionCheck = ChessSessionCheck;
+export type RpsSessionLookup = ChessSessionLookup;
+
 async function readBody(res: Response): Promise<unknown> {
   const text = await res.text();
   if (!text) return undefined;
@@ -43,9 +47,17 @@ export const listGames = async () => ok<GameInfo[]>(await send("GET", "/games"))
 export const createChessSession = async () =>
   ok<{ invite_id: string }>(await send("POST", "/games/chess/sessions"));
 
-export async function getChessSession(invite: string): Promise<ChessSessionLookup> {
-  const res = await send("GET", `/games/chess/sessions/${encodeURIComponent(invite)}`);
+async function lookup(game: "chess" | "rps", invite: string): Promise<ChessSessionLookup> {
+  const res = await send("GET", `/games/${game}/sessions/${encodeURIComponent(invite)}`);
   if (res.status === 404) return { error: "not_found" };
   if (res.status === 410) return { error: "session_deleted" };
   return ok<ChessSessionCheck>(res);
 }
+
+export const getChessSession = (invite: string): Promise<ChessSessionLookup> =>
+  lookup("chess", invite);
+
+export const createRpsSession = async () =>
+  ok<{ invite_id: string }>(await send("POST", "/games/rps/sessions"));
+
+export const getRpsSession = (invite: string): Promise<RpsSessionLookup> => lookup("rps", invite);

@@ -20,7 +20,7 @@ export type Me =
 
 /** One row of GET /api/me/sessions (spec 012 FR-2), newest activity first. */
 export interface RecentSession {
-  kind: "coding" | "learning" | "presentation" | "chess";
+  kind: "coding" | "learning" | "presentation" | "chess" | "rps";
   invite_id: string;
   title: string;
   last_activity_at: string;
@@ -591,7 +591,9 @@ export interface SessionTile {
   has_preview: boolean;
 }
 
-export interface GameTile {
+export interface ChessGameTile {
+  /** Spec 021: the union's key. Optional so tiles from servers before 021 stay chess. */
+  game?: "chess";
   id: string;
   /** The invite the game's route takes (/games/chess/s/:invite). */
   invite_id: string;
@@ -601,6 +603,28 @@ export interface GameTile {
   turn: "you" | "opponent" | "none";
   fen: string;
 }
+
+/**
+ * Spec 021 FR-25: one Rock Paper Siege tile. `board` holds 42 cells (`square = row * 7 + col`)
+ * with only what both players can see: a kind is null unless it is a revealed fighter.
+ */
+export interface RpsGameTile {
+  game: "rps";
+  id: string;
+  /** The invite the game's route takes (/games/rps/s/:invite). */
+  invite_id: string;
+  title: "Rock Paper Siege";
+  starter: { id: string; name: string };
+  status: "waiting" | "setup" | "in_progress";
+  turn: "you" | "opponent" | "none";
+  live: boolean;
+  participant_count: number;
+  participants: HomeParticipant[];
+  board: ({ side: "a" | "b"; kind: "rock" | "paper" | "scissors" | null } | null)[];
+}
+
+/** GET /api/home (spec 017, widened by 021): one game tile, keyed by `game`. */
+export type GameTile = ChessGameTile | RpsGameTile;
 
 export interface HomePreview {
   session_id: string;

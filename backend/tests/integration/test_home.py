@@ -8,7 +8,7 @@ test Keycloak.
 
 import hashlib
 import uuid
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -16,7 +16,9 @@ import asyncpg
 import pytest
 from fastapi.testclient import TestClient
 
+from app.games.chess.hub import ChessHub
 from app.sessions import hub as session_hub
+from tests.fixtures.rps_board import FixedGame, fixed_game, pieces
 from tests.integration.keycloak_fixtures import (  # noqa: F401  (pytest fixtures)
     Keycloak,
     cookie_header,
@@ -470,3 +472,203 @@ async def test_invite_id_present_in_guest_and_invitee_snapshots(
 
     assert [t["invite_id"] for t in guest["sessions"]] == [talk_invite]
     assert [g["invite_id"] for g in seated["games"]] == [game_invite]
+
+
+# --- spec 021 task 24: Rock Paper Siege tiles (FR-25, NFR-1) ----------------------------------
+
+# a: a revealed rock, a hidden paper, the flag and the trap; b: a hidden scissors and a flag.
+_RPS_BOARD = pieces(
+    {0: "a flag", 1: "a trap", 8: "a rock*", 9: "a paper", 33: "b scissors", 41: "b flag"}
+)
+
+
+@pytest.fixture
+async def rps_sessions(
+    client: TestClient,  # noqa: F811
+    db_conn: asyncpg.Connection,  # noqa: F811
+) -> AsyncIterator[list[uuid.UUID]]:
+    """Ids of rps sessions a test creates; afterwards they are deleted (no rps truncate runs
+    between tests) and the app's rps hubs emptied."""
+    made: list[uuid.UUID] = []
+    yield made
+    client.app.state.rps_hubs.clear()  # type: ignore[attr-defined]
+    await db_conn.execute(
+        """update rps_session set deleted_at = now(), deleted_reason = 'admin'
+            where id = any($1) and deleted_at is null""",
+        made,
+    )
+
+
+async def _rps(
+    conn: asyncpg.Connection,
+    made: list[uuid.UUID],
+    *,
+    a_sub: str | None = None,
+    b_sub: str | None = None,
+    ready: bool = True,
+) -> FixedGame:
+    game = await fixed_game(conn, _RPS_BOARD, ready=ready, names=("Ana", "Bo"))
+    made.append(game.session.id)
+    for pid, sub in ((game.a.id, a_sub), (game.b.id, b_sub)):
+        if sub is not None:
+            await conn.execute(
+                "update rps_participant set account_sub = $2 where id = $1", pid, sub
+            )
+    return game
+
+
+async def _rps_viewer(conn: asyncpg.Connection, session_id: uuid.UUID, sub: str) -> uuid.UUID:
+    return await conn.fetchval(
+        """insert into rps_participant (session_id, display_name, rejoin_token_hash, account_sub)
+           values ($1, 'Vi', $2, $3) returning id""",
+        session_id,
+        _token_hash(uuid.uuid4().hex),
+        sub,
+    )
+
+
+def _rps_tiles(body: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {g["id"]: g for g in body["games"] if g.get("game") == "rps"}
+
+
+def _kinds(tile: dict[str, Any]) -> dict[int, tuple[str, str | None]]:
+    return {i: (c["side"], c["kind"]) for i, c in enumerate(tile["board"]) if c is not None}
+
+
+async def test_ac24_participant_tile_has_name_starter_live_avatars_and_safe_board(
+    client: TestClient,  # noqa: F811
+    db_conn: asyncpg.Connection,  # noqa: F811
+    signed_in_jar,  # noqa: F811
+    rps_sessions: list[uuid.UUID],
+) -> None:
+    jar = signed_in_jar(client, "newuser")
+    game = await _rps(db_conn, rps_sessions, a_sub=_sub("newuser"), b_sub=_sub("other"))
+    hub = ChessHub(abandon_seconds=60)
+    hub.add(game.a.id, _Socket(), "Ana", signed_in=True)
+    hub.add(game.b.id, _Socket(), "Bo", signed_in=True)
+    client.app.state.rps_hubs[game.session.id] = hub  # type: ignore[attr-defined]
+
+    tile = _rps_tiles(_home(client, jar))[str(game.session.id)]
+
+    assert tile["title"] == "Rock Paper Siege"
+    assert tile["invite_id"] == game.session.invite_id
+    assert tile["starter"] == {"id": str(game.a.id), "name": "Ana"}
+    assert (tile["status"], tile["turn"]) == ("in_progress", "you")
+    assert tile["live"] is True and tile["participant_count"] == 2
+    assert {p["name"] for p in tile["participants"]} == {"Ana", "Bo"}
+    assert len(tile["board"]) == 42
+    # Even the owner's own hidden paper, flag and trap are hidden: the preview is what both
+    # players see.
+    assert _kinds(tile) == {
+        0: ("a", None),
+        1: ("a", None),
+        8: ("a", "rock"),
+        9: ("a", None),
+        33: ("b", None),
+        41: ("b", None),
+    }
+
+
+async def test_ac24_viewer_of_the_session_still_gets_hidden_pieces(
+    client: TestClient,  # noqa: F811
+    db_conn: asyncpg.Connection,  # noqa: F811
+    signed_in_jar,  # noqa: F811
+    rps_sessions: list[uuid.UUID],
+) -> None:
+    jar = signed_in_jar(client, "newuser")
+    game = await _rps(db_conn, rps_sessions)
+    await _rps_viewer(db_conn, game.session.id, _sub("newuser"))
+
+    response = client.get("/api/home", headers=cookie_header(jar))
+    tile = _rps_tiles(response.json())[str(game.session.id)]
+
+    assert (tile["status"], tile["turn"], tile["live"]) == ("in_progress", "none", False)
+    assert tile["participant_count"] == 0 and tile["participants"] == []
+    assert [k for _, k in _kinds(tile).values() if k is not None] == ["rock"]
+    for hidden in ("paper", "scissors", "flag", "trap"):
+        assert hidden not in response.text
+
+
+async def test_ac24_waiting_and_setup_status(
+    client: TestClient,  # noqa: F811
+    db_conn: asyncpg.Connection,  # noqa: F811
+    signed_in_jar,  # noqa: F811
+    rps_sessions: list[uuid.UUID],
+) -> None:
+    jar = signed_in_jar(client, "newuser")
+    setup = await _rps(db_conn, rps_sessions, a_sub=_sub("newuser"), ready=False)
+    waiting = await _rps(db_conn, rps_sessions, b_sub=_sub("newuser"))
+    await db_conn.execute(
+        "update rps_session set current_game_id = null where id = $1", waiting.session.id
+    )
+
+    tiles = _rps_tiles(_home(client, jar))
+
+    assert (tiles[str(setup.session.id)]["status"], tiles[str(setup.session.id)]["turn"]) == (
+        "setup",
+        "none",
+    )
+    assert tiles[str(waiting.session.id)]["status"] == "waiting"
+    assert tiles[str(waiting.session.id)]["board"] == [None] * 42
+
+
+async def test_ac24_non_member_hidden_stale_deleted_and_finished_give_nothing(
+    client: TestClient,  # noqa: F811
+    db_conn: asyncpg.Connection,  # noqa: F811
+    signed_in_jar,  # noqa: F811
+    rps_sessions: list[uuid.UUID],
+) -> None:
+    jar = signed_in_jar(client, "newuser")
+    me = _sub("newuser")
+    others = await _rps(db_conn, rps_sessions, a_sub=_sub("other"))
+    hidden = await _rps(db_conn, rps_sessions, a_sub=me)
+    await db_conn.execute("update rps_participant set hidden_at = now() where id = $1", hidden.a.id)
+    stale = await _rps(db_conn, rps_sessions, a_sub=me)
+    await db_conn.execute("update rps_session set stale_at = now() where id = $1", stale.session.id)
+    gone = await _rps(db_conn, rps_sessions, a_sub=me)
+    await db_conn.execute(
+        "update rps_session set deleted_at = now(), deleted_reason = 'admin' where id = $1",
+        gone.session.id,
+    )
+    ended = await _rps(db_conn, rps_sessions, a_sub=me)
+    await db_conn.execute(
+        """update rps_game set ended_at = now(), result = 'a', reason = 'flag', turn = null
+            where id = $1""",
+        ended.game.id,
+    )
+    hub = ChessHub(abandon_seconds=60)
+    hub.add(others.a.id, _Socket(), "Ana", signed_in=True)
+    client.app.state.rps_hubs[others.session.id] = hub  # type: ignore[attr-defined]
+
+    response = client.get("/api/home", headers=cookie_header(jar))
+
+    assert response.status_code == 200
+    assert _rps_tiles(response.json()) == {}
+    assert "Rock Paper Siege" not in response.text
+    for g in (others, hidden, stale, gone, ended):
+        assert g.session.invite_id not in response.text
+        assert str(g.session.id) not in response.text
+    assert "Ana" not in response.text
+
+
+async def test_ac24_rps_guest_sees_only_their_session(
+    client: TestClient,  # noqa: F811
+    db_conn: asyncpg.Connection,  # noqa: F811
+    rps_sessions: list[uuid.UUID],
+) -> None:
+    mine = await _rps(db_conn, rps_sessions)
+    other = await _rps(db_conn, rps_sessions)
+
+    response = _as_guest(client, mine.token_b)
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert list(_rps_tiles(body)) == [str(mine.session.id)]
+    assert body["games"][0]["turn"] == "opponent"
+    assert other.session.invite_id not in response.text
+    # A guest of another kind of session gets nothing of this one.
+    await _guest_presentation(db_conn, "Joined talk", "rps-outsider-token")
+    outsider = _as_guest(client, "rps-outsider-token")
+    assert outsider.status_code == 200
+    assert _rps_tiles(outsider.json()) == {}
+    assert "Rock Paper Siege" not in outsider.text

@@ -17,6 +17,8 @@ from app.auth.deps import User
 from app.deletion import repo
 from app.games.chess import service as chess_service
 from app.games.chess import ws as chess_ws
+from app.games.rps import service as rps_service
+from app.games.rps import ws as rps_ws
 from app.learn import ws as learn_ws
 from app.present import ws as present_ws
 from app.sessions import ws as sessions_ws
@@ -27,7 +29,10 @@ _TABLES: dict[str, tuple[str, str]] = {
     "learning": ("learning_session", "learning_participant"),
     "presentation": ("presentation_session", "presentation_participant"),
     "chess": ("chess_session", "chess_participant"),
+    "rps": ("rps_session", "rps_participant"),
 }
+# Kinds with chess's lifecycle: an in-process lock, a soft delete, `session_closed` on close.
+_GAMES = frozenset({"chess", "rps"})
 
 
 class Refused(Exception):
@@ -39,10 +44,12 @@ class Refused(Exception):
 
 
 def _session_lock(kind: str, session_id: uuid.UUID) -> contextlib.AbstractAsyncContextManager:
-    """Chess serialises its writes on an in-process lock as well as the row lock; take it
-    too, so a move or a chess deletion in flight finishes before the purge."""
+    """Chess and rps serialise their writes on an in-process lock as well as the row lock;
+    take it too, so a move or a game's own deletion in flight finishes before the purge."""
     if kind == "chess":
         return chess_service.lock(session_id)
+    if kind == "rps":
+        return rps_service.lock(session_id)
     return contextlib.nullcontext()
 
 
@@ -53,8 +60,9 @@ async def delete_session(
     it and writes the tombstone in one transaction; after commit closes its live hub.
 
     Refused `not_found` for an unknown kind or invite, or (for a non-admin) a session not in
-    the caller's list; `session_deleted` once it is tombstoned (or, for chess, soft-deleted);
-    `not_host` for a listed session the caller neither hosts nor may delete as an admin."""
+    the caller's list; `session_deleted` once it is tombstoned (or, for chess and rps,
+    soft-deleted); `not_host` for a listed session the caller neither hosts nor may delete
+    as an admin."""
     if kind not in _TABLES:
         raise Refused("not_found")
     table, participants = _TABLES[kind]
@@ -81,7 +89,7 @@ async def _purge_locked(
     participants: str,
 ) -> Literal["host", "admin"]:
     table = _TABLES[kind][0]
-    soft_deleted = ", deleted_at is not null" if kind == "chess" else ", false"
+    soft_deleted = ", deleted_at is not null" if kind in _GAMES else ", false"
     async with conn.transaction():
         row = await conn.fetchrow(
             f"select id{soft_deleted} as deleted from {table} where id = $1 for update",  # noqa: S608
@@ -89,7 +97,7 @@ async def _purge_locked(
         )
         if row is None:  # deleted by a concurrent request while we waited for the lock
             raise await _gone(conn, kind, invite_id)
-        if row["deleted"]:  # chess's own (soft) deletion: the invite already says "deleted"
+        if row["deleted"]:  # the game's own (soft) deletion: the invite already says "deleted"
             raise Refused("session_deleted")
         is_admin = "admin" in user.roles
         if not is_admin and not await conn.fetchval(
@@ -115,9 +123,11 @@ async def _close_live(
     app: FastAPI, kind: str, session_id: uuid.UUID, by: Literal["host", "admin"]
 ) -> None:
     """FR-7, FR-14: after the commit, tell everyone connected and close their sockets."""
+    reason = "starter" if by == "host" else "admin"
     if kind == "chess":
-        reason = "starter" if by == "host" else "admin"
         await chess_ws.close_session(app, session_id, chess_service.Closed(None, reason))
+    elif kind == "rps":
+        await rps_ws.close_session(app, session_id, rps_service.Closed(None, reason))
     elif kind == "coding":
         await sessions_ws.cancel_runs(app, session_id)  # first: a run's broadcast makes a hub
         await sessions_ws.close_deleted(session_id, by)
