@@ -1,9 +1,24 @@
 import { python } from "@codemirror/lang-python";
 import { EditorState } from "@codemirror/state";
 import { basicSetup, EditorView } from "codemirror";
-import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type FormEvent,
+  type ReactNode,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { Link, useParams } from "react-router";
-import { ApiError, getHints, getProblem, getSession, reactivateSession } from "../api/client";
+import {
+  ApiError,
+  getHints,
+  getProblem,
+  getSession,
+  getSketch,
+  reactivateSession,
+} from "../api/client";
 import type {
   Hint,
   HintPending,
@@ -38,6 +53,10 @@ import {
   scratchReducer,
 } from "../scratch/scratchReducer";
 import { ShortcutScope, useShortcut } from "../shortcuts/useShortcut";
+import { SketchBoard } from "../sketch/SketchBoard";
+import { initialSketchState, sketchReducer, visible as sketchVisible } from "../sketch/sketchState";
+import type { SketchAction } from "../sketch/sketchTypes";
+import { useSketch } from "../sketch/useSketch";
 import { AppHeader } from "../ui/AppHeader";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
@@ -47,6 +66,7 @@ import { Hud } from "../ui/Hud";
 import { InlineMessage } from "../ui/InlineMessage";
 import { LiveBadge } from "../ui/LiveBadge";
 import { PinnablePanel, type PinnablePanelHandle } from "../ui/PinnablePanel";
+import { ResizeHandle } from "../ui/ResizeHandle";
 import { Sidebar, SidebarSection } from "../ui/Sidebar";
 import { Tabs } from "../ui/Tabs";
 import { TextField } from "../ui/TextField";
@@ -107,6 +127,11 @@ const RESULTS_HEIGHT_PX = 220;
 const SIDEBAR_WIDTH_PX = 220;
 /** The description and chat column's default width. */
 const INSPECTOR_WIDTH_PX = 320;
+/** The sketch board's default width beside the editor (spec 022 FR-2), and its narrowest. */
+const SKETCH_WIDTH_PX = 560;
+const SKETCH_MIN_WIDTH_PX = 320;
+
+type Sketch = ReturnType<typeof useSketch>;
 
 type Chat = ReturnType<typeof useChat>;
 
@@ -200,6 +225,11 @@ export function SessionWindow({ createSocket }: Props) {
   // State as well as the ref, so useChat subscribes before the welcome (and its history) arrives.
   const [provider, setProvider] = useState<CollabProvider | null>(null);
   const chat = useChat({ invite: invite ?? "", provider, stale: page.kind === "stale" });
+  // The sketch board lives with the session, not the board: it keeps applying messages while
+  // the board is closed, so opening it shows the current board (spec 022 plan). Others'
+  // changes count up for the board's live region.
+  const [othersChanged, bumpOthers] = useReducer((n: number) => n + 1, 0);
+  const sketch = useSketch({ provider, onOthersChange: bumpOthers });
   const inviteLink = new URL(`${BASE}s/${invite}`, window.location.origin).toString();
 
   useEffect(() => {
@@ -469,6 +499,8 @@ export function SessionWindow({ createSocket }: Props) {
           provider={provider}
           joined={joined}
           chat={chat}
+          sketch={sketch}
+          othersChanged={othersChanged}
           // GIF search only for a live session (spec 007 FR-1, FR-8); the stale page gets none.
           gifs={{ invite: invite ?? "", provider, sendGif: chat.sendGif }}
           inviteLink={inviteLink}
@@ -614,6 +646,8 @@ function StaleWindow({ invite, canReactivate, problemId, error, chat, onReactiva
   const [descriptionHtml, setDescriptionHtml] = useState<string | undefined>(undefined);
   const [hints, setHints] = useState<Hint[]>([]);
   const pins = useInspectorPins();
+  // The same per-browser open state as the joined page's board (spec 022 FR-2, FR-16).
+  const [sketchOpen, setSketchOpen] = usePinned("sketch", false);
 
   // Hints already given stay visible, read-only (spec 020 FR-3, FR-15).
   useEffect(() => {
@@ -680,6 +714,13 @@ function StaleWindow({ invite, canReactivate, problemId, error, chat, onReactiva
           <Button variant="bordered" size="xs" icon="checkmark" disabled>
             <span className="app-header-pill-text">Check</span>
           </Button>
+          <HeaderButton
+            icon="sketch"
+            aria-pressed={sketchOpen}
+            onClick={() => setSketchOpen(!sketchOpen)}
+          >
+            Sketch
+          </HeaderButton>
         </AppHeader>
       }
       banner={
@@ -698,12 +739,67 @@ function StaleWindow({ invite, canReactivate, problemId, error, chat, onReactiva
         </Banner>
       }
     >
-      <div className={styles.main}>
+      <div className={styles.main} data-sketch={sketchOpen || undefined}>
         <div className={styles.editor}>
           <ReadOnlyEditor />
         </div>
+        {sketchOpen && <StaleSketch invite={invite} />}
       </div>
     </Window>
+  );
+}
+
+/**
+ * The stale page's board (spec 022 FR-16): fetched once it is opened, never while closed,
+ * and shown read-only, laid out as on the joined page.
+ */
+function StaleSketch({ invite }: { invite: string }) {
+  const [actions, setActions] = useState<SketchAction[]>([]);
+  const [width, setWidth] = usePanelSize("sketch", SKETCH_WIDTH_PX);
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!invite) return;
+    let current = true;
+    getSketch(invite).then(
+      (body) => {
+        if (current) setActions(body.actions);
+      },
+      () => {
+        // Not loaded: an empty board, as with nothing drawn.
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [invite]);
+
+  // Derived as the joined board does: pruned and cut at the last clear.
+  const shown = sketchVisible(
+    sketchReducer(initialSketchState(), {
+      type: "snapshot",
+      snapshot: { actions, full: false },
+    }),
+  );
+
+  return (
+    <section
+      ref={ref}
+      aria-label="Sketch"
+      className={styles.sketch}
+      style={{ "--sketch-width": `${width}px` } as CSSProperties}
+    >
+      <ResizeHandle
+        edge="right"
+        target={ref}
+        size={width}
+        onResize={setWidth}
+        minSize={SKETCH_MIN_WIDTH_PX}
+        keepFree={640}
+        label="Resize sketch"
+      />
+      <SketchBoard visible={shown} readOnly />
+    </section>
   );
 }
 
@@ -744,6 +840,9 @@ interface JoinedProps {
   provider: CollabProvider;
   joined: Joined;
   chat: Chat;
+  sketch: Sketch;
+  /** Counts the board changes made by others, for the board's live region (spec 022 NFR-7). */
+  othersChanged: number;
   gifs: ChatGifs;
   inviteLink: string;
   /** Runs the code as a script (spec 011, 2026-11-12 change). */
@@ -757,6 +856,8 @@ function JoinedWindow({
   provider,
   joined,
   chat,
+  sketch,
+  othersChanged,
   gifs,
   inviteLink,
   onRun,
@@ -776,6 +877,11 @@ function JoinedWindow({
   const [sidebarWidth, setSidebarWidth] = usePanelSize("sidebar", SIDEBAR_WIDTH_PX);
   const [resultsHeight, setResultsHeight] = usePanelSize("output", RESULTS_HEIGHT_PX);
   const [inspectorWidth, setInspectorWidth] = usePanelSize("inspector", INSPECTOR_WIDTH_PX);
+  // The sketch board: open or closed per browser, default closed (spec 022 FR-2), and its
+  // width beside the editor follows its divider.
+  const [sketchOpen, setSketchOpen] = usePinned("sketch", false);
+  const [sketchWidth, setSketchWidth] = usePanelSize("sketch", SKETCH_WIDTH_PX);
+  const sketchRef = useRef<HTMLElement>(null);
   const sidebarRef = useRef<PinnablePanelHandle>(null);
   const outputRef = useRef<PinnablePanelHandle>(null);
   const chatRef = useRef<PinnablePanelHandle>(null);
@@ -863,6 +969,13 @@ function JoinedWindow({
             >
               <span className="app-header-pill-text">Check</span>
             </Button>
+            <HeaderButton
+              icon="sketch"
+              aria-pressed={sketchOpen}
+              onClick={() => setSketchOpen(!sketchOpen)}
+            >
+              Sketch
+            </HeaderButton>
             <HeaderButton icon="link" onClick={() => void copyInvite()}>
               Invite
             </HeaderButton>
@@ -957,10 +1070,31 @@ function JoinedWindow({
           </PinnablePanel>
         }
       >
-        <div className={styles.main}>
+        {/* With the board open: editor left, board right on a wide window; stacked, scrolling,
+            below 1024 px (spec 022 FR-2, NFR-6). */}
+        <div className={styles.main} data-sketch={sketchOpen || undefined}>
           <div className={styles.editor}>
             <CodeEditor doc={provider.doc} awareness={provider.awareness} problemId={problem.id} />
           </div>
+          {sketchOpen && (
+            <section
+              ref={sketchRef}
+              aria-label="Sketch"
+              className={styles.sketch}
+              style={{ "--sketch-width": `${sketchWidth}px` } as CSSProperties}
+            >
+              <ResizeHandle
+                edge="right"
+                target={sketchRef}
+                size={sketchWidth}
+                onResize={setSketchWidth}
+                minSize={SKETCH_MIN_WIDTH_PX}
+                keepFree={640}
+                label="Resize sketch"
+              />
+              <SketchBoard {...sketch} othersChanged={othersChanged} />
+            </section>
+          )}
         </div>
       </Window>
       {hud && <Hud key={hud.key} message={hud.message} />}

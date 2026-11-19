@@ -25,6 +25,7 @@ HTTP routes (app/main.py, app/problems/api.py, app/sessions/api.py, app/sessions
   POST   /api/sessions/{invite}/reactivate (refused)
   GET    /api/sessions/{invite}/chat, DELETE /api/sessions/{invite}/chat/{id} (refused)
   GET    /api/sessions/{invite}/hints (spec 020)
+  GET    /api/sessions/{invite}/sketch (spec 022)
   WS     /api/sessions/{invite}/ws
   GET    /api/learn/topics, /api/learn/sessions/{invite}, .../record, /api/learn/assets/{sha256},
   POST   /api/learn/sessions (spec 006 task 24; no problem data, swept for coverage)
@@ -370,6 +371,10 @@ async def test_nfr5_fr9_tests_reach_only_editors(
     )
     # 020: the session's hints (none yet); the hint text itself never holds tests (AC-9).
     sweep.http(("GET", "/api/sessions/{invite}/hints"), client.get(f"/api/sessions/{invite}/hints"))
+    # 022: the session's sketch board (drawing actions only; never problem content).
+    sweep.http(
+        ("GET", "/api/sessions/{invite}/sketch"), client.get(f"/api/sessions/{invite}/sketch")
+    )
 
     for path in SCHEMA_ROUTES:
         sweep.http(("GET", path), client.get(path))

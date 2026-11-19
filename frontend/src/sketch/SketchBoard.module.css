@@ -1,0 +1,108 @@
+/* Sketch board canvas (spec 022 plan, Board shape). The wrapper takes its container's width;
+   the component sizes the canvas to its content width at 16:10. The border sits on the
+   wrapper so the canvas rect is exactly the board (pointer mapping). The board colour is the canvas
+   background, so an erase (destination-out) shows it again. */
+.wrap {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  border: 1px solid var(--ui-stroke);
+}
+
+.canvas {
+  display: block;
+  inline-size: 100%;
+  aspect-ratio: 16 / 10;
+  background: var(--sketch-board);
+  user-select: none;
+}
+
+/* Drawing must not scroll or zoom the page (FR-4). */
+.drawable {
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.canvas:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Task 13: the board with its toolbar, Undo, Clear, full message and live region. */
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-inline-size: 0;
+}
+
+/* Wraps on narrow widths (NFR-6): groups wrap, and items within a group wrap too. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8) var(--space-16);
+  padding-block: var(--space-4);
+}
+
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Selected marker and focus ring: accent only (spec Open questions). */
+.tool[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.tool:focus-visible,
+.swatch:focus-visible {
+  outline: var(--bw-2) solid var(--accent);
+  outline-offset: var(--space-2);
+}
+
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--space-32);
+  block-size: var(--space-32);
+  padding: 0;
+  border: var(--bw-2) solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color var(--motion-fast);
+}
+
+.swatch:hover {
+  border-color: var(--ui-stroke);
+}
+
+.swatch:active {
+  background: var(--nav-pressed);
+}
+
+.swatch[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+
+.chip {
+  display: block;
+  inline-size: var(--space-20);
+  block-size: var(--space-20);
+  border-radius: var(--radius-pill);
+  border: var(--bw-1) solid var(--ui-stroke);
+}
+
+.hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

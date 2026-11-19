@@ -4,6 +4,8 @@ FR-12, FR-12a, FR-13, FR-14, FR-15, FR-16, FR-18, FR-19, FR-20, FR-30.
 Spec 002: `chat_send`, `welcome.chat` (FR10–FR18), `description_html` (FR6).
 Spec 007: `gif_search` (FR-1, FR-2, FR-9, NFR-1, NFR-3, NFR-4) and `chat_send_gif`
 (FR-3, FR-4, FR-8, FR-12, NFR-2, NFR-3).
+Spec 022: `sketch_add`, `sketch_clear`, `sketch_undo`, `welcome.sketch` (FR-1, FR-9, FR-10,
+FR-11, FR-13, FR-16, FR-21, NFR-1, NFR-4, NFR-5).
 
 Server-level WebSocket ping/pong (uvicorn `--ws-ping-interval 2 --ws-ping-timeout 3`,
 task 37's compose) detects a silently dropped connection within ~5 s for FR-15; a clean
@@ -45,6 +47,8 @@ from app.sessions import repo as sessions_repo
 from app.sessions.collab import SessionDoc
 from app.sessions.hub import SessionHub
 from app.sessions.repo import Session
+from app.sketch import service as sketch_service
+from app.sketch.rules import SketchError
 
 router = APIRouter()
 
@@ -426,6 +430,44 @@ async def _run_current_problem(
     )
 
 
+async def _handle_sketch(
+    websocket: WebSocket,
+    conn: asyncpg.Connection,
+    hub: SessionHub,
+    session_id: uuid.UUID,
+    participant_id: uuid.UUID,
+    msg_type: str,
+    payload: dict,
+) -> None:
+    """Spec 022: a refusal goes to the sender only, echoing its `client_id` or `seq` when
+    well-formed; a malformed frame is `invalid` (NFR-5). The service broadcasts successes."""
+    client_id = payload.get("client_id")
+    seq = payload.get("seq")
+    refused: SketchError | None
+    if msg_type == "sketch_undo":
+        # `bool` is an `int` subclass, and not a seq.
+        if not isinstance(seq, int) or isinstance(seq, bool):
+            refused = SketchError.INVALID
+        else:
+            refused = await sketch_service.undo(conn, hub, session_id, participant_id, seq)
+    elif not isinstance(client_id, str):
+        refused = SketchError.INVALID
+    elif msg_type == "sketch_add":
+        refused = await sketch_service.add(
+            conn, hub, session_id, participant_id, client_id, payload.get("action")
+        )
+    else:
+        refused = await sketch_service.clear(conn, hub, session_id, participant_id, client_id)
+    if refused is None:
+        return
+    reply: dict = {"type": "sketch_refused", "reason": refused.value}
+    if isinstance(client_id, str) and msg_type != "sketch_undo":
+        reply["client_id"] = client_id
+    if isinstance(seq, int) and not isinstance(seq, bool) and msg_type == "sketch_undo":
+        reply["seq"] = seq
+    await websocket.send_json(reply)
+
+
 async def _handle_text(
     websocket: WebSocket,
     conn: asyncpg.Connection,
@@ -514,6 +556,8 @@ async def _handle_text(
         await hints_service.reveal(websocket.app, websocket, session, hub, participant_id)
     elif msg_type == "question_decline":
         await hints_service.decline(websocket, session, hub, participant_id)
+    elif msg_type in ("sketch_add", "sketch_clear", "sketch_undo"):
+        await _handle_sketch(websocket, conn, hub, session.id, participant_id, msg_type, payload)
 
 
 async def _handle_binary(
@@ -628,6 +672,7 @@ async def session_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
         hints = [
             hints_repo.hint_dict(h) for h in await hints_repo.list_for_session(conn, session.id)
         ]
+        sketch = await sketch_service.snapshot(conn, session.id)
         # Last await before the send, so the snapshot and the live messages that follow it
         # leave no gap (FR-10; the client dedupes by `seq`).
         scratch = await get_scratch_manager(websocket.app).snapshot(session.id)
@@ -651,6 +696,8 @@ async def session_ws(websocket: WebSocket, invite: str, name: str = "") -> None:
                 "hints": hints,
                 "hint_pending": hints_service.pending(session.id),
                 "question_awaiting": hints_service.awaiting(session.id),
+                # Spec 022 FR-1, FR-11.
+                "sketch": sketch,
             }
         )
         # `welcome` already carries the current presence list, so the new participant

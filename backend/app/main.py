@@ -52,6 +52,7 @@ from app.sessions.service import on_problem_deleted
 from app.sessions.stale import run_periodically
 from app.sessions.ws import drain_gif_tasks, drain_runs
 from app.sessions.ws import router as sessions_ws_router
+from app.sketch.api import router as sketch_router
 
 # backend/app/main.py -> backend/app -> backend -> repo root -> frontend/dist
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
@@ -161,6 +162,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(images_router)
     app.include_router(sessions_router)
     app.include_router(chat_router)
+    app.include_router(sketch_router)
     app.include_router(hints_router)
     app.include_router(sessions_ws_router)
     app.include_router(learn_router)

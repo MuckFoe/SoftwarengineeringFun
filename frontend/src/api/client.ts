@@ -1,4 +1,5 @@
 import { apiPath } from "../base";
+import type { SketchReadResponse } from "../sketch/sketchTypes";
 import type {
   ChatHistory,
   CreatedProblem,
@@ -201,6 +202,10 @@ export const removeChatMessage = (inviteId: string, messageId: number) =>
 /** Every hint of the session, all problems (spec 020 FR-15); 404 not_found, 410 session_deleted. */
 export const getHints = (inviteId: string) =>
   request<{ hints: Hint[] }>("GET", `/sessions/${enc(inviteId)}/hints`);
+
+/** The session's sketch board, read-only on the stale page (spec 022 FR-16); 404 not_found. */
+export const getSketch = (inviteId: string) =>
+  request<SketchReadResponse>("GET", `/sessions/${enc(inviteId)}/sketch`);
 
 /** URL for the session WebSocket, relative to the current page's origin. */
 export function sessionWsUrl(inviteId: string, name: string, loc: Location = window.location) {

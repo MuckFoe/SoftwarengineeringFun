@@ -162,3 +162,54 @@
   overflow-y: auto;
   padding: var(--space-4) var(--space-16) var(--space-12);
 }
+
+/* The sketch board (spec 022 FR-2, NFR-6). Wide (≥ 1024 px): beside the editor, its width
+   following its divider, the editor keeping at least 20rem. Narrower: under the editor at
+   full width, the main area scrolling vertically, never horizontally. */
+.sketch {
+  position: relative;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  padding: var(--space-12);
+}
+
+@media (min-width: 64rem) {
+  .main[data-sketch] {
+    flex-direction: row;
+  }
+
+  .main[data-sketch] > .editor {
+    flex: 1 1 0;
+    min-inline-size: 0;
+  }
+
+  .sketch {
+    flex: 0 0 var(--sketch-width);
+    max-inline-size: calc(100% - 20rem);
+    overflow-y: auto;
+    border-inline-start: 1px solid var(--divider);
+  }
+}
+
+@media (max-width: 63.999rem) {
+  .main[data-sketch] {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .main[data-sketch] > .editor {
+    flex: none;
+    height: max(16rem, 60%);
+  }
+
+  .sketch {
+    flex: none;
+    inline-size: 100%;
+    border-block-start: 1px solid var(--divider);
+  }
+
+  /* Stacked, the board takes the full width: nothing to resize. */
+  .sketch > [role="separator"] {
+    display: none;
+  }
+}

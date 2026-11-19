@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   APPEARANCES,
@@ -271,4 +273,66 @@ describe.each(APPEARANCES)("rps zones and marks in %s appearance (spec 021 AC-29
       expect(["--accent", "--highlight", "--focus"]).not.toContain(rpsAlias(mark));
     }
   });
+});
+
+// Spec 022 task 3 (AC-7; FR-7, NFR-6): the sketch palette. Every colour is drawn on the board, so
+// each reaches 3:1 against --sketch-board in light and in dark; ink flips near-black / near-white,
+// the rest keep their hue. Values come from tokens.css (light on :root, dark on the dark block);
+// the board is an alias, resolved through kit-values.json. The Keycloak copy declares the same.
+const SKETCH_COLOURS = ["ink", "red", "orange", "yellow", "green", "blue", "purple", "pink"].map(
+  (c) => `--sketch-${c}`,
+);
+const LIGHT_TOKENS = tokenBlock(':root[data-appearance="light"]');
+const sketchBoard = (): Colour => {
+  const v = ROOT_TOKENS.get("--sketch-board") ?? "";
+  const alias = /^var\((--[\w-]+)\)$/.exec(v)?.[1];
+  return alias ?? { light: v, dark: DARK_TOKENS.get("--sketch-board") ?? v };
+};
+const SKETCH_PAIRS: Pair[] = SKETCH_COLOURS.map(
+  (name): Pair => ({
+    name: `sketch ${name} on --sketch-board`,
+    kind: "ui",
+    fg: { light: ROOT_TOKENS.get(name) ?? "", dark: DARK_TOKENS.get(name) ?? "" },
+    bg: sketchBoard(),
+  }),
+);
+
+describe("sketch tokens (spec 022 task 3)", () => {
+  it("declares the board and all 8 colours in light, explicit light and dark", () => {
+    expect(SKETCH_COLOURS).toHaveLength(8);
+    expect(ROOT_TOKENS.has("--sketch-board")).toBe(true);
+    for (const name of SKETCH_COLOURS) {
+      expect([name, ROOT_TOKENS.get(name)]).toEqual([
+        name,
+        expect.stringMatching(/^#[0-9a-f]{6}$/i),
+      ]);
+      expect([name, LIGHT_TOKENS.get(name)]).toEqual([name, ROOT_TOKENS.get(name)]);
+      expect([name, DARK_TOKENS.get(name)]).toEqual([
+        name,
+        expect.stringMatching(/^#[0-9a-f]{6}$/i),
+      ]);
+    }
+  });
+
+  it("ink is near-black in light and near-white in dark", () => {
+    expect(contrastRatio(ROOT_TOKENS.get("--sketch-ink") ?? "", "#000000")).toBeLessThan(1.5);
+    expect(contrastRatio(DARK_TOKENS.get("--sketch-ink") ?? "", "#FFFFFF")).toBeLessThan(1.5);
+  });
+
+  it("the Keycloak theme copy declares the same sketch tokens", () => {
+    const collab = readFileSync(
+      join(process.cwd(), "..", "keycloak-theme/collab/login/resources/css/collab.css"),
+      "utf8",
+    );
+    for (const name of ["--sketch-board", ...SKETCH_COLOURS])
+      expect([name, collab.includes(`${name}:`)]).toEqual([name, true]);
+  });
+});
+
+describe.each(APPEARANCES)("sketch colours on the board in %s appearance (spec 022 AC-7)", (a) => {
+  for (const pair of SKETCH_PAIRS) {
+    it(`${pair.name} >= 3:1`, () => {
+      expect(evaluatePair(pair, a).ratio).toBeGreaterThanOrEqual(THRESHOLD.ui);
+    });
+  }
 });

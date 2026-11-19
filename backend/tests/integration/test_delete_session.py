@@ -463,3 +463,35 @@ async def test_020_ac14_a_pending_hint_is_cancelled_and_writes_and_broadcasts_no
     await asyncio.sleep(1.3)  # past the model answering: a live task would store it now
     assert await _hint_rows(db, sid) == 0
     assert hub_module.peek_hub(sid) is None
+
+
+# --- Spec 022 AC-17: a deleted session's sketch board goes with it -----------------------------
+
+
+async def _sketch_rows(db: asyncpg.Connection, sid: uuid.UUID) -> int:
+    return await db.fetchval("select count(*) from sketch_action where session_id = $1", sid)
+
+
+async def test_022_ac17_deleting_a_session_deletes_its_sketch_board(
+    client: TestClient, db: asyncpg.Connection, jars, subs
+) -> None:
+    sid, invite = await _seed(db, "coding", subs["newuser"], subs["other"])
+    other_sid, _ = await _seed(db, "coding", subs["newuser"], subs["other"])
+    for session_id in (sid, other_sid):
+        author = await db.fetchval(
+            "select id from participant where session_id = $1 limit 1", session_id
+        )
+        await db.execute(
+            """insert into sketch_action (session_id, author_id, kind, color, points, client_id,
+                                          bytes)
+               values ($1, $2, 'pen', 'ink', '[0,0,10,10]'::jsonb, 'c1', 11),
+                      ($1, $2, 'clear', null, null, 'c2', 0)""",
+            session_id,
+            author,
+        )
+
+    response = _delete(client, "coding", invite, jars["newuser"])
+
+    assert response.status_code == 204, response.text
+    assert await _sketch_rows(db, sid) == 0
+    assert await _sketch_rows(db, other_sid) == 2  # only that session's board

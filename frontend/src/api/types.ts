@@ -2,6 +2,11 @@
 // Ids are uuids (plan data model), so they travel as strings.
 
 import type { Run, RunStatus } from "../scratch/scratchReducer";
+import type {
+  SketchClientMessage,
+  SketchServerMessage,
+  SketchSnapshot,
+} from "../sketch/sketchTypes";
 
 // ---- HTTP ----
 
@@ -285,6 +290,8 @@ export interface WelcomeMessage {
   hint_pending?: HintPending | null;
   /** A question waiting for its asker to confirm a revealing answer (spec 020 FR-20). Absent: null. */
   question_awaiting?: QuestionAwaiting | null;
+  /** The session's sketch board (spec 022). Absent from older servers: an empty board. */
+  sketch?: SketchSnapshot;
 }
 
 export interface PresenceMessage {
@@ -493,7 +500,8 @@ export type ServerMessage =
   | HintFailedMessage
   | HintRefusedMessage
   | QuestionConfirmMessage
-  | QuestionConfirmEndedMessage;
+  | QuestionConfirmEndedMessage
+  | SketchServerMessage;
 
 export interface RunMessage {
   type: "run";
@@ -556,7 +564,8 @@ export type ClientMessage =
   | SwitchProblemMessage
   | ChatSendMessage
   | GifSearchMessage
-  | ChatSendGifMessage;
+  | ChatSendGifMessage
+  | SketchClientMessage;
 
 /**
  * GET /api/sessions/stale (spec 003, admin only): one stale session. The learning-session

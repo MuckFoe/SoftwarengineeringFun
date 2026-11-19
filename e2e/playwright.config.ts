@@ -48,6 +48,9 @@ const LAST_SPECS: RegExp[] = [
   /\/latency\.spec\.ts$/,
   // The presentation library is one global list; AC-1/AC-2 assert its exact content.
   /\/present-library\.spec\.ts$/,
+  // Five participants drawing nonstop for 30 s (spec 022 AC-21): the CPU load it makes
+  // pushes parallel specs past their 5 s timeouts, so it runs alone.
+  /\/sketch-load\.spec\.ts$/,
 ];
 const NON_HUB = /\/hub[^/]*\.spec\.ts$/;
 const PARALLEL = WORKERS > 1;

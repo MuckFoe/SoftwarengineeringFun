@@ -32,6 +32,13 @@ export const iconMap = {
   trash: { audi: "erase", lucide: "trash-2" },
   pencil: { audi: "edit", lucide: "pencil" },
   pin: { audi: "pin", lucide: "pin" },
+  // Sketch board (spec 022). The Audi set has no plain circle; "circle" shows its fallback.
+  sketch: { audi: "notepad", lucide: "presentation" },
+  pen: { audi: "edit", lucide: "pen" },
+  square: { audi: "stop", lucide: "square" },
+  circle: { audi: "circle", lucide: "circle" },
+  eraser: { audi: "brush", lucide: "eraser" },
+  undo: { audi: "replay", lucide: "undo-2" },
 } as const satisfies Record<string, { audi: string; lucide: string }>;
 
 export type BrandIconName = keyof typeof iconMap;

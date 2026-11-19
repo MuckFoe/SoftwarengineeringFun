@@ -7,6 +7,7 @@ import * as Y from "yjs";
 import type { Hint, Me, Problem, RunResult, ServerMessage, WelcomeMessage } from "../api/types";
 import type { SocketFactory, SocketLike } from "../collab/provider";
 import { ShortcutsProvider } from "../shortcuts/useShortcut";
+import { SketchBoard } from "../sketch/SketchBoard";
 import { SessionWindow } from "./SessionWindow";
 
 // BASE is fixed when base.ts loads, so the base path is mocked; every importer of base.ts,
@@ -61,6 +62,9 @@ function json(status: number, body: unknown) {
 /** What `GET /api/sessions/{invite}/hints` answers (spec 020); a stale window asks for it. */
 const stubHints: { value: Hint[] } = { value: [] };
 
+/** What `GET /api/sessions/{invite}/sketch` answers (spec 022); a stale window's open board asks. */
+const stubSketch: { value: unknown } = { value: { actions: [], read_only: true } };
+
 function stubServer(
   getResponses: Response[],
   reactivateResponse: Response = json(200, {}),
@@ -76,6 +80,7 @@ function stubServer(
     if (method === "GET" && url.pathname.endsWith("/hints")) {
       return json(200, { hints: stubHints.value });
     }
+    if (method === "GET" && url.pathname.endsWith("/sketch")) return json(200, stubSketch.value);
     if (method === "GET" && url.pathname.startsWith(`${api}/sessions/`)) {
       return responses.shift() ?? json(404, { error: "not_found" });
     }
@@ -115,6 +120,7 @@ afterEach(() => {
   localStorage.clear();
   mockedBase.value = "/";
   stubHints.value = [];
+  stubSketch.value = { actions: [], read_only: true };
 });
 
 describe("SessionWindow", () => {
@@ -1727,3 +1733,191 @@ describe("SessionWindow, hints (spec 020)", () => {
     expect(within(description()).queryByText("Preparing hint…")).toBeNull();
   });
 });
+
+describe("SessionWindow, sketch board (spec 022 FR-2, FR-20)", () => {
+  // jsdom has no 2D context; the board copes with none (pixels are E2E, task 16).
+  const noCanvas = () => vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  afterEach(() => vi.restoreAllMocks());
+
+  const sketchToggle = () =>
+    within(screen.getByRole("toolbar", { name: "Session" })).getByRole("button", {
+      name: "Sketch",
+    });
+  const board = () => screen.queryByRole("img", { name: /^Sketch board/ });
+
+  it("AC-2: the Sketch toggle sits in the header after Check; the board is closed by default", async () => {
+    noCanvas();
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    const toolbar = screen.getByRole("toolbar", { name: "Session" });
+    const buttons = within(toolbar).getAllByRole("button");
+    const check = buttons.indexOf(checkButton());
+    expect(buttons[check + 1]).toBe(sketchToggle());
+    expect(sketchToggle().getAttribute("aria-pressed")).toBe("false");
+    expect(board()).toBeNull();
+  });
+
+  it("AC-2: opening it shows the board beside the editor, in the main area, without leaving the session", async () => {
+    noCanvas();
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    fireEvent.click(sketchToggle());
+
+    expect(sketchToggle().getAttribute("aria-pressed")).toBe("true");
+    const main = screen.getByRole("main");
+    const canvas = within(main).getByRole("img", { name: "Sketch board" });
+    const editor = main.querySelector(".cm-content");
+    expect(editor).not.toBeNull();
+    // Editor first, board after it (left and right on a wide window).
+    expect(
+      (editor as Node).compareDocumentPosition(canvas) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(within(main).getByRole("separator", { name: "Resize sketch" })).toBeTruthy();
+    expect(within(main).getByRole("toolbar", { name: "Sketch tools" })).toBeTruthy();
+
+    fireEvent.click(sketchToggle());
+    expect(sketchToggle().getAttribute("aria-pressed")).toBe("false");
+    expect(board()).toBeNull();
+    expect(screen.getByRole("main").querySelector(".cm-content")).not.toBeNull();
+  });
+
+  it("AC-2: open stays open after a reload, remembered in this browser only", async () => {
+    noCanvas();
+    const first = await joinAsAda();
+    serverSends(first, welcome());
+    fireEvent.click(sketchToggle());
+    expect(localStorage.getItem("pinned.sketch")).toBe("true");
+    // Nothing about it goes to the server.
+    expect(first.sent.some((d) => typeof d === "string" && d.includes("pinned"))).toBe(false);
+
+    cleanup();
+    const second = await joinAsAda();
+    serverSends(second, welcome());
+    expect(sketchToggle().getAttribute("aria-pressed")).toBe("true");
+    expect(board()).not.toBeNull();
+  });
+
+  it("keeps applying the board's messages while closed: opening shows the current state", async () => {
+    noCanvas();
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ sketch: { actions: [], full: true } }));
+    expect(board()).toBeNull();
+
+    fireEvent.click(sketchToggle());
+    expect(screen.getByText(/The sketch is full/)).toBeTruthy();
+  });
+
+  it("drawing actions go out over the session socket, and others' changes are announced", async () => {
+    noCanvas();
+    const socket = await joinAsAda();
+    serverSends(socket, welcome({ sketch: { actions: [], full: false } }));
+    fireEvent.click(sketchToggle());
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear for everyone" }));
+    const sent = socket.sent
+      .filter((d): d is string => typeof d === "string")
+      .map((d) => JSON.parse(d) as { type: string });
+    expect(sent.some((m) => m.type === "sketch_clear")).toBe(true);
+
+    serverSends(socket, {
+      type: "sketch_added",
+      action: {
+        seq: 1,
+        client_id: "someone-else",
+        kind: "pen",
+        color: "red",
+        points: [0, 0, 9, 9],
+      },
+    });
+    expect(screen.getByTestId("sketch-live").textContent).toBe("Someone changed the sketch.");
+  });
+
+  it("FR-20: adds no dock or jump entry; the inspector and run results are unchanged", async () => {
+    noCanvas();
+    const socket = await joinAsAda();
+    serverSends(socket, welcome());
+    fireEvent.click(sketchToggle());
+    expect(screen.getByRole("region", { name: "Run results" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Description" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /sketch/i })).toBeNull();
+  });
+});
+
+describe("SessionWindow, stale sketch board (spec 022 FR-16)", () => {
+  const noCanvas = () => vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  afterEach(() => vi.restoreAllMocks());
+
+  const sketchToggle = () =>
+    within(screen.getByRole("toolbar", { name: "Session" })).getByRole("button", {
+      name: "Sketch",
+    });
+  const sketchCalls = (fetchFn: ReturnType<typeof stubServer>) =>
+    fetchFn.mock.calls.filter(([input]) => String(input).endsWith("/api/sessions/abc/sketch"));
+
+  it("AC-16: the stale page has the Sketch toggle, closed by default, and fetches nothing while closed", async () => {
+    noCanvas();
+    const fetchFn = stubServer([json(423, { error: "stale", can_reactivate: false })]);
+    renderPage();
+    await screen.findByText(/gone stale/i);
+
+    expect(sketchToggle().getAttribute("aria-pressed")).toBe("false");
+    expect(screen.queryByRole("img", { name: /^Sketch board/ })).toBeNull();
+    expect(sketchCalls(fetchFn)).toHaveLength(0);
+  });
+
+  it("AC-16: opening it fetches the board and shows it read-only, with no tool, Clear or Undo", async () => {
+    noCanvas();
+    stubSketch.value = {
+      actions: [
+        { seq: 1, client_id: "x", kind: "pen", color: "red", points: [0, 0, 9, 9] },
+        { seq: 2, client_id: "x", kind: "box", color: "blue", points: [10, 10, 90, 90] },
+      ],
+      read_only: true,
+    };
+    const fetchFn = stubServer([json(423, { error: "stale", can_reactivate: false })]);
+    renderPage();
+    await screen.findByText(/gone stale/i);
+
+    fireEvent.click(sketchToggle());
+    expect(sketchToggle().getAttribute("aria-pressed")).toBe("true");
+    const main = screen.getByRole("main");
+    const canvas = await within(main).findByRole("img", { name: "Sketch board (read-only)" });
+    expect(sketchCalls(fetchFn)).toHaveLength(1);
+    // The drawing is shown: the canvas's hash reflects the fetched actions, not an empty board.
+    await vi.waitFor(() => {
+      const hash = canvas.getAttribute("data-sketch-hash");
+      expect(hash).toBeTruthy();
+      expect(hash).not.toBe(emptyHash());
+    });
+    expect(within(main).getByRole("region", { name: "Sketch" })).toBeTruthy();
+    expect(within(main).queryByRole("toolbar", { name: "Sketch tools" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^(Pen|Box|Circle|Eraser)\b/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
+  });
+
+  it("AC-16: open stays open across a reload of the stale page", async () => {
+    noCanvas();
+    stubServer([json(423, { error: "stale", can_reactivate: false })]);
+    renderPage();
+    await screen.findByText(/gone stale/i);
+    fireEvent.click(sketchToggle());
+    expect(localStorage.getItem("pinned.sketch")).toBe("true");
+
+    cleanup();
+    stubServer([json(423, { error: "stale", can_reactivate: false })]);
+    renderPage();
+    await screen.findByText(/gone stale/i);
+    expect(sketchToggle().getAttribute("aria-pressed")).toBe("true");
+    expect(await screen.findByRole("img", { name: "Sketch board (read-only)" })).toBeTruthy();
+  });
+});
+
+/** The canvas's data-sketch-hash for a board with nothing on it. */
+function emptyHash(): string | null {
+  const { container, unmount } = render(<SketchBoard visible={[]} readOnly />);
+  const hash = container.querySelector("canvas")?.getAttribute("data-sketch-hash") ?? null;
+  unmount();
+  return hash;
+}

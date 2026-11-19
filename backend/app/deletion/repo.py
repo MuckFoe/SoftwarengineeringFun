@@ -62,6 +62,7 @@ _PURGE_SQL: dict[str, tuple[str, ...]] = {
         "delete from session_scratch_run where session_id = $1",
         "delete from session_hint where session_id = $1",
         "delete from session_problem where session_id = $1",
+        "delete from sketch_action where session_id = $1",
         "delete from participant where session_id = $1",
         "delete from session where id = $1",
     ),

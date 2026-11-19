@@ -32,6 +32,13 @@ describe("iconMap and Icon (FR-2)", () => {
     }
   });
 
+  it("covers the sketch board's icons, each with a neutral fallback (022 task 4)", () => {
+    for (const n of ["pen", "square", "circle", "eraser", "undo", "trash", "sketch"]) {
+      expect(names).toContain(n);
+      expect(ruleFor(n), `fallback rule for ${n}`).toBeDefined();
+    }
+  });
+
   for (const name of names) {
     it(`${name}: Audi name, Lucide fallback name and a non-empty fallback mask`, () => {
       expect(iconMap[name].audi).toMatch(/^[a-z0-9-]+$/);
