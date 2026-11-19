@@ -27,6 +27,7 @@ export const iconMap = {
   gear: { audi: "settings", lucide: "settings" },
   exclamation: { audi: "caution", lucide: "triangle-alert" },
   chat: { audi: "discussion", lucide: "message-square" },
+  home: { audi: "home", lucide: "house" },
   doc: { audi: "documents", lucide: "file-text" },
   trash: { audi: "erase", lucide: "trash-2" },
   pencil: { audi: "edit", lucide: "pencil" },

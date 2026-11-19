@@ -68,7 +68,7 @@ const SCREENS: Screen[] = [
   {
     name: "problems",
     async open(page) {
-      await page.goto("/");
+      await page.goto("/problems");
       await expect(page.getByRole("button", { name: /^Start session: / }).first()).toBeVisible();
     },
   },

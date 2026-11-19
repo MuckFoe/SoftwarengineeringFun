@@ -6,7 +6,7 @@ The first screen after sign-in is a plain list of sessions. It does not show wha
 
 ## Users
 
-Signed-in account holders. Anonymous guests and chess invitees see a reduced version showing only the session or game they joined.
+Signed-in account holders. Anonymous guests and chess invitees see a reduced version showing only the session or game they joined. Visitors who are neither see the home screen too, with no tiles but Start session (FR-12).
 
 ## Functional requirements
 
@@ -21,6 +21,8 @@ Signed-in account holders. Anonymous guests and chess invitees see a reduced ver
 - **FR-9** WHEN the viewport is narrow THE SYSTEM SHALL reflow the tiles into fewer columns, keeping Start session first, with no horizontal scrolling.
 - **FR-11** WHEN an anonymous guest or chess invitee opens the app THE SYSTEM SHALL show only a tile for the session or game they joined, in the same look, and no other tiles, greeting count or previews of other sessions.
 - **FR-10** WHEN the "my sessions" view for accounts exists today THE SYSTEM SHALL keep its content and functions reachable from the home screen, now as tiles.
+- **FR-12** WHEN anyone opens the app's start address THE SYSTEM SHALL show the home screen, never the problem library. This includes a visitor with no account who has joined nothing, and a user whose sessions cannot be loaded. Such a visitor sees a greeting without a name and the Start session tile, and nothing else of anyone's sessions. If loading fails, the home screen says so.
+- **FR-13** WHEN a user is on any screen THE SYSTEM SHALL offer a way back to the home screen: the logo in the header and a "Home" entry in the dock.
 
 ## Non-functional requirements
 
@@ -75,6 +77,13 @@ Signed-in account holders. Anonymous guests and chess invitees see a reduced ver
 **FR-10**
 - Given an account with earlier sessions, When the home screen is shown, Then those sessions are reachable as tiles with the same actions as before.
 
+**FR-12**
+- Given a visitor with no account who has joined nothing, When they open the app, Then the home screen shows a greeting without a name and the Start session tile, and no session tiles. The problem library is not shown.
+- Given a user whose sessions cannot be loaded, When they open the app, Then the home screen is shown with the Start session tile and a message that their sessions could not be loaded.
+
+**FR-13**
+- Given any screen, When the user activates the header logo or the dock's "Home" entry, Then the home screen opens.
+
 **Privacy / Accessibility**
 - Given an anonymous guest, When the app opens, Then only the tile of the session or game they joined appears, with no other session's title, avatars or code.
 - Given keyboard only, When tabbing, Then every tile is reachable in reading order, shows focus, and announces its title, host and live state.
@@ -84,3 +93,5 @@ Signed-in account holders. Anonymous guests and chess invitees see a reduced ver
 Resolved with the user (2026-11-07): the count includes the user; the greeting uses the first name, else the display name or username; tiles show every live session the user may open (some sessions are private or invite-only), then up to 8 of the user's own idle sessions; the code preview shows to everyone who sees the tile, with no host control; guests get a reduced home; learning and presentation sessions get tiles with no code preview.
 
 None.
+
+Changed 2026-11-19 (user request): the start address always shows the home screen, also for visitors without an account (FR-12), and every screen leads back to it (FR-13). Before, such visitors and failed loads got the problem library.

@@ -83,9 +83,9 @@ describe("App routing", () => {
     expect(await screen.findByText("Session not found")).toBeTruthy();
   });
 
-  it("/ renders ProblemsWindow with no sheet open", async () => {
+  it("/problems renders ProblemsWindow with no sheet open", async () => {
     stubServer();
-    renderRoute("/");
+    renderRoute("/problems");
 
     expect(await screen.findByRole("toolbar", { name: "Problems" })).toBeTruthy();
     expect(screen.getByRole("searchbox", { name: "Search problems" })).toBeTruthy();
@@ -140,7 +140,7 @@ describe("App routing", () => {
 describe("App shell (spec 003)", () => {
   it("FR-19: the shortcut-list combo opens the list on any screen", async () => {
     stubServer();
-    renderRoute("/");
+    renderRoute("/problems");
     await screen.findByRole("toolbar", { name: "Problems" });
     expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).toBeNull();
 
@@ -167,7 +167,7 @@ describe("App shell (spec 003)", () => {
   it("FR-6: a Light choice holds when the OS changes, on every screen at once", async () => {
     stubServer();
     const setOs = stubOsScheme(true);
-    renderRoute("/");
+    renderRoute("/problems");
     await screen.findByRole("toolbar", { name: "Problems" });
 
     fireEvent.click(screen.getByRole("button", { name: "Appearance" }));
@@ -199,7 +199,7 @@ describe("games routes (spec 014)", () => {
 
 describe("App dock (016 FR-16)", () => {
   it.each([
-    ["/", "Sessions"],
+    ["/", "Home"],
     ["/learn", "Learn"],
     ["/present", "Present"],
     ["/games", "Games"],
@@ -320,9 +320,11 @@ describe("Home landing (spec 017)", () => {
     expect(new Headers(call?.[1]?.headers).get("X-Rejoin-Token")).toBe("raw-token");
   });
 
-  it("a visitor with no token (401) keeps the problem library", async () => {
+  it("a visitor with no account and no token gets the empty home, not the library (FR-12)", async () => {
     stubHome({ error: "unauthorized" }, false, 401);
     renderRoute("/");
-    expect(await screen.findByRole("searchbox", { name: "Search problems" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: /^Good / })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Start session" })).toBeTruthy();
+    expect(screen.queryByRole("searchbox", { name: "Search problems" })).toBeNull();
   });
 });

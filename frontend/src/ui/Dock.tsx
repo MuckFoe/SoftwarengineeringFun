@@ -4,15 +4,15 @@ import styles from "./Dock.module.css";
 import { Icon, type IconName } from "./Icon";
 
 export interface DockItem {
-  key: "sessions" | "problems" | "learn" | "present" | "games";
+  key: "home" | "problems" | "learn" | "present" | "games";
   label: string;
   to: string;
   icon: IconName;
 }
 
-/** The sidebar AreaNav keeps "Problems" for `/`; the dock calls the same route "Sessions". */
+/** The way back to the home screen at `/` is always the first item (spec 017 FR-13). */
 export const DOCK_ITEMS: readonly DockItem[] = [
-  { key: "sessions", label: "Sessions", to: "/", icon: "chat" },
+  { key: "home", label: "Home", to: "/", icon: "home" },
   { key: "problems", label: "Problems", to: "/problems", icon: "pencil" },
   { key: "learn", label: "Learn", to: "/learn", icon: "doc" },
   { key: "present", label: "Present", to: "/present", icon: "people" },
@@ -27,9 +27,9 @@ interface Props {
 const under = (pathname: string, base: string) =>
   pathname === base || pathname.startsWith(`${base}/`);
 
-/** The dock's own current item: Sessions is the home screen, Problems the coding problems and their sessions. */
+/** The dock's own current item: Home is the home screen, Problems the coding problems and their sessions. */
 function currentKey(pathname: string): DockItem["key"] | undefined {
-  if (pathname === "/") return "sessions";
+  if (pathname === "/") return "home";
   for (const item of DOCK_ITEMS.slice(1)) if (under(pathname, item.to)) return item.key;
   return pathname.startsWith("/s/") ? "problems" : undefined;
 }

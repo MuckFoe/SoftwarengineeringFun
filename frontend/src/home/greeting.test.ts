@@ -35,4 +35,7 @@ describe("displayName", () => {
     expect(displayName({ first_name: null, display_name: "AL", username: "ada1" })).toBe("AL");
     expect(displayName({ first_name: "", display_name: null, username: "ada1" })).toBe("ada1");
   });
+  it("FR-12: no name, no trailing comma", () => {
+    expect(greetingFor(at(9), "", null).salutation).toBe("Good morning");
+  });
 });

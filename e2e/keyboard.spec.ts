@@ -558,9 +558,9 @@ test.describe("keyboard only, Windows/Linux keys", () => {
 
   test("AC-18c: the empty state's link back, by keyboard alone", async ({ page }) => {
     await page.goto("/nope");
-    await pressUntil(page, page.getByRole("link", { name: "Back to problems" }));
+    await pressUntil(page, page.getByRole("link", { name: "Back to home" }));
     await page.keyboard.press("Enter");
     await page.waitForURL((url) => url.pathname === "/");
-    await expect(page.getByRole("toolbar", { name: "Problems" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /^Good / })).toBeVisible();
   });
 });

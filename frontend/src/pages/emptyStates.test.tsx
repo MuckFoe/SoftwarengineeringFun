@@ -29,7 +29,7 @@ it("NotFound is a window with appearance and account in its toolbar and a link h
   expect(toolbar.querySelector("[aria-label='Appearance']")).not.toBeNull();
   expect(await screen.findByRole("link", { name: "Profile" })).toBeTruthy();
   expect(screen.getByRole("main").querySelector("h1")?.textContent).toBe("Page not found");
-  expect(screen.getByRole("link", { name: "Back to problems" }).getAttribute("href")).toBe("/");
+  expect(screen.getByRole("link", { name: "Back to home" }).getAttribute("href")).toBe("/");
 });
 
 it("NotFound takes a message, such as for an unknown session", () => {
@@ -51,5 +51,5 @@ it("Forbidden names the missing role and links home", () => {
   );
   expect(screen.getByRole("heading", { name: "You can't do this" })).toBeTruthy();
   expect(screen.getByText(/you lack the editor role/i)).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Back to problems" }).getAttribute("href")).toBe("/");
+  expect(screen.getByRole("link", { name: "Back to home" }).getAttribute("href")).toBe("/");
 });

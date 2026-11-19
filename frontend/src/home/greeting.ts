@@ -21,7 +21,8 @@ function timeOfDay(hour: number): string {
 }
 
 export function greetingFor(now: Date, name: string, liveCount: number | null): Greeting {
-  const salutation = `Good ${timeOfDay(now.getHours())}, ${name}`;
+  const hello = `Good ${timeOfDay(now.getHours())}`;
+  const salutation = name ? `${hello}, ${name}` : hello;
   let summary = "Nobody is live right now";
   if (liveCount !== null && liveCount >= 1) {
     summary =

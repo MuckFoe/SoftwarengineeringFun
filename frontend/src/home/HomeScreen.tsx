@@ -9,6 +9,8 @@ export const SHOW_MORE_THRESHOLD = 8;
 
 interface Props {
   snapshot: HomeSnapshot;
+  /** Shown in place of the empty-state text, e.g. when the sessions couldn't be loaded. */
+  notice?: string;
   /** Clock for the greeting (tests fix it). */
   now?: Date;
   onStart: () => void;
@@ -20,6 +22,7 @@ interface Props {
 
 export function HomeScreen({
   snapshot,
+  notice,
   now = new Date(),
   onStart,
   onOpenSession,
@@ -40,7 +43,13 @@ export function HomeScreen({
           {summary}
         </p>
       </header>
-      {empty && <p className={styles.emptyText}>Nothing here yet. Start a session to get going.</p>}
+      {notice ? (
+        <p className={styles.emptyText} role="status">
+          {notice}
+        </p>
+      ) : (
+        empty && <p className={styles.emptyText}>Nothing here yet. Start a session to get going.</p>
+      )}
       <ul className={styles.grid}>
         <li className={styles.cell}>
           <button

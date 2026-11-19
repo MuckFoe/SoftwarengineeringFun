@@ -27,7 +27,7 @@ describe("Dock", () => {
     const nav = screen.getByRole("navigation", { name: "Areas" });
     const links = nav.querySelectorAll("a");
     expect([...links].map((a) => a.textContent)).toEqual([
-      "Sessions",
+      "Home",
       "Problems",
       "Learn",
       "Present",
@@ -42,13 +42,13 @@ describe("Dock", () => {
     ]);
   });
 
-  it("marks Sessions for the root route and navigates on activation", () => {
+  it("marks Home for the root route and navigates on activation (spec 017 FR-13)", () => {
     mount("/");
-    expect(screen.getByRole("link", { name: "Sessions" }).getAttribute("aria-current")).toBe(
-      "page",
-    );
+    expect(screen.getByRole("link", { name: "Home" }).getAttribute("aria-current")).toBe("page");
     fireEvent.click(screen.getByRole("link", { name: "Games" }));
     expect(screen.getByTestId("where").textContent).toBe("/games");
+    fireEvent.click(screen.getByRole("link", { name: "Home" }));
+    expect(screen.getByTestId("where").textContent).toBe("/");
   });
 
   it("renders a disabled item as non-link with a described reason (FR-16 guest)", () => {
@@ -66,7 +66,7 @@ describe("Dock", () => {
 
   it("keeps an aria-label on every item and hides labels when narrow (FR-16)", () => {
     mount("/", { learn: "Sign in" });
-    for (const n of ["Sessions", "Problems", "Learn", "Present", "Games"]) {
+    for (const n of ["Home", "Problems", "Learn", "Present", "Games"]) {
       expect(document.querySelector(`[aria-label="${n}"]`), n).not.toBeNull();
     }
     expect(stripped).toMatch(/@media \(max-width: 640px\)/);

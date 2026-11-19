@@ -27,7 +27,7 @@ export function EmptyStateWindow({ icon, title, children }: WindowProps) {
         title={title}
         action={
           <Link className={styles.link} to="/">
-            Back to problems
+            Back to home
           </Link>
         }
       >
