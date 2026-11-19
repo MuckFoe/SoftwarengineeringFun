@@ -1,38 +1,61 @@
 .board {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-2);
   width: 100%;
   max-width: 12rem;
   aspect-ratio: 7 / 6;
-  border: 1px solid var(--ui-stroke);
+  background: var(--rps-field);
+  border: 1px solid var(--rps-field-line);
+  border-radius: var(--radius-sm);
   pointer-events: none;
   user-select: none;
 }
 
-.light {
-  background: var(--board-light);
+/* Midline across the row 2/3 boundary (FR-28). */
+.board::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: 3px;
+  transform: translateY(-50%);
+  background: var(--rps-field-line);
 }
 
-.dark {
-  background: var(--board-dark);
+.cell {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--radius-sm);
+  outline: 1px solid var(--rps-field-line);
+  outline-offset: -1px;
 }
 
-.sideA,
-.sideB {
+.cell[data-zone="home-bottom"],
+.cell[data-zone="home-top"] {
+  background: var(--rps-zone-home);
+}
+
+.cell[data-zone="middle"] {
+  background: var(--rps-zone-middle);
+}
+
+.figure {
   display: block;
-  width: 100%;
-  height: 100%;
-  stroke-width: 3;
-  stroke-linejoin: round;
-  paint-order: stroke;
+  inline-size: 100%;
+  aspect-ratio: 1;
 }
 
-.sideA {
-  fill: var(--rps-side-a);
-  stroke: var(--rps-side-a-edge);
+/* Team-area rule on the outer edge of each home zone (FR-28): row 5 is drawn first, row 0 last. */
+.cell:nth-child(-n + 7) {
+  box-shadow: inset 0 2px 0 var(--rps-zone-home-rule);
 }
 
-.sideB {
-  fill: var(--rps-side-b-fill);
-  stroke: var(--rps-side-b);
+.cell:nth-last-child(-n + 7) {
+  box-shadow: inset 0 -2px 0 var(--rps-zone-home-rule);
 }

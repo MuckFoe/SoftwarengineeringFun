@@ -1,0 +1,43 @@
+/* Piece figures (spec 021 FR-27, NFR-5): every colour from the --rps-side-* tokens and the
+   --rps-figure-contour outline, which keeps a light edge visible on a light tile. */
+.figure {
+  display: block;
+  width: 100%;
+  height: 100%;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.figure[data-side="a"] {
+  --fig-fill: var(--rps-side-a);
+  --fig-edge: var(--rps-side-a-edge);
+}
+
+.figure[data-side="b"] {
+  --fig-fill: var(--rps-side-b-fill);
+  --fig-edge: var(--rps-side-b);
+}
+
+.fill {
+  fill: var(--fig-fill);
+  fill-rule: evenodd;
+  stroke: var(--fig-edge);
+}
+
+.edge {
+  fill: none;
+  stroke: var(--fig-edge);
+}
+
+.detail {
+  fill: var(--fig-edge);
+  stroke: none;
+}
+
+/* Drawn under each layer, 1.5 units wider than the edge on each side. */
+.contour {
+  fill: none;
+  stroke: var(--rps-figure-contour);
+  stroke-width: 6;
+}

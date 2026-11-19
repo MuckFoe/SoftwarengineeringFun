@@ -69,6 +69,27 @@ export function sql(statement: string): string {
   ).trim();
 }
 
+export type RpsPiece = [square: number, side: "a" | "b", kind: string];
+
+/**
+ * Spec 021: replaces the current Rock Paper Siege game's pieces of the session behind `invite`
+ * (an invite id or path) with `pieces`, side A moving first. Fighters are dealt at random
+ * (FR-4), so tests fix the board between the first and the second Ready: the second Ready then
+ * starts play on this board and sends it to everyone.
+ */
+export function fixRpsBoard(invite: string, pieces: RpsPiece[]): void {
+  const id = invite.split("/").pop() ?? "";
+  if (!/^[\w-]+$/.test(id)) throw new Error(`unexpected invite ${invite}`);
+  const game = sql(`select current_game_id from rps_session where invite_id = '${id}'`);
+  if (!/^[0-9a-f-]{36}$/.test(game)) throw new Error(`no current game for ${id}: ${game}`);
+  const values = pieces.map(([sq, side, kind]) => `('${game}', ${sq}, '${side}', '${kind}')`);
+  sql(
+    `update rps_game set first_side = 'a' where id = '${game}'; ` +
+      `delete from rps_piece where game_id = '${game}'; ` +
+      `insert into rps_piece (game_id, square, side, kind) values ${values.join(", ")}`,
+  );
+}
+
 /** Marks the session stale in the stack's database, as the stale-session job would. */
 export function markStale(invite: string): void {
   if (!/^[\w-]+$/.test(invite)) throw new Error(`unexpected invite id ${invite}`);

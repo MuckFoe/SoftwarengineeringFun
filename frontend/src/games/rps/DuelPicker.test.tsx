@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DuelPicker } from "./DuelPicker";
+import { BODY, KIND_PARTS } from "./pieces/figureParts";
 import type { RpsDuel } from "./rpsTypes";
 
 afterEach(cleanup);
@@ -19,6 +20,12 @@ function duel(over: Partial<RpsDuel> = {}): RpsDuel {
 }
 
 const WEAPONS = ["Rock", "Paper", "Scissors"];
+
+function glyphPaths(button: HTMLElement): string[] {
+  return Array.from(button.querySelectorAll("svg path:not([data-layer])")).map(
+    (p) => p.getAttribute("d") ?? "",
+  );
+}
 
 describe("DuelPicker", () => {
   it("AC-13: a player who has not picked gets three enabled weapon buttons", () => {
@@ -110,5 +117,25 @@ describe("DuelPicker", () => {
     key("ArrowLeft");
     key("ArrowLeft");
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Scissors" }));
+  });
+
+  it("AC-28: each button shows exactly its own weapon's parts, no body, hidden from AT", () => {
+    for (const you of ["a", "b"] as const) {
+      render(<DuelPicker duel={duel()} you={you} onPick={() => {}} />);
+      for (const [weapon, name] of [
+        ["rock", "Rock"],
+        ["paper", "Paper"],
+        ["scissors", "Scissors"],
+      ] as const) {
+        const button = screen.getByRole("button", { name });
+        const svgs = button.querySelectorAll("svg");
+        expect(svgs).toHaveLength(1);
+        expect(svgs[0]?.getAttribute("aria-hidden")).toBe("true");
+        expect(svgs[0]?.getAttribute("data-side")).toBe(you);
+        expect(glyphPaths(button)).toEqual(KIND_PARTS[weapon].map((p) => p.d));
+        for (const part of BODY) expect(glyphPaths(button)).not.toContain(part.d);
+      }
+      cleanup();
+    }
   });
 });

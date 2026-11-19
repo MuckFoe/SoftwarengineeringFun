@@ -152,6 +152,14 @@
   --rps-side-b: var(--text);
   --rps-side-b-fill: var(--bg);
   --rps-trap-flash: var(--danger);
+  --rps-field: var(--surface-4);
+  --rps-field-line: var(--ui-stroke);
+  --rps-zone-home: var(--surface-1);
+  --rps-zone-middle: var(--surface-3);
+  --rps-zone-home-rule: var(--accent);
+  --rps-figure-contour: var(--text);
+  --rps-target: var(--text);
+  --rps-last-move: var(--text-muted);
   --glow: 0 0 24px 0 rgba(31, 95, 255, 0.45);
   --radius-pill: 999px;
   --radius-card: 24px;

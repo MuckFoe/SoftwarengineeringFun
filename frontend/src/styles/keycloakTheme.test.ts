@@ -55,6 +55,25 @@ describe("keycloak theme token copy (FR-9)", () => {
     }
   });
 
+  it("carries the five rps field and zone aliases on :root, which dark inherits (spec 021 task 35)", () => {
+    const dark = block(region, ':root[data-appearance="dark"]');
+    const have = block(region, ":root");
+    const field: [string, string][] = [
+      ["--rps-field", "var(--surface-4)"],
+      ["--rps-field-line", "var(--ui-stroke)"],
+      ["--rps-zone-home", "var(--surface-1)"],
+      ["--rps-zone-middle", "var(--surface-3)"],
+      ["--rps-zone-home-rule", "var(--accent)"],
+      ["--rps-figure-contour", "var(--text)"],
+      ["--rps-target", "var(--text)"],
+      ["--rps-last-move", "var(--text-muted)"],
+    ];
+    for (const [name, alias] of field) {
+      expect([name, have.get(name)]).toEqual([name, alias]);
+      expect([name, dark.has(name)]).toEqual([name, false]);
+    }
+  });
+
   it("registration card, fields and buttons use the v2 shapes", () => {
     expect(collab).toMatch(/\.pf-v5-c-login__main\s*\{[^}]*border-radius:\s*var\(--radius-card\)/);
     expect(collab).toMatch(/\.pf-v5-c-login__main\s*\{[^}]*background:\s*var\(--surface\)/);
@@ -63,6 +82,10 @@ describe("keycloak theme token copy (FR-9)", () => {
     expect(register).toMatch(/\.pf-m-primary\s*\{[^}]*background:\s*var\(--accent\)/);
     expect(register).toMatch(/\.pf-m-primary\s*\{[^}]*color:\s*var\(--on-accent\)/);
     expect(register).toMatch(/aria-invalid="true"[^{]*\{[^}]*var\(--danger\)/);
-    expect(collab + register).not.toMatch(/var\(--(radius-0|action-[\w-]+|surface-1)\)/);
+    // The copied token region is pinned to tokens.css above (its aliases may name v1 tokens, e.g.
+    // --rps-zone-home: var(--surface-1)); the theme's own styles must not use the v1 names.
+    expect(collab.replace(region, "") + register).not.toMatch(
+      /var\(--(radius-0|action-[\w-]+|surface-1)\)/,
+    );
   });
 });

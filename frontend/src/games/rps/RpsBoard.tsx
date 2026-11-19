@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { PIECE_PATHS } from "./pieces/paths";
+import { PieceFigure } from "./pieces/PieceFigure";
 import styles from "./RpsBoard.module.css";
 import { COLS, ROWS, squareName } from "./rpsState";
 import type { Kind, Recipient, RpsEvent, RpsGame, RpsPiece, Side } from "./rpsTypes";
@@ -36,6 +36,16 @@ function orderFor(bottom: Side): number[] {
   });
 }
 
+type Zone = "home-bottom" | "middle" | "home-top";
+
+/** FR-28: rows 0–1 are side a's home, 4–5 side b's, 2–3 the empty middle. */
+function zoneOf(sq: number, bottom: Side): Zone {
+  const row = Math.floor(sq / COLS);
+  if (row >= 2 && row < ROWS - 2) return "middle";
+  const home: Side = row < 2 ? "a" : "b";
+  return home === bottom ? "home-bottom" : "home-top";
+}
+
 function pieceName(piece: RpsPiece, you: Recipient): string {
   const who =
     you === "viewer"
@@ -70,6 +80,14 @@ export function RpsBoard({
   const destinations = selected === null ? [] : legalFrom(selected);
   const setup = game.status === "setup" && onSetupSquare;
   const effectAt = event && (event.kind === "fight" || event.kind === "trapped") ? event : null;
+  // The last move's squares stay marked until an event that carries from/to replaces them, so a
+  // duel_round (no squares) keeps the tied fight's squares marked.
+  const [lastMove, setLastMove] = useState<number[]>(
+    event && "from" in event ? [event.from, event.to] : [],
+  );
+  if (event && "from" in event && (lastMove[0] !== event.from || lastMove[1] !== event.to)) {
+    setLastMove([event.from, event.to]);
+  }
 
   const activate = (sq: number) => {
     if (setup) {
@@ -116,7 +134,11 @@ export function RpsBoard({
 
   return (
     // biome-ignore lint/a11y/useSemanticElements: a 7x6 game board is a grid of buttons.
-    <div role="grid" aria-label="Rock Paper Siege board" className={styles.board}>
+    <div
+      role="grid"
+      aria-label="Rock Paper Siege board"
+      className={`${styles.board} ${styles.field} ${styles.midline}`}
+    >
       {Array.from({ length: ROWS }, (_, r) => (
         // biome-ignore lint/a11y/useFocusableInteractive: rows are containers; the cells are focusable.
         // biome-ignore lint/a11y/useSemanticElements: grid rows.
@@ -124,7 +146,7 @@ export function RpsBoard({
           {order.slice(r * COLS, r * COLS + COLS).map((sq, c) => {
             const index = r * COLS + c;
             const piece = at.get(sq);
-            const light = (Math.floor(sq / COLS) + (sq % COLS)) % 2 === 0;
+            const last = lastMove.includes(sq);
             const isSel = selected === sq;
             const target = destinations.includes(sq);
             const label = [
@@ -136,7 +158,7 @@ export function RpsBoard({
               .join(", ");
             const cls = [
               styles.cell,
-              light ? styles.light : styles.dark,
+              last && styles.lastMove,
               isSel && styles.selected,
               target && styles.target,
               target && piece && styles.occupied,
@@ -152,6 +174,8 @@ export function RpsBoard({
                 role="gridcell"
                 key={sq}
                 data-square={sq}
+                data-zone={zoneOf(sq, bottom)}
+                data-last-move={last ? "" : undefined}
                 aria-label={label}
                 className={cls}
                 tabIndex={sq === focus ? 0 : -1}
@@ -165,14 +189,9 @@ export function RpsBoard({
                 onKeyUp={(e) => e.key === " " && e.preventDefault()}
               >
                 {piece && (
-                  <svg
-                    className={`${styles.piece} ${piece.side === "a" ? styles.sideA : styles.sideB}`}
-                    viewBox="0 0 48 48"
-                    focusable="false"
-                    role="presentation"
-                  >
-                    <path d={PIECE_PATHS[piece.kind ?? "hidden"]} />
-                  </svg>
+                  <span className={styles.figure}>
+                    <PieceFigure kind={piece.kind} side={piece.side} />
+                  </span>
                 )}
               </button>
             );

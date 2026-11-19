@@ -32,6 +32,11 @@ The *Games* section (spec 014) was built to hold more than chess, and chess is s
 - **FR-2** THE SYSTEM SHALL handle sessions of this game as chess sessions are handled in spec 014. That covers the invite link with no account needed, at most 5 participants, the first two in being the players and the rest viewers, switching between player and viewer before a game, the *Start* action (always shown, and shown again after each game), resignation, the away-player claim after 2 minutes, deletion, durable storage, stale after 30 days, chat as in specs 002/007, and listing on profiles as in spec 012. Where this spec says something different, this spec wins.
 - **FR-3** THE SYSTEM SHALL not use the name, characters, artwork or sounds of the original messenger game. The game is called **Rock Paper Siege** and has its own artwork.
 
+### Look of the board and pieces
+
+- **FR-27** THE SYSTEM SHALL draw every piece as a chunky cartoon soldier figure in the project's own style. A rock, paper or scissors fighter is a soldier visibly holding that weapon, so the three kinds are told apart by the weapon at a glance. The flag is a soldier figure holding up a flag and the trap a figure-style trap in the same look. A hidden piece is a soldier whose weapon cannot be seen, and every hidden piece looks the same (FR-21). Both sides use the same figures and are told apart by colour and outline, not by colour alone (NFR-5).
+- **FR-28** THE SYSTEM SHALL draw the board as a playing field, not a plain checkerboard. Each side's two home rows and the two empty middle rows are visibly marked, and the line between the two halves is clear. Squares stay distinguishable from each other, and a selected piece, its legal targets and the last move stay visible on the field.
+
 ### Setup
 
 - **FR-4** WHEN a game starts, THE SYSTEM SHALL let each player choose, on their own, which two of their 14 home-row squares hold their flag and their trap. The 12 fighters (4 rock, 4 paper, 4 scissors) are dealt at random onto the other 12 squares.
@@ -148,6 +153,10 @@ The *Games* section (spec 014) was built to hold more than chess, and chess is s
 
 **AC-27 (NFR-5)** Given a 390 px wide screen in dark mode with reduced motion, when a game is played, then the whole board is visible without horizontal scrolling, nothing animates, and the game can be set up and played with the keyboard alone. A screen reader names each piece with side, kind or "hidden", and position, and announces fight results.
 
+**AC-28 (FR-27, NFR-5)** Given a board at 390 px wide, in light and in dark mode, when a player looks at their own pieces and the opponent's revealed fighters, then each rock, paper and scissors figure is recognisable by the weapon it holds, the flag and trap are recognisable, every opponent hidden piece looks identical, and a piece of side A can be told from a piece of side B without relying on colour alone.
+
+**AC-29 (FR-28)** Given a game in progress, when a player looks at the board, then both sides' home rows, the empty middle rows and the line between the halves are visible, each square can be told apart from its neighbours, and a selected fighter, its legal targets and the last move are shown on the field. Given the same board in light and in dark mode, then all of this still holds.
+
 ## UI spec checklist (constitution-ui.md, section E)
 
 - [x] Home screen presence defined: game tile reusing the chess tile kind, with a secrecy-safe preview (FR-25)
@@ -161,3 +170,5 @@ The *Games* section (spec 014) was built to hold more than chess, and chess is s
 ## Open questions
 
 None. The game's name was resolved 2026-11-15: Rock Paper Siege.
+
+Changed 2026-11-19: pieces become chunky cartoon soldier figures and the board a playing field (FR-27, FR-28, AC-28, AC-29). FR-3 and NFR-6 stand: the figures are the project's own, not copied from the original game.

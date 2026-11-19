@@ -93,7 +93,12 @@ const V2_PAIRS: Pair[] = [
     { name: `v2 danger text on ${bg}`, kind: "text", fg: "--danger", bg },
   ]),
   ...["--accent", "--accent-hover", "--accent-press"].map(
-    (bg): Pair => ({ name: `v2 on-accent text on ${bg}`, kind: "text", fg: "--on-accent", bg }),
+    (bg): Pair => ({
+      name: `v2 on-accent text on ${bg}`,
+      kind: "text",
+      fg: "--on-accent",
+      bg,
+    }),
   ),
 ];
 
@@ -180,7 +185,12 @@ const RPS_SIDES: [string, Colour[]][] = [
 ];
 const RPS_PAIRS: Pair[] = RPS_SIDES.flatMap(([side, fg]) =>
   ["--board-light", "--board-dark"].map(
-    (sq): Pair => ({ name: `rps side ${side} piece on ${sq}`, kind: "ui", fg, bg: square(sq) }),
+    (sq): Pair => ({
+      name: `rps side ${side} piece on ${sq}`,
+      kind: "ui",
+      fg,
+      bg: square(sq),
+    }),
   ),
 );
 
@@ -193,4 +203,72 @@ describe.each(APPEARANCES)("rps pieces on board squares in %s appearance (spec 0
       expect(evaluatePair(pair, a).ratio).toBeGreaterThanOrEqual(THRESHOLD.ui);
     });
   }
+});
+
+// Spec 021 task 35 (AC-28, AC-29; FR-27, FR-28, NFR-5): the playing field. The squares are now the
+// zone tones, so each side's piece (fill or edge) and the field line (the 1 px tile outline and the
+// midline, which carry the square boundary) reach 3:1 against both zones, and the target dot and
+// last-move tint stay readable there. --rps-field (the gap colour) is not held to 3:1: the tile
+// outline carries the boundary. The selected fighter gets a two-tone ring, outer --focus with a
+// thin inner --bg, so the ring is checked as --focus against --bg. Names resolve through tokens.css.
+const RPS_ZONES = ["--rps-zone-home", "--rps-zone-middle"];
+const RPS_FIELD_PAIRS: Pair[] = [
+  ...RPS_ZONES.flatMap((zone): Pair[] => {
+    const bg = rpsAlias(zone);
+    return [
+      ...RPS_SIDES.map(
+        ([side, fg]): Pair => ({
+          name: `rps side ${side} piece on ${zone}`,
+          kind: "ui",
+          fg,
+          bg,
+        }),
+      ),
+      { name: `rps field line on ${zone}`, kind: "ui", fg: rpsAlias("--rps-field-line"), bg },
+      {
+        name: `rps figure contour on ${zone}`,
+        kind: "ui",
+        fg: rpsAlias("--rps-figure-contour"),
+        bg,
+      },
+      { name: `rps target mark on ${zone}`, kind: "ui", fg: rpsAlias("--rps-target"), bg },
+      {
+        name: `rps last-move hatching on ${zone}`,
+        kind: "ui",
+        fg: rpsAlias("--rps-last-move"),
+        bg,
+      },
+    ];
+  }),
+  { name: "rps selected ring: outer --focus on inner --bg", kind: "ui", fg: "--focus", bg: "--bg" },
+];
+
+describe.each(APPEARANCES)("rps playing field in %s appearance (spec 021 AC-28, AC-29)", (a) => {
+  it("declares both sides and the field marks on both zones, plus the selection ring", () => {
+    expect(RPS_FIELD_PAIRS).toHaveLength(13);
+  });
+  for (const pair of RPS_FIELD_PAIRS) {
+    it(`${pair.name} >= 3:1`, () => {
+      expect(evaluatePair(pair, a).ratio).toBeGreaterThanOrEqual(THRESHOLD.ui);
+    });
+  }
+});
+
+// Look fixes 2026-11-19: the home and middle zones are told apart in dark as in light, and the
+// target and last-move marks are neutral, so they are not the same blue as side a's pieces.
+describe.each(APPEARANCES)("rps zones and marks in %s appearance (spec 021 AC-29)", (a) => {
+  it("home and middle zone tones differ by at least 1.25:1", () => {
+    const pair: Pair = {
+      name: "rps zone middle on zone home",
+      kind: "ui",
+      fg: rpsAlias("--rps-zone-middle"),
+      bg: rpsAlias("--rps-zone-home"),
+    };
+    expect(evaluatePair(pair, a).ratio).toBeGreaterThanOrEqual(1.25);
+  });
+  it("target and last-move marks are not the accent", () => {
+    for (const mark of ["--rps-target", "--rps-last-move"]) {
+      expect(["--accent", "--highlight", "--focus"]).not.toContain(rpsAlias(mark));
+    }
+  });
 });

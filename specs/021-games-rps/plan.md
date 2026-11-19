@@ -2,12 +2,16 @@
 
 Spec: `specs/021-games-rps/spec.md` (approved, no open markers). HOW only; requirement IDs refer to the spec.
 
+Revised 2026-11-19 for the spec change that added FR-27 (soldier figures) and FR-28 (playing field), with AC-28 and AC-29. That revision is frontend-only: no backend, data model or wire contract changes. It is laid out under *Figures and playing field* below, and it changes the piece and board lines elsewhere in this plan.
+
 ## Decisions for review
 
 1. **A parallel game package, not a generalised session core.** Rock Paper Siege gets its own backend package and tables (`rps_*`), mirroring `app.games.chess` the way chess mirrored `app.present`. Generalising chess's session lifecycle into a shared core would touch every chess module, and the spec puts changes to chess out of scope. Cost: the lifecycle code (join, seats, start, resign, claim, delete, stale, chat) is copied and adapted, about 1,200 lines. What can be shared as-is is shared: `ChessHub` (cap, presence, away timers; its unused `board` field stays `None`), `app.chat.rules`/`app.chat.service.message_dict`, `app.gifs`, `app.accounts.identity`, the close codes.
 2. **One secrecy choke point.** Chess sends one snapshot to everyone. Here every outgoing game payload (welcome, state, event, home tile, profile list) goes through one pure module, `app.games.rps.views`, which takes the full stored state plus the recipient and returns only what that recipient may see (FR-21, FR-22, NFR-1). No other module builds board JSON.
 3. **No piece ids on the wire.** Pieces are identified by square (0–41), never by an id, so nothing about deal order or kind can leak through ids, including across re-deals.
 4. **Events are transient.** Fight, duel and trap results go out once, with the state that follows the action. They are not stored. A reload restores the board, setup and pending duel (FR-24), not the last animation.
+5. **Figures are layered inline SVG drawn from one part table, not six single-path files** (FR-27). A chunky cartoon soldier needs at least three tones (body, outline, details) and a separate weapon layer, and a single `currentColor` path cannot carry that. One `PieceFigure` component draws every piece on the board, in the home preview and as the weapon glyphs in the duel picker. That also removes the duplicate piece paths in `RpsBoardPreview` (a follow-up noted at implementation).
+6. **The field is drawn in tone, not in a new hue** (FR-28, UI rule 7). There is no green grass: the one-accent rule forbids another hue. Zones are separated by surface tones and an accent-tinted home zone. Squares are rounded tiles separated by gaps that show the field lines. The midline is a solid line.
 
 ## Architecture
 
@@ -47,7 +51,7 @@ frontend/src/games/rps/
   rpsTypes.ts            wire types (Contracts below), strict
   rpsSocket.ts           chessSocket.ts adapted: URL, close codes, rejoin key "rps-rejoin:<invite>"
   rpsState.ts            reducer + selectors: role, bottom side, selected square, targets, announcements
-  RpsBoard.tsx/.css      7×6 grid, own side at the bottom, keyboard play
+  RpsBoard.tsx/.css      7×6 playing field (FR-28), own side at the bottom, keyboard play
   SetupBar.tsx/.css      place flag / place trap, Re-deal, Ready
   DuelPicker.tsx/.css    rock / paper / scissors pick, waiting state, last tied round
   RpsSeatsPanel.tsx      two seats + viewers, take/leave seat (as chess SeatsPanel, sides not colours)
@@ -55,7 +59,8 @@ frontend/src/games/rps/
                          its `result` type can widen to a string union, else a copy
   RpsSessionWindow.tsx   composes the above with Window, AppHeader, InviteLink, ChatPane, useChat,
                          GameControls-like row (Start, Offer draw, Accept/Decline, Resign, Claim, Delete)
-  pieces/{rock,paper,scissors,flag,trap,hidden}.svg   original artwork, single path, currentColor
+  pieces/figureParts.ts  original soldier-figure artwork as data: shared body parts + per-kind parts (FR-27)
+  pieces/PieceFigure.tsx inline SVG figure for (kind | hidden, side); used by board, home preview, duel picker
 ```
 
 Touched: `App.tsx` (route `/games/rps/s/:invite`), `games/gamesApi.ts` (`createRpsSession`, `getRpsSession`), `games/GamesWindow.tsx` (start any catalogue game through its `start_path` and route by `id`), `api/types.ts` (`GameTile` union, `RecentSession.kind` gains `"rps"`), `home/GameTile.tsx` + new `home/RpsBoardPreview.tsx`, `home/HomeLanding.tsx` (open route by tile `game`), `home/rejoinToken.ts` (also read `rps-rejoin:*`), `pages/ProfileSessions.tsx` and `shell/useJumpIndex.ts` (kind `"rps"` label, icon and route `/games/rps/s/`), `styles/tokens.css` + Keycloak theme copy.
@@ -242,12 +247,81 @@ Visibility: the same participant-row membership query as chess (`_GAMES` on `rps
 
 ## UI notes (constitution-ui)
 
-- **Sides** without a second hue: side `a` = `--accent` filled pieces, side `b` = `--text` outlined pieces, so they differ by shape, not only by colour. Hidden pieces use `hidden.svg` in the side's style. Each piece has a fill and an edge (stroke), and, as in chess, it counts as readable when either one reaches 3:1 against the square. Side `a`: fill `--rps-side-a` (alias of `--accent`), edge `--rps-side-a-edge` (alias of `--on-accent`). Side `b`: fill `--rps-side-b-fill` (alias of `--bg`), edge `--rps-side-b` (alias of `--text`). Single-colour pieces fail on one square colour in each theme (as low as 1.28:1), so the fill-plus-edge rule above was chosen at implementation on 2026-11-15. New tokens `--rps-side-a`, `--rps-side-a-edge`, `--rps-side-b`, `--rps-side-b-fill` (aliases), plus `--rps-trap-flash` aliased to `--danger` for the trap notice, in light and dark and in the Keycloak theme copy. Squares reuse `--board-light` / `--board-dark`.
+- **Sides** without a second hue (as revised for the figures, see *Figures and playing field*): side `a` = `--accent` filled pieces, side `b` = `--text` outlined pieces, so they differ by shape, not only by colour. Hidden pieces use `hidden.svg` in the side's style. Each piece has a fill and an edge (stroke), and, as in chess, it counts as readable when either one reaches 3:1 against the square. Side `a`: fill `--rps-side-a` (alias of `--accent`), edge `--rps-side-a-edge` (alias of `--on-accent`). Side `b`: fill `--rps-side-b-fill` (alias of `--bg`), edge `--rps-side-b` (alias of `--text`). Single-colour pieces fail on one square colour in each theme (as low as 1.28:1), so the fill-plus-edge rule above was chosen at implementation on 2026-11-15. New tokens `--rps-side-a`, `--rps-side-a-edge`, `--rps-side-b`, `--rps-side-b-fill` (aliases), plus `--rps-trap-flash` aliased to `--danger` for the trap notice, in light and dark and in the Keycloak theme copy. Squares no longer use `--board-light` / `--board-dark`; the field tokens below replace them on this board (chess keeps them).
 - **Narrow:** `grid-template-columns: repeat(7, minmax(0, 1fr))`, `aspect-ratio: 7 / 6`, inline size capped by the window width and `100dvh` minus header, dock and the setup/duel bar, so the whole board fits at 390 px.
 - **Keyboard:** `role="grid"` named "Rock Paper Siege board", roving tabindex, arrows move focus, Enter/Space selects a fighter then a target, Escape cancels. In setup, Enter on a home square places whichever of flag/trap the `SegmentedControl` selects. Duel picker: three buttons, focus moves to it when a duel starts and back to the board after.
 - **Screen reader:** each cell "Your rock, C2", "Opponent hidden piece, D5", "Empty, E3" (columns A–G, rows 1–6 from the reader's own side; viewers from side a). One polite live region announces events (fight result, duel tie or win, trapped, flag taken, game over) only when a new event arrives.
 - **Reduced motion:** fight and trap effects are CSS transitions on motion tokens, so `--motion-*: 0s` turns them off. No other animation besides `LiveBadge`.
-- **Original assets (FR-3, NFR-6):** six new SVGs drawn for this repo; no names, sprites or sounds from the original game. `check-no-apple-assets.sh` still passes.
+- **Original assets (FR-3, NFR-6):** the figure part table is drawn for this repo, with no names, sprites, poses or sounds taken from the original game. `check-no-apple-assets.sh` still passes.
+
+## Figures and playing field (FR-27, FR-28)
+
+### Figure construction (FR-27)
+
+- **Grid and silhouette.** A 48-unit grid (the viewBox is cropped to the art, see the look fixes below). Every figure, hidden or not, shares one silhouette: a round helmet, a big head, a short wide body and stubby legs, filling about 40×44 units and standing on a base line at y=45. The silhouette is identical for every kind, so the outline of a piece never gives away its kind.
+- **Chunky look.** The outline stroke is 3 units with `stroke-linejoin` and `stroke-linecap: round`, and there are no details thinner than 2 units. At 390 px a square is about 50 px wide and the figure about 40 px tall, so a 3-unit stroke draws at about 2.5 px.
+- **Weapon carries the kind.** The weapon is held up in front of the chest and takes about 40 % of the figure's width, so the kind reads from the weapon and not from anything else:
+  - rock: a lumpy boulder held in both hands
+  - paper: a sheet with a folded corner and two text lines
+  - scissors: open blades with two round handles
+- **Flag and trap.**
+  - flag: the same soldier holding a pole with a pennant above the helmet. The pennant may extend beyond the silhouette, because the flag is never shown to the opponent (FR-21).
+  - trap: no soldier. A chunky toothed jaw trap on a pressure plate, drawn with the same stroke and tones. It too is never shown to the opponent, as a trap.
+- **Hidden piece.** The common soldier with both arms behind its back and no weapon layer. The SVG is emitted from `kind: null` alone. The component has no input that could make one hidden figure differ from another, so the DOM cannot leak the kind (FR-21, FR-22 stay enforced server-side as before).
+- **Parts.** `figureParts.ts` exports `BODY: Part[]`, `HIDDEN_ARMS: Part[]` and `KIND_PARTS: Record<Kind, Part[]>`, where `Part = { d: string; role: "fill" | "edge" | "detail" }`. `fill` parts are painted with the side's fill and stroked with its edge colour. `edge` parts are strokes only. `detail` parts (eyes, helmet rim, paper lines) are filled with the edge colour.
+
+- **Look fixes, 2026-11-19, after the first look at 390 px:**
+  - **Bigger figures.** The figure fills its cell (`inline-size: 100%`, not 82 %). The viewBox is cropped to the art plus its contour (`0 -1.5 48 50`), not the plain 48 grid.
+  - **Contour.** Each layer is drawn twice: first every `fill` and `edge` part as a 6-unit stroke in `--rps-figure-contour` (a new alias of `--text`), then the parts themselves. The contour shows only outside the silhouette. Without it, side a's `--on-accent` edge vanished on a light tile. `detail` parts get no contour.
+  - **Flag.** The bearer is the common soldier drawn at 72 % (`FLAG_BEARER` transform on its own `<g>`) beside a tall pole (`FLAG_POLE`). The cloth is about 22×10 units with a swallowtail and a roundel, and it flies left over the helmet. `KIND_PARTS.flag` is `FLAG_ARMS` plus `FLAG_POLE`.
+
+- **Marks and zone tones, 2026-11-19, second look fix:**
+  - **Zone tones.** In dark mode, `--surface-1` and `--surface-2` were only about 1.1:1 apart. So `--rps-zone-middle` is now `--surface-3` and `--rps-field` is `--surface-4`. Home and middle are held to at least 1.25:1 apart in both themes.
+  - **Neutral marks.** The target dot and ring use `--rps-target` (alias of `--text`). The last move is diagonal hatching in `--rps-last-move` (alias of `--text-muted`) instead of a `--highlight` tint. Before this, the target dot, the last move and side a's pieces were all the same blue. Blue on the board now means side a and the focus ring only.
+
+### Contract
+
+```ts
+type PieceFigureProps = {
+  kind: Kind | null;          // null = hidden
+  side: "a" | "b";
+  title?: string;             // omitted when the cell itself carries the accessible name
+  weaponOnly?: boolean;       // duel picker glyph: only KIND_PARTS[weapon], no body
+};
+// renders <svg viewBox="0 -1.5 48 50" aria-hidden={!title} data-side={side}>
+// with fill/stroke from var(--rps-side-*) tokens via CSS classes, never literals
+```
+
+### Side marks (NFR-5: not by colour alone)
+
+Both sides keep the fill-and-edge token pairs already in this plan: side `a` is accent-filled with an `--on-accent` edge, side `b` is `--bg`-filled with a `--text` edge. To set the sides apart by shape as well, each helmet gets an emblem drawn as a `detail` part: a round boss for side `a` and a horizontal bar for side `b`. These emblems are the only per-side geometry. Hidden figures carry them too, because a piece's side is always public.
+
+### Playing field (FR-28)
+
+- **Zones.** Each cell gets `data-zone="home-bottom" | "middle" | "home-top"`, derived from its row and from which side is drawn at the bottom. Zone tones are new alias tokens, in light and dark and in the Keycloak copy:
+  - `--rps-field`: the field and gap colour (alias of `--surface-4`; was `--surface-3`)
+  - `--rps-zone-home`: both home zones (alias of `--surface-1`)
+  - `--rps-zone-middle`: the two empty rows (alias of `--surface-3`; was `--surface-2`, see the second look fix)
+  - `--rps-zone-home-rule`: a 2-unit inner rule along the outer edge of each home zone, so the zone reads as a team area (alias of `--accent` at the existing `--edge-light` weight). Renamed at implementation on 2026-11-19 from `--rps-zone-home-accent`, because the one-accent guard test rejects any other token named `*accent*`.
+- **Squares.** Each cell is a tile with `--radius-sm`, a 1 px `--rps-field-line` outline and a `--space-2` gap on the field. There are no checker tones. Decided 2026-11-19 at implementation: `--rps-field` (`--surface-3`) reaches only 1.10–1.34:1 against the zone tones, and no surface alias reaches 3:1. So the tile outline carries the 3:1 square boundary, and the gap colour is not held to 3:1. The midline stays distinct because it is thicker (3 units against 1 px).
+- **Midline.** A 3-unit line drawn as a board `::after` across the row 2/3 boundary in `--rps-field-line` (alias of `--ui-stroke`).
+- **Highlights.** The existing selection, target and last-move styling is kept and re-checked on the new tones:
+  - selected fighter: a two-tone ring, an outer `--focus` ring with a thin inner `--bg` ring. Decided 2026-11-19: `--focus` alone reaches only 2.96:1 on `--rps-zone-middle` in light. The two-tone ring is visible on any tone, because `--focus` against `--bg` reaches 3:1.
+  - legal target: a centred `--rps-target` dot (neutral, see the second look fix)
+  - last move: both squares hatched in `--rps-last-move`
+- **Motion.** No new animation and no idle movement of the figures. Fight and trap effects are unchanged and stay on motion tokens, so reduced motion turns them off.
+- **Size.** The narrow-width sizing rule is unchanged. The figure fills the cell (`inline-size: 100%`; see the look fixes above).
+
+### Touched files
+
+| File | Change |
+|---|---|
+| `games/rps/pieces/figureParts.ts`, `PieceFigure.tsx` | new; replace the six `.svg` files and `paths.ts`, which are deleted, along with whatever imports them |
+| `games/rps/pieces/pieces.test.ts` | rewritten for the figures (see tests) |
+| `games/rps/RpsBoard.tsx`, `RpsBoard.module.css` | `PieceFigure`, `data-zone`, tiles, midline, field tokens |
+| `home/RpsBoardPreview.tsx` | `PieceFigure` and the field look at preview size, still `aria-hidden` |
+| `games/rps/DuelPicker.tsx` | `PieceFigure weaponOnly` glyphs |
+| `styles/tokens.css`, Keycloak theme copy, `tokens`/`contrast` tests | `--rps-field`, `--rps-field-line`, `--rps-zone-home`, `--rps-zone-middle`, `--rps-zone-home-rule` |
 
 ## Test strategy
 
@@ -280,9 +354,11 @@ Levels: **unit** = pytest on `rules`/`views` (no DB) and vitest component/reduce
 | AC-24 | integration `test_home`: rps tile fields, `board` hidden for a session viewer, absent for a non-member and guest of another session; vitest `GameTile` rps variant; E2E home opens the session |
 | AC-25 | vitest `useJumpIndex` route for `rps`; E2E jump bar opens it; dock *Games* reaches the catalogue |
 | AC-26 | E2E `rps-latency.spec.ts` as `chess-latency`: fight visible on three pages within 1 s |
+| AC-28 | vitest `pieces.test.ts`: each of rock/paper/scissors/flag/trap renders its own `KIND_PARTS` and no other kind's; two hidden figures of the same side serialise to identical markup, and the markup contains no weapon part; side `a` and `b` figures differ in their emblem part, not only in class; every `d` is drawn from `figureParts` (no inline art). `contrast.test.ts`: every piece's fill or edge reaches 3:1 against `--rps-zone-home` and `--rps-zone-middle`, in light and dark. Look matrix: the "rps session (guest)" entries in setup and play, at 390 px in light and dark, now show own figures and revealed fighters. Recognisability itself is a human check at `/run` per task and at `/sdd-validate`. |
+| AC-29 | vitest `RpsBoard`: cells carry the right `data-zone` for a player at either side and for a viewer; a selected fighter, its targets and the last move keep their accessible names and states. `contrast.test.ts`: `--rps-field-line` (midline and tile outline) reaches 3:1 (non-text) against both zone tones, in light and dark; `--focus` reaches 3:1 against `--bg` (the two-tone ring) and the target dot and `--highlight` tint stay readable on both zones. `--rps-field` is not held to 3:1 (decided 2026-11-19). Look matrix as AC-28. |
 | AC-27 | E2E `rps-a11y.spec.ts`: 390 px, dark, reduced motion, keyboard-only setup + move + duel, accessible names and live announcement; vitest `RpsBoard` names and keys; look matrix entries "rps session (guest)" in setup and in play |
 
-Frontend unit: `rpsState` reducer (events → announcements, selection, own side at the bottom), `SetupBar`, `DuelPicker` (waiting, disabled after pick), `RpsBoard` (roles, names, keyboard), `tokens`/`guard`/`contrast` tests covering the new tokens.
+Frontend unit: `rpsState` reducer (events → announcements, selection, own side at the bottom), `SetupBar`, `DuelPicker` (waiting, disabled after pick), `RpsBoard` (roles, names, keyboard), `tokens`/`guard`/`contrast` tests covering the new tokens, including the five field tokens from the 2026-11-19 revision. `RpsBoardPreview` and `DuelPicker` tests switch to `PieceFigure`, with the same role and name queries.
 
 ## Constitution compliance
 
@@ -300,8 +376,8 @@ Frontend unit: `rpsState` reducer (events → announcements, selection, own side
 | 10 / UI A.7 | Home tile kind, `/api/home` change and the trigger are named above (no new trigger: polling). |
 | UI A.8 | Existing *Games* dock entry; sessions in the jump bar through `/api/me/sessions`. |
 | UI A.9 | Guests and invitees as chess; secrecy is enforced server-side in `views`. |
-| UI B.5–12 | Tokens only (five new aliases, mirrored in Keycloak), one accent (sides by fill vs outline), primitives reused, no new primitive, original SVG assets. |
+| UI B.5–12 | Tokens only: five aliases for the sides, five for the field, and one each for the figure contour, target and last move, mirrored in Keycloak. One accent: the field is drawn in surface tones with no green, and the sides differ by fill vs outline plus a helmet emblem. Primitives reused; `PieceFigure` is a game component, not a primitive. The figure art is original and drawn as data. |
 | UI C.13–18 | Narrow fit, light/dark, reduced motion, keyboard and screen-reader behaviour above; preview board `aria-hidden`; first paint does not wait on the tile board. |
 | UI D.19–22 | Component tests, look matrix entries, E2E specs listed above; `/run` look per visible task. |
 
-**Conflict to flag: none.** Note for review: Decision 1 accepts duplicated lifecycle code to keep chess untouched. If you would rather extract a shared session core first, that is a separate refactor spec before this one.
+**Conflict to flag: none.** The FR-28 'playing field' is drawn under rule B.7 (one accent), so it reads as a field in tone and lines, not as a green pitch. If you want green turf, that needs a constitution exception first. Note for review: Decision 1 accepts duplicated lifecycle code to keep chess untouched. If you would rather extract a shared session core first, that is a separate refactor spec before this one.

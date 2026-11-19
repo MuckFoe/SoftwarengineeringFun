@@ -9,8 +9,10 @@ import {
   createSession,
   expect,
   fakeGiphy,
+  fixRpsBoard,
   REPO_ROOT,
   resetPreferences,
+  type RpsPiece,
   signIn,
   workerUser,
 } from "../fixtures";
@@ -180,6 +182,22 @@ async function startRps(page: Page, request: APIRequestContext): Promise<Page> {
   await expect(page.getByRole("button", { name: "Ready", exact: true })).toBeEnabled();
   return second;
 }
+
+/**
+ * The play entry's board (squares are row * 7 + col; A's home rows 0-1, B's 4-5): full sides of
+ * 4 rock, 4 paper, 4 scissors, a flag and a trap, with A's paper on D2 (10) facing B's scissors
+ * on D5 (31) across the empty middle rows.
+ */
+const RPS_PLAY_BOARD: RpsPiece[] = (
+  [
+    ["a", ["rock", "paper", "trap", "flag", "scissors", "rock", "paper"]],
+    ["a", ["scissors", "rock", "paper", "paper", "scissors", "rock", "scissors"]],
+    ["b", ["rock", "scissors", "paper", "scissors", "rock", "paper", "scissors"]],
+    ["b", ["paper", "rock", "flag", "trap", "rock", "paper", "scissors"]],
+  ] as const
+).flatMap(([side, kinds], i) =>
+  kinds.map((kind, col): RpsPiece => [[0, 1, 4, 5][i]! * 7 + col, side, kind]),
+);
 
 export const SCREENS: Screen[] = [
   {
@@ -475,15 +493,38 @@ export const SCREENS: Screen[] = [
     },
   },
   {
-    // Spec 021 task 34 (NFR-5): Rock Paper Siege as a guest, both ready, the game in play.
+    // Spec 021 tasks 34, 41 (NFR-5, FR-27, FR-28): Rock Paper Siege as a guest in play, after a
+    // fight Ada (side A) lost: B's scissors stands revealed on D3, the attack is the last move,
+    // and, Ada's turn again, she has a fighter selected with its targets shown.
     name: "rps session (guest) play",
     lowerBound: 1024,
     narrow: true,
     async open(page, request) {
       const second = await startRps(page, request);
+      const square = (p: Page, sq: number) => p.locator(`[data-square="${sq}"]`);
       await page.getByRole("button", { name: "Ready", exact: true }).click();
+      await expect(second.getByRole("region", { name: "Setup" })).toContainText(
+        "Your opponent is ready.",
+      );
+      fixRpsBoard(page.url(), RPS_PLAY_BOARD);
       await second.getByRole("button", { name: "Ready", exact: true }).click();
       await expect(page.getByRole("region", { name: "Setup" })).toHaveCount(0);
+      await expect(square(page, 10)).toHaveAttribute("aria-label", /^Your paper, D2/);
+      // A's paper D2 -> D3, B's scissors D5 -> D4, A's rock F2 -> F3, B's scissors takes the paper.
+      for (const [p, from, to] of [
+        [page, 10, 17],
+        [second, 31, 24],
+        [page, 12, 19],
+        [second, 24, 17],
+      ] as const) {
+        await square(p, from).click();
+        await square(p, to).click();
+        await expect(square(page, to)).toHaveAttribute("data-last-move", "");
+      }
+      await expect(square(page, 17)).toHaveAttribute("aria-label", /^Opponent scissors, D3/);
+      await expect(square(page, 24)).toHaveAttribute("aria-label", /^Empty/);
+      await square(page, 19).click();
+      await expect(square(page, 20)).toHaveAttribute("aria-label", /legal target$/);
       await expect(page.getByRole("button", { name: "Resign" })).toBeVisible();
     },
   },

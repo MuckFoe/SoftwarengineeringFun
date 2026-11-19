@@ -8,7 +8,15 @@
 // between the first and the second Ready, by rewriting this game's rows in the database: the
 // second Ready then starts play on that board and sends it to everyone.
 import type { Browser, Page } from "@playwright/test";
-import { appPathname, appUrl, expect, signedInContext, sql, test, workerUser } from "./fixtures";
+import {
+  appPathname,
+  appUrl,
+  expect,
+  fixRpsBoard,
+  signedInContext,
+  test,
+  workerUser,
+} from "./fixtures";
 
 const RPS_PATH = /^\/games\/rps\/s\/[\w-]+$/;
 const square = (page: Page, sq: number) => page.locator(`[data-square="${sq}"]`);
@@ -54,11 +62,7 @@ async function play(page: Page, from: number, to: number): Promise<void> {
  * the scissors; flags and traps in the corners. Side A moves first.
  */
 function fixBoard(invite: string): void {
-  const id = invite.split("/").pop() ?? "";
-  if (!/^[\w-]+$/.test(id)) throw new Error(`unexpected invite ${invite}`);
-  const game = sql(`select current_game_id from rps_session where invite_id = '${id}'`);
-  if (!/^[0-9a-f-]{36}$/.test(game)) throw new Error(`no current game for ${id}: ${game}`);
-  const pieces: Array<[number, "a" | "b", string]> = [
+  fixRpsBoard(invite, [
     [0, "a", "flag"],
     [1, "a", "trap"],
     [15, "a", "rock"],
@@ -66,13 +70,7 @@ function fixBoard(invite: string): void {
     [23, "b", "flag"],
     [40, "b", "paper"],
     [41, "b", "trap"],
-  ];
-  const values = pieces.map(([sq, side, kind]) => `('${game}', ${sq}, '${side}', '${kind}')`);
-  sql(
-    `update rps_game set first_side = 'a' where id = '${game}'; ` +
-      `delete from rps_piece where game_id = '${game}'; ` +
-      `insert into rps_piece (game_id, square, side, kind) values ${values.join(", ")}`,
-  );
+  ]);
 }
 
 test("AC-1 AC-25: the Games dock entry leads to the game, listed beside chess; a guest starts it", async ({

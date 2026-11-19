@@ -97,6 +97,36 @@ describe("GameTile rps variant (AC-24, FR-25)", () => {
     expect(preview?.querySelector("[tabindex], button, a, input")).toBeNull();
   });
 
+  it("preview draws hidden cells with the hidden figure, identical per side (AC-24, AC-28)", () => {
+    const { container } = render(<GameTile tile={rps()} onOpen={() => {}} />);
+    const at = (sq: number) => container.querySelector(`[data-rps-preview] [data-square="${sq}"]`);
+    const fig = (sq: number) => at(sq)?.querySelector("svg[data-side]");
+    expect(fig(0)?.getAttribute("data-side")).toBe("a");
+    expect(fig(0)?.getAttribute("viewBox")).toBe("0 -1.5 48 50");
+    expect(fig(41)?.getAttribute("data-side")).toBe("b");
+    // Two hidden cells of one side render identical markup.
+    expect(at(0)?.innerHTML).toBe(at(1)?.innerHTML);
+    expect(at(30)?.innerHTML).toBe(at(41)?.innerHTML);
+    // A revealed piece differs from the hidden figure.
+    expect(at(8)?.innerHTML).not.toBe(at(0)?.innerHTML);
+    // The preview names nothing: no titles inside.
+    expect(container.querySelector("[data-rps-preview] title")).toBeNull();
+  });
+
+  it("preview cells mark home and middle rows (AC-29, FR-28)", () => {
+    const { container } = render(<GameTile tile={rps()} onOpen={() => {}} />);
+    const zone = (sq: number) =>
+      container
+        .querySelector(`[data-rps-preview] [data-square="${sq}"]`)
+        ?.getAttribute("data-zone");
+    expect(zone(0)).toBe("home-bottom");
+    expect(zone(13)).toBe("home-bottom");
+    expect(zone(14)).toBe("middle");
+    expect(zone(27)).toBe("middle");
+    expect(zone(28)).toBe("home-top");
+    expect(zone(41)).toBe("home-top");
+  });
+
   it("preview has side a at the bottom: square 0 is bottom-left, 41 top-right", () => {
     const { container } = render(<GameTile tile={rps()} onOpen={() => {}} />);
     const order = [...container.querySelectorAll("[data-rps-preview] [data-square]")].map((c) =>

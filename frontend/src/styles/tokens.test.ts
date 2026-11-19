@@ -417,6 +417,18 @@ const RPS_ALIASES: [string, string][] = [
   ["--rps-trap-flash", "var(--danger)"],
 ];
 
+// Spec 021 task 35 (FR-28, NFR-5): the playing-field tones are aliases too, declared the same way.
+const RPS_FIELD_ALIASES: [string, string][] = [
+  ["--rps-field", "var(--surface-4)"],
+  ["--rps-field-line", "var(--ui-stroke)"],
+  ["--rps-zone-home", "var(--surface-1)"],
+  ["--rps-zone-middle", "var(--surface-3)"],
+  ["--rps-zone-home-rule", "var(--accent)"],
+  ["--rps-figure-contour", "var(--text)"],
+  ["--rps-target", "var(--text)"],
+  ["--rps-last-move", "var(--text-muted)"],
+];
+
 describe("rps tokens (spec 021 task 3)", () => {
   it("defines the side and trap aliases in light, dark and the system-dark path", () => {
     for (const path of ["light", "explicit-light", "dark", "system-dark"] as Path[]) {
@@ -438,6 +450,22 @@ describe("rps tokens (spec 021 task 3)", () => {
       .filter((r) => r.selector === LIGHT)
       .flatMap((r) => [...r.decls.keys()])
       .filter((n) => n.startsWith("--rps-"));
-    expect(root.sort()).toEqual(RPS_ALIASES.map(([n]) => n).sort());
+    expect(root.sort()).toEqual([...RPS_ALIASES, ...RPS_FIELD_ALIASES].map(([n]) => n).sort());
+  });
+
+  it("defines the field and zone aliases in light, dark and the system-dark path (task 35)", () => {
+    for (const path of ["light", "explicit-light", "dark", "system-dark"] as Path[]) {
+      const got = resolve(path);
+      for (const [name, alias] of RPS_FIELD_ALIASES)
+        expect([path, name, norm(got.get(name) ?? "")]).toEqual([path, name, norm(alias)]);
+    }
+  });
+
+  it("keeps the chess squares --board-light and --board-dark (task 35)", () => {
+    for (const path of ["light", "dark"] as Path[]) {
+      const got = resolve(path);
+      for (const n of ["--board-light", "--board-dark"])
+        expect(got.has(n), `${path} ${n}`).toBe(true);
+    }
   });
 });

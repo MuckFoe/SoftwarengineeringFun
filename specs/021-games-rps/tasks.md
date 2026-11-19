@@ -17,6 +17,10 @@ AC-3 (no original name, characters, artwork or sounds) has no task of its own: p
 | 7 | 28, 29 — all `[P]` | Deletion needs `close_session` and the frame dispatch from 23/27 and edits `ws.py`; the restart test only adds a test file. |
 | 8 | 30 | Chat edits `ws.py` and `api.py` after 28 has finished with them. |
 | 9 | 31, 32, 33, 34 — all `[P]` | End-to-end and look checks need the whole stack. Run them against one kept stack in one batched gate, with Playwright locked. |
+| 10 | 35, 36 — all `[P]` | 2026-11-19 revision (FR-27, FR-28). Foundations: field tokens and the figure art with its component. Different files. The old SVGs stay until their users have moved. |
+| 11 | 37, 38, 39 — all `[P]` | Board, home preview and duel picker each switch to `PieceFigure` (36); board and preview also need the field tokens (35). Each owns its own files. |
+| 12 | 40 | The six `.svg` files and `paths.ts` can go only once 37–39 no longer import them. |
+| 13 | 41 | Look matrix and the human look need the finished board on a kept stack. |
 
 ## Checklist
 
@@ -54,6 +58,13 @@ AC-3 (no original name, characters, artwork or sounds) has no task of its own: p
 - [x] **32** — `[P]` E2E: fight latency
 - [x] **33** — `[P]` E2E: narrow, dark, reduced motion, keyboard, screen reader
 - [x] **34** — `[P]` Look matrix entries
+- [x] **35** — `[P]` Field tokens and contrast for figures on the field
+- [x] **36** — `[P]` Figure parts and `PieceFigure`
+- [x] **37** — `[P]` `RpsBoard` as a playing field with figures
+- [x] **38** — `[P]` `RpsBoardPreview` with figures and field look
+- [x] **39** — `[P]` `DuelPicker` weapon glyphs
+- [x] **40** — Remove the old piece SVGs and `paths.ts`
+- [x] **41** — Look matrix and human look for figures and field
 
 ## Tasks
 
@@ -420,3 +431,83 @@ AC-3 (no original name, characters, artwork or sounds) has no task of its own: p
 - **Do:** Add "rps session (guest)" in setup and in play to the look matrix, light and dark, wide and narrow.
 - **Acceptance:**
   - *NFR-5 — UI rules hold in light, dark and narrow:* both entries render and pass the matrix checks; this fulfils the spec's open UI checklist item "Look matrix entry and E2E tasks present".
+
+---
+
+Tasks 35–41 implement the 2026-11-19 revision (plan: *Figures and playing field*). Frontend only: no backend, data model or wire contract change.
+
+### 35. `[P]` Field tokens and contrast for figures on the field
+
+- **Plan:** Figures and playing field — Playing field (zone tokens, midline); Touched files `styles/tokens.css`, Keycloak theme copy, `tokens`/`contrast` tests; Test strategy AC-28, AC-29 (`contrast.test.ts` parts). **Spec:** FR-28, NFR-5.
+- **Files:** `frontend/src/styles/tokens.css`, `keycloak-theme/collab/login/resources/css/collab.css`, `frontend/src/styles/tokens.test.ts` + `keycloakTheme.test.ts` + `contrast.test.ts`
+- **Depends on:** nothing
+- **Do:** Add, in light and dark and mirrored in the Keycloak copy, the aliases `--rps-field` (`--surface-3`), `--rps-field-line` (`--ui-stroke`), `--rps-zone-home` (`--surface-1`), `--rps-zone-middle` (`--surface-2`), `--rps-zone-home-rule` (`--accent`). Aliases only, no raw colours, no new hue. After deploying the theme, clear the Keycloak gzip theme cache, not just restart. Do not remove `--board-light`/`--board-dark` (chess uses them).
+- **Acceptance:**
+  - *NFR-5 / UI B.7 — tokens only, one accent, light and dark:* tokens and Keycloak tests find all five in light, dark and the Keycloak copy; the guard test still passes.
+  - *AC-28 (FR-27, NFR-5) — … in light and in dark mode … a piece of side A can be told from a piece of side B:* `contrast.test.ts` asserts each side's fill or edge reaches 3:1 against `--rps-zone-home` and `--rps-zone-middle`, in light and dark.
+  - *AC-29 (FR-28) — … the line between the halves is visible, each square can be told apart from its neighbours … a selected fighter, its legal targets and the last move are shown on the field … in light and in dark mode:* `contrast.test.ts` asserts `--rps-field-line` (midline and tile outline) reaches 3:1 against both zone tones, `--focus` reaches 3:1 against `--bg` (two-tone ring), and `--accent` (target dot) and `--highlight` stay readable on both zones, in light and dark; `--rps-field` is not held to 3:1 (decided 2026-11-19, see plan). If a pair fails, stop and report: the fix is a token choice for the human, not a raw colour.
+
+### 36. `[P]` Figure parts and `PieceFigure`
+
+- **Plan:** Decision 5; Figures and playing field — Figure construction, Contract, Side marks; Frontend `pieces/figureParts.ts`, `pieces/PieceFigure.tsx`; Test strategy AC-28 (`pieces.test.ts`). **Spec:** FR-27, FR-21, FR-3, NFR-5, NFR-6.
+- **Files:** `frontend/src/games/rps/pieces/figureParts.ts`, `frontend/src/games/rps/pieces/PieceFigure.tsx` (+ its CSS module), `frontend/src/games/rps/pieces/pieces.test.ts` (rewritten)
+- **Depends on:** nothing (uses existing `--rps-side-*` tokens)
+- **Do:** Draw original art as data on a `0 0 48 48` grid: `BODY` (one shared chunky silhouette, round helmet, big head, short wide body, stubby legs, base at y=45), `HIDDEN_ARMS` (arms behind the back), `KIND_PARTS` for rock (boulder in both hands), paper (sheet, folded corner, two lines), scissors (open blades, two round handles), flag (soldier with pole and pennant above the helmet), trap (toothed jaw trap on a plate, no soldier), plus a side-`a` round boss and side-`b` bar helmet emblem as `detail` parts. Stroke 3 units, round joins and caps, no detail thinner than 2 units; weapon about 40 % of figure width. `PieceFigure({kind, side, title?, weaponOnly?})` renders `<svg viewBox="0 0 48 48" data-side aria-hidden={!title}>`, colouring `fill`/`edge`/`detail` roles through CSS classes on `--rps-side-*` tokens, never literals. Hidden output depends on `side` only. Keep the old `.svg` files and `paths.ts` for now (task 40 removes them); rewrite `pieces.test.ts` for the new module only.
+- **Acceptance:**
+  - *AC-28 (FR-27) — each rock, paper and scissors figure is recognisable by the weapon it holds, the flag and trap are recognisable:* each of rock/paper/scissors/flag/trap renders its own `KIND_PARTS` paths and no other kind's; `weaponOnly` renders only that kind's parts and no `BODY`.
+  - *AC-28 / FR-21 — every opponent hidden piece looks identical:* two hidden figures of the same side serialise to identical markup, containing `HIDDEN_ARMS` and no `KIND_PARTS` path.
+  - *AC-28 / NFR-5 — side A told from side B without relying on colour alone:* side `a` and `b` figures differ by their emblem path, not only by class or `data-side`; hidden figures carry the emblem too.
+  - *FR-3 / NFR-6 — own artwork:* every `d` in the output comes from `figureParts` (no inline art); no raster, `<image>` or external reference; no colour literal in markup or CSS module; `check-no-apple-assets.sh` passes. Recognisability itself is a human look at `/run`.
+
+### 37. `[P]` `RpsBoard` as a playing field with figures
+
+- **Plan:** Decision 6; Figures and playing field — Playing field (zones, squares, midline, highlights, motion, size); Touched `games/rps/RpsBoard.tsx`, `RpsBoard.module.css`; Test strategy AC-29 (vitest `RpsBoard`). **Spec:** FR-28, FR-27, FR-21, NFR-5.
+- **Files:** `frontend/src/games/rps/RpsBoard.tsx`, `RpsBoard.module.css`, `RpsBoard.test.tsx`
+- **Depends on:** 35, 36
+- **Do:** Draw every piece with `<PieceFigure kind side />` (no `title`; the cell carries the name), replacing `PIECE_PATHS` in the component and its test. Give each cell `data-zone="home-bottom" | "middle" | "home-top"` from its row and the side drawn at the bottom. Cells become tiles (`--radius-sm`, 1 px `--rps-field-line` outline) on a `--rps-field` background with a `--space-2` gap; zone tones `--rps-zone-home`/`--rps-zone-middle`; a `--rps-zone-home-rule` inner rule on each home zone's outer edge; a 3-unit midline as the board's `::after` across the row 2/3 boundary in `--rps-field-line`; no checker tones. Selection becomes a two-tone ring (outer `--focus`, thin inner `--bg`), target dot (`--accent`) and last move (`--highlight`). Figure `inline-size: 82%`. Narrow sizing, keyboard and motion unchanged; no new animation.
+- **Acceptance:**
+  - *AC-29 (FR-28) — both sides' home rows, the empty middle rows and the line between the halves are visible:* cells carry the right `data-zone` for a player at side a, a player at side b and a viewer (two home rows each end, two middle rows); the board renders the midline element/class.
+  - *AC-29 — a selected fighter, its legal targets and the last move are shown on the field:* selecting a fighter still marks it selected and exactly `legal[from]` as targets, the last move's two squares are marked, all with their existing accessible names and states.
+  - *AC-28 / FR-21 — opponent hidden pieces identical:* two opponent hidden cells render identical figure markup.
+  - *AC-27 / NFR-5 — names, keyboard, reduced motion still hold:* the existing `RpsBoard` name and key tests pass unchanged.
+
+### 38. `[P]` `RpsBoardPreview` with figures and field look
+
+- **Plan:** Decision 5 (one `PieceFigure` for board, preview, picker); Touched `home/RpsBoardPreview.tsx`. **Spec:** FR-27, FR-28, FR-25.
+- **Files:** `frontend/src/home/RpsBoardPreview.tsx`, `frontend/src/home/RpsBoardPreview.module.css`, `frontend/src/home/GameTile.test.tsx`
+- **Depends on:** 35, 36
+- **Do:** Replace the `?raw` SVG imports and duplicated paths with `PieceFigure`; draw the preview with the field look (zone tones, tiles, midline) at preview size. Preview stays `aria-hidden` and does not delay first paint.
+- **Acceptance:**
+  - *AC-24 (FR-25) — the preview shows hidden pieces as hidden:* cells with `kind: null` render the hidden figure; the preview is `aria-hidden`; chess tiles unchanged.
+  - *AC-28 / FR-21 — every hidden piece looks the same:* two hidden cells of a side render identical markup.
+  - *AC-29 (FR-28) — home rows and middle rows visibly marked:* preview cells carry zone classes or `data-zone` for home and middle rows.
+
+### 39. `[P]` `DuelPicker` weapon glyphs
+
+- **Plan:** Decision 5; Contract `weaponOnly`; Touched `games/rps/DuelPicker.tsx`; Frontend unit (DuelPicker tests switch to `PieceFigure`, same queries). **Spec:** FR-27, NFR-5.
+- **Files:** `frontend/src/games/rps/DuelPicker.tsx`, `DuelPicker.module.css`, `DuelPicker.test.tsx`
+- **Depends on:** 36
+- **Do:** Each of the three pick buttons shows `<PieceFigure kind={weapon} side={own side} weaponOnly />` beside its text label; the button keeps its accessible name.
+- **Acceptance:**
+  - *AC-28 (FR-27) — each kind recognisable by its weapon:* each button renders exactly its own weapon's `KIND_PARTS`, no body.
+  - *NFR-5 / AC-27 — playable by keyboard and screen reader:* the existing role/name queries, waiting state and disabled-after-pick tests pass unchanged; the glyph is `aria-hidden`.
+
+### 40. Remove the old piece SVGs and `paths.ts`
+
+- **Plan:** Touched files — the six `.svg` files and `paths.ts` are deleted, along with whatever imports them. **Spec:** FR-27, FR-3.
+- **Files:** delete `frontend/src/games/rps/pieces/{rock,paper,scissors,flag,trap,hidden}.svg` and `pieces/paths.ts`
+- **Depends on:** 37, 38, 39
+- **Do:** Delete them; fix any import that still names them (there should be none after 37–39).
+- **Acceptance:**
+  - *FR-27 — every piece is drawn as a soldier figure:* no source file under `frontend/src` imports `pieces/paths` or `pieces/*.svg`; typecheck, lint and the frontend unit suite pass; `check-no-apple-assets.sh` passes.
+
+### 41. Look matrix and human look for figures and field
+
+- **Plan:** Test strategy AC-28, AC-29 (look matrix "rps session (guest)" in setup and play, 390 px, light and dark); UI D.19–22. **Spec:** FR-27, FR-28, NFR-5.
+- **Files:** `e2e/audi/matrix.ts` (only if the play entry does not yet show own figures and at least one revealed opponent fighter)
+- **Depends on:** 40
+- **Do:** Run the two "rps session (guest)" matrix entries at 390 px in light and dark on a kept stack (Playwright locked). If the play entry shows no revealed fighter, extend its fixture so it does. Then `/run` and look at setup and play in both themes for the human check.
+- **Acceptance:**
+  - *AC-28 (FR-27, NFR-5) — Given a board at 390 px wide, in light and in dark mode, when a player looks at their own pieces and the opponent's revealed fighters, then each rock, paper and scissors figure is recognisable by the weapon it holds, the flag and trap are recognisable, every opponent hidden piece looks identical, and a piece of side A can be told from a piece of side B without relying on colour alone:* matrix entries pass; human confirms at `/run`.
+  - *AC-29 (FR-28) — both sides' home rows, the empty middle rows and the line between the halves are visible, each square can be told apart from its neighbours, and a selected fighter, its legal targets and the last move are shown on the field … in light and in dark mode:* matrix entries pass; human confirms at `/run`.
+  - *AC-27 — whole board visible at 390 px without horizontal scrolling:* `rps-a11y.spec.ts` still passes.

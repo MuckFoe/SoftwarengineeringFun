@@ -1,9 +1,10 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PIECE_PATHS } from "./pieces/paths";
+import { PieceFigure } from "./pieces/PieceFigure";
 import { RpsBoard } from "./RpsBoard";
-import type { Recipient, RpsGame, RpsPiece, Side } from "./rpsTypes";
+import type { Recipient, RpsEvent, RpsGame, RpsPiece, Side } from "./rpsTypes";
 
 // Spec 021 task 16: FR-9, FR-21, NFR-5 / AC-9, AC-27. Squares are `row * 7 + col`, row 0 on
 // side a's edge; names count columns A–G and rows 1–6 from the reader's side.
@@ -104,16 +105,97 @@ describe("RpsBoard", () => {
     expect(cells[41]?.dataset.square).toBe("6");
   });
 
-  it("FR-21: a hidden kind draws the hidden artwork in the side's style", () => {
+  it("FR-27 / FR-21: pieces are figures; a hidden kind draws the hidden figure in the side's style", () => {
     render(<Harness game={game()} you="a" />);
-    const hidden = cell("D5").querySelector("svg");
-    expect(hidden?.getAttribute("role")).toBe("presentation");
-    expect(hidden?.querySelector("path")?.getAttribute("d")).toBe(PIECE_PATHS.hidden);
-    expect(hidden?.getAttribute("class")).toMatch(/sideB/);
-    const rock = cell("C2").querySelector("svg");
-    expect(rock?.querySelector("path")?.getAttribute("d")).toBe(PIECE_PATHS.rock);
-    expect(rock?.getAttribute("class")).toMatch(/sideA/);
+    const figure = (name: string) => cell(name).querySelector("svg");
+    const markup = (kind: RpsPiece["kind"], side: Side) =>
+      renderToStaticMarkup(<PieceFigure kind={kind} side={side} />);
+    expect(figure("D5")?.outerHTML).toBe(markup(null, "b"));
+    expect(figure("D5")?.getAttribute("aria-hidden")).toBe("true");
+    expect(figure("C2")?.outerHTML).toBe(markup("rock", "a"));
+    expect(figure("C1")?.outerHTML).toBe(markup("flag", "a"));
+    expect(figure("C2")?.querySelector("title")).toBeNull();
     expect(cell("E3").querySelector("svg")).toBeNull();
+  });
+
+  it("AC-28 / FR-21: two opponent hidden cells render identical figure markup", () => {
+    render(<Harness game={game()} you="a" />);
+    const a = cell("D5").innerHTML;
+    // Square 35 = row 5, col 0 = A6 from side a.
+    expect(a).not.toBe("");
+    expect(cell("A6").innerHTML).toBe(a);
+  });
+
+  const zones = () => {
+    const rows = screen.getAllByRole("row");
+    return rows.map((row) => {
+      const z = Array.from(row.querySelectorAll<HTMLElement>('[role="gridcell"]')).map(
+        (c) => c.dataset.zone,
+      );
+      expect(new Set(z).size).toBe(1);
+      return z[0];
+    });
+  };
+  const FIELD = ["home-top", "home-top", "middle", "middle", "home-bottom", "home-bottom"];
+
+  it("AC-29 (FR-28): cells carry their zone for a player at side a, at side b and a viewer", () => {
+    render(<Harness game={game()} you="a" />);
+    expect(zones()).toEqual(FIELD);
+    // Side a's home rows (squares 0–13) are at the bottom.
+    expect(cell("C1").dataset.zone).toBe("home-bottom");
+    cleanup();
+    render(<Harness game={game({ turn: "b", legal: {} })} you="b" />);
+    expect(zones()).toEqual(FIELD);
+    // Square 9 (side a's home) is E5 from side b: the top home zone.
+    expect(cell("E5").dataset.zone).toBe("home-top");
+    expect(cell("D2").dataset.zone).toBe("home-bottom");
+    cleanup();
+    render(<Harness game={game({ legal: {} })} you="viewer" bottom="a" />);
+    expect(zones()).toEqual(FIELD);
+    expect(cell("C2").dataset.zone).toBe("home-bottom");
+  });
+
+  it("AC-29 (FR-28): the board draws the line between the halves", () => {
+    render(<Harness game={game()} you="a" />);
+    const grid = screen.getByRole("grid", { name: "Rock Paper Siege board" });
+    expect(grid.className).toMatch(/field/);
+    expect(grid.className).toMatch(/midline/);
+  });
+
+  it("AC-29: selection, targets and the last move are marked on the field", () => {
+    const g = game({ legal: { 9: [16, 8, 10] } });
+    const board = (event: RpsEvent) => (
+      <RpsBoard
+        game={g}
+        you="a"
+        bottom="a"
+        selected={9}
+        onSelect={vi.fn()}
+        onMove={vi.fn()}
+        event={event}
+      />
+    );
+    const lastSquares = () =>
+      screen
+        .getAllByRole("gridcell")
+        .filter((c) => c.dataset.lastMove !== undefined)
+        .map((c) => c.dataset.square)
+        .sort();
+    const { rerender } = render(board({ kind: "moved", from: 30, to: 31 }));
+    expect(cell("C2").getAttribute("aria-label")).toBe("Your rock, C2, selected");
+    expect(cell("C2").className).toMatch(/selected/);
+    expect(targets()).toEqual(["10", "16", "8"]);
+    expect(cell("C3").getAttribute("aria-label")).toBe("Empty, C3, legal target");
+    expect(lastSquares()).toEqual(["30", "31"]);
+    expect(cell("D5").className).toMatch(/lastMove/);
+    expect(cell("D5").getAttribute("aria-label")).toBe("Opponent hidden piece, D5");
+    // A duel round carries no squares: the tied fight's squares stay marked.
+    rerender(board({ kind: "duel", from: 24, to: 31, weapon: "rock" }));
+    expect(lastSquares()).toEqual(["24", "31"]);
+    rerender(board({ kind: "duel_round", picks: { a: "rock", b: "rock" }, outcome: "again" }));
+    expect(lastSquares()).toEqual(["24", "31"]);
+    rerender(board({ kind: "moved", from: 9, to: 16 }));
+    expect(lastSquares()).toEqual(["16", "9"]);
   });
 
   it("AC-9: selecting a fighter marks exactly legal[from]", () => {

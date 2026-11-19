@@ -1,6 +1,7 @@
 import { type KeyboardEvent, useEffect, useRef } from "react";
 import { Button } from "../../ui/Button";
 import styles from "./DuelPicker.module.css";
+import { PieceFigure } from "./pieces/PieceFigure";
 import type { Recipient, RpsDuel, Side, Weapon } from "./rpsTypes";
 
 const WEAPONS: { weapon: Weapon; name: string }[] = [
@@ -64,6 +65,9 @@ export function DuelPicker({ duel, you, onPick }: Props) {
           >
             {WEAPONS.map(({ weapon, name }) => (
               <Button key={weapon} disabled={!canPick} onClick={() => onPick(weapon)}>
+                <span className={styles.glyph}>
+                  <PieceFigure kind={weapon} side={you} weaponOnly />
+                </span>
                 {name}
               </Button>
             ))}

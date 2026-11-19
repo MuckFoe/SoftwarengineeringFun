@@ -23,6 +23,14 @@
   gap: var(--space-8);
 }
 
+/* The weapon glyph beside each pick's label (FR-27); the figure fills this box. */
+.glyph {
+  display: inline-block;
+  flex: none;
+  width: var(--space-24);
+  height: var(--space-24);
+}
+
 .status {
   margin: 0;
   padding: 0;
